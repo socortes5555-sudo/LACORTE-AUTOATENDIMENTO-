@@ -41,7 +41,15 @@
         </div>
       </div>
 
-      <div id="step-content" aria-live="polite"></div>
+      <div id="step-content" aria-live="polite">
+        <form id="login-form" data-fallback-login>
+          <label for="email">Seu e-mail</label>
+          <input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" required>
+          <p class="muted">Você receberá um link de acesso no seu e-mail. Não precisa criar senha.</p>
+          <p id="fallback-login-message" class="muted" role="status"></p>
+          <button class="btn btn-primary" type="submit">ENVIAR LINK DE ACESSO</button>
+        </form>
+      </div>
 
       <div class="notice" id="demo-notice">
         Seus dados serão protegidos. Não há pagamento online neste atendimento.
@@ -60,6 +68,42 @@
     if (!window.supabase) {
       document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
     }
+  </script>
+  <script>
+    // Plano de contingência: mantém o acesso por e-mail disponível mesmo se app.js falhar.
+    document.addEventListener("submit", async function(event) {
+      const form = event.target;
+      if (!form || !form.matches("[data-fallback-login]")) return;
+      event.preventDefault();
+      const message = document.getElementById("fallback-login-message");
+      const email = document.getElementById("email").value.trim();
+      const button = form.querySelector('button[type="submit"]');
+      if (!window.supabase || !window.supabase.createClient) {
+        message.textContent = "A conexão de acesso não carregou. Verifique a internet e atualize a página.";
+        return;
+      }
+      button.disabled = true;
+      message.textContent = "Enviando link de acesso...";
+      try {
+        const client = window.supabase.createClient(
+          "https://xwctsfpqwugygxpsrcfw.supabase.co",
+          "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s"
+        );
+        const result = await client.auth.signInWithOtp({
+          email: email,
+          options: {
+            emailRedirectTo: window.location.origin + window.location.pathname,
+            shouldCreateUser: true
+          }
+        });
+        if (result.error) throw result.error;
+        message.textContent = "Link enviado! Abra seu e-mail e clique no link para continuar na LaCorte.";
+      } catch (error) {
+        message.textContent = "Não foi possível enviar o link: " + (error.message || "erro desconhecido");
+      } finally {
+        button.disabled = false;
+      }
+    });
   </script>
   <script src="app.js?v=20261105-2"></script>
 </body>
