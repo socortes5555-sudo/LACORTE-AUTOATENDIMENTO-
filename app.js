@@ -2,7 +2,7 @@
 const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -924,12 +924,16 @@ renderConfirmation = function(){
 
 // Substitui o carregamento inicial antigo: primeiro identifica o perfil, depois abre a área correta.
 async function initLaCorte(){
-  if (!window.supabase) {
-    content.textContent = "Não foi possível carregar a conexão com o Supabase.";
+  setAppMode(false);
+
+  // Exibe o formulário mesmo quando a biblioteca do Supabase não carregar.
+  if (!db) {
+    state.role = null;
+    render();
+    showMessage("A conexão segura não carregou. Verifique a internet e atualize a página para entrar.");
     return;
   }
 
-  setAppMode(false);
   const sessionResult = await db.auth.getSession();
   if (sessionResult.error) {
     state.message = "Erro ao verificar acesso: " + sessionResult.error.message;
