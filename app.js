@@ -115,55 +115,9 @@ function render(){
 function renderLogin(){
   setHeader(
     "ETAPA 01",
-    state.pendingEmail ? "Digite seu código" : "Acesse sua conta",
-    state.pendingEmail
-      ? "Informe o código de 6 dígitos enviado para seu e-mail."
-      : "Informe seu e-mail para receber um código seguro de acesso."
+    "Acesse sua conta",
+    "Informe seu e-mail, solicite o código e digite os 6 números aqui mesmo."
   );
-
-  if(state.pendingEmail){
-    content.innerHTML=`
-      <form id="verify-code-form">
-        <label for="email-code">Código de acesso</label>
-        <input
-          id="email-code"
-          name="token"
-          type="text"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxlength="6"
-          placeholder="000000"
-          required
-        >
-        <p class="muted">Enviamos um código para <strong>${safe(state.pendingEmail)}</strong>. Digite os 6 números para entrar.</p>
-        <p id="app-message" class="muted">${safe(state.message)}</p>
-        <button class="btn btn-primary" type="submit">CONFIRMAR CÓDIGO</button>
-      </form>
-    `;
-    actions.replaceChildren();
-    document.querySelector("#verify-code-form").addEventListener("submit",async e=>{
-      e.preventDefault();
-      const token=document.querySelector("#email-code").value.trim();
-      if(!/^[0-9]{6}$/.test(token)){
-        showMessage("Digite os 6 números do código recebido.");
-        return;
-      }
-      showMessage("Validando código...");
-      const {data,error}=await db.auth.verifyOtp({
-        email:state.pendingEmail,
-        token:token,
-        type:"email"
-      });
-      if(error){
-        showMessage("Não foi possível validar o código: "+error.message);
-        return;
-      }
-      state.pendingEmail="";
-      if(data && data.user) await routeAuthenticatedUser(data.user);
-    });
-    return;
-  }
 
   content.innerHTML=`
     <form id="login-form">
@@ -174,36 +128,84 @@ function renderLogin(){
         type="email"
         placeholder="seuemail@exemplo.com"
         autocomplete="email"
+        value="${safe(state.pendingEmail || "")}"
         required
       >
-      <p class="muted">
-        Você receberá um código de 6 dígitos no seu e-mail.
-        Não precisa criar senha.
-      </p>
-      <p id="app-message" class="muted">${safe(state.message)}</p>
-      <button class="btn btn-primary" type="submit">
+      <button class="btn btn-secondary" id="send-code-button" type="button">
         ENVIAR CÓDIGO DE ACESSO
+      </button>
+      <label for="email-code">Código de 6 dígitos</label>
+      <input
+        id="email-code"
+        name="token"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        pattern="[0-9]{6}"
+        maxlength="6"
+        placeholder="000000"
+      >
+      <p class="muted">O campo do código já está disponível. Confira também a caixa de spam.</p>
+      <p id="app-message" class="muted">${safe(state.message)}</p>
+      <button class="btn btn-primary" id="verify-code-button" type="submit">
+        CONFIRMAR CÓDIGO
       </button>
     </form>
   `;
 
   actions.replaceChildren();
 
-  document.querySelector("#login-form").addEventListener("submit",async e=>{
-    e.preventDefault();
+  document.querySelector("#send-code-button").addEventListener("click", async function(){
     const email=document.querySelector("#email").value.trim();
+    if(!email){
+      showMessage("Informe seu e-mail primeiro.");
+      return;
+    }
+    const button=document.querySelector("#send-code-button");
+    button.disabled=true;
     showMessage("Enviando código de acesso...");
     const {error}=await db.auth.signInWithOtp({
-      email,
+      email:email,
       options:{shouldCreateUser:true}
     });
+    button.disabled=false;
     if(error){
       showMessage("Erro ao enviar código: "+error.message);
       return;
     }
     state.pendingEmail=email;
-    state.message="Código enviado. Confira sua caixa de entrada e também o spam.";
-    renderLogin();
+    showMessage("Código enviado. Digite os 6 números no campo acima.");
+    document.querySelector("#email-code").focus();
+  });
+
+  document.querySelector("#login-form").addEventListener("submit",async function(e){
+    e.preventDefault();
+    const email=document.querySelector("#email").value.trim();
+    const token=document.querySelector("#email-code").value.trim();
+    if(!email){
+      showMessage("Informe seu e-mail.");
+      return;
+    }
+    if(!/^[0-9]{6}$/.test(token)){
+      showMessage("Digite os 6 números do código recebido.");
+      return;
+    }
+    const button=document.querySelector("#verify-code-button");
+    button.disabled=true;
+    showMessage("Validando código...");
+    const {data,error}=await db.auth.verifyOtp({
+      email:email,
+      token:token,
+      type:"email"
+    });
+    if(error){
+      button.disabled=false;
+      showMessage("Não foi possível validar o código: "+error.message);
+      return;
+    }
+    state.pendingEmail="";
+    if(data && data.user) await routeAuthenticatedUser(data.user);
+    else showMessage("Código confirmado, mas não recebemos os dados da conta. Atualize a página.");
   });
 }
 
