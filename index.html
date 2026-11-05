@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>LaCorte | Autoatendimento</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="LaCorte início">LA<span>CORTE</span><b>.</b></a>
+    <span class="top-label">AUTOATENDIMENTO</span>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">BARBEARIA • EXPERIÊNCIA LA CORTE</p>
+      <h1>Seu próximo corte<br><em>começa aqui.</em></h1>
+      <p class="intro">Escolha seu serviço, selecione o barbeiro e siga as etapas para entrar na fila.</p>
+    </section>
+
+    <nav class="progress" aria-label="Etapas do atendimento">
+      <div class="progress-step active" data-progress="1"><span>1</span><small>Serviço</small></div>
+      <i></i>
+      <div class="progress-step" data-progress="2"><span>2</span><small>Barbeiro</small></div>
+      <i></i>
+      <div class="progress-step" data-progress="3"><span>3</span><small>Pagamento</small></div>
+      <i></i>
+      <div class="progress-step" data-progress="4"><span>4</span><small>Espera</small></div>
+    </nav>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow" id="step-kicker">ETAPA 01</p>
+          <h2 id="step-title">Escolha seu serviço</h2>
+          <p class="muted" id="step-description">Selecione o que deseja fazer hoje.</p>
+        </div>
+      </div>
+
+      <div id="step-content" aria-live="polite"></div>
+      <div class="notice" id="demo-notice">
+        <strong>Protótipo inicial:</strong> os serviços, profissionais e preços são exemplos. Nenhum pagamento real é processado e nenhuma fila real é criada nesta versão.
+      </div>
+      <div class="actions" id="step-actions"></div>
+    </section>
+
+    <footer>LA<span>CORTE</span><b>.</b> <small>Atendimento simples. Estilo impecável.</small></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
+:root{--bg:#101010;--surface:#191919;--surface2:#222;--line:#333;--orange:#ff791f;--text:#f7f5f2;--muted:#aaa}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 80% 0%,#302015 0,transparent 38%),var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.topbar{height:72px;padding:0 max(22px,calc((100vw - 900px)/2));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #292929}
+.brand{font:700 25px Oswald,sans-serif;letter-spacing:1.5px;color:white;text-decoration:none}.brand span,footer span{color:var(--orange)}.brand b,footer b{color:var(--orange)}
+.top-label,.eyebrow{font-size:10px;letter-spacing:2px;color:var(--orange);font-weight:700}
+.shell{max-width:760px;margin:0 auto;padding:42px 20px 24px}
+.hero{padding:12px 0 28px}.hero h1{font:600 clamp(38px,8vw,58px)/1.02 Oswald,sans-serif;margin:12px 0}.hero h1 em{font-style:normal;color:var(--orange)}.intro,.muted{color:var(--muted);line-height:1.6;font-size:14px}
+.progress{display:flex;align-items:center;justify-content:space-between;margin:10px 0 24px;gap:7px}.progress-step{display:flex;flex-direction:column;align-items:center;gap:7px;color:#777;min-width:48px}.progress-step span{width:30px;height:30px;border:1px solid #555;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700}.progress-step small{font-size:10px}.progress-step.active span,.progress-step.done span{background:var(--orange);border-color:var(--orange);color:#111}.progress-step.active,.progress-step.done{color:white}.progress i{height:1px;background:#444;flex:1;margin-bottom:16px}
+.panel{background:rgba(25,25,25,.96);border:1px solid #303030;border-radius:18px;padding:clamp(18px,4vw,30px);box-shadow:0 18px 60px #0005}
+.panel-heading h2{font:600 28px Oswald,sans-serif;margin:4px 0}.panel-heading .eyebrow{margin:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}
+.choice{background:var(--surface2);border:1px solid #393939;border-radius:13px;padding:17px;text-align:left;color:var(--text);cursor:pointer;transition:.18s;min-height:112px}
+.choice:hover{border-color:#a95825}.choice.selected{border:2px solid var(--orange);background:#302116;padding:16px}
+.choice .name{font-weight:700;display:block;margin-bottom:7px}.choice .detail{font-size:12px;color:var(--muted);line-height:1.5}.choice .price{display:block;color:var(--orange);font-weight:700;margin-top:12px}
+.badge{display:inline-block;font-size:10px;color:#8ee0a6;background:#173222;border-radius:30px;padding:5px 9px;margin-top:10px}
+.payment-choice{display:flex;align-items:center;gap:12px;min-height:76px}.payment-choice .symbol{font-size:22px;color:var(--orange);width:32px}
+.summary{background:#141414;border:1px solid #333;border-radius:12px;padding:15px;margin:18px 0}.summary-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:13px}.summary-row span:first-child{color:var(--muted)}.summary-total{border-top:1px solid #333;margin-top:7px;padding-top:13px;font-weight:700}.summary-total strong{color:var(--orange);font-size:19px}
+.notice{font-size:11px;line-height:1.55;color:#d7b99e;background:#2a1e16;border:1px solid #59371f;padding:12px;border-radius:10px;margin-top:20px}
+.actions{display:flex;gap:10px;margin-top:20px}.btn{border:0;border-radius:9px;padding:15px 18px;font-weight:700;cursor:pointer;font-size:13px;flex:1}.btn-primary{background:var(--orange);color:#151515}.btn-secondary{background:#292929;color:white;border:1px solid #444}.btn:disabled{opacity:.4;cursor:not-allowed}
+.waiting{text-align:center;padding:18px 0}.ticket{font:700 64px Oswald,sans-serif;color:var(--orange);margin:14px 0}.waiting-card{background:#141414;border:1px solid #333;border-radius:12px;padding:18px;text-align:left;margin:18px 0}
+footer{padding:28px 0 8px;font:700 16px Oswald,sans-serif;letter-spacing:1px}footer small{display:block;color:#777;font:11px 'DM Sans',sans-serif;letter-spacing:0;margin-top:6px}
+@media(max-width:520px){.shell{padding-top:26px}.grid{grid-template-columns:1fr}.progress-step small{font-size:9px}.top-label{font-size:9px}.actions{flex-direction:column-reverse}.btn{width:100%}}
