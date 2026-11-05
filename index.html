@@ -47,7 +47,7 @@
           <input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" required>
           <p class="muted">Você receberá um código de 6 dígitos no seu e-mail. Não precisa criar senha.</p>
           <p id="fallback-login-message" class="muted" role="status"></p>
-          <button class="btn btn-primary" type="submit">ENVIAR LINK DE ACESSO</button>
+          <button class="btn btn-primary" type="submit">ENVIAR CÓDIGO DE ACESSO</button>
         </form>
       </div>
 
@@ -70,41 +70,63 @@
     }
   </script>
   <script>
-    // Plano de contingência: mantém o acesso por e-mail disponível mesmo se app.js falhar.
-    document.addEventListener("submit", async function(event) {
-      const form = event.target;
-      if (!form || !form.matches("[data-fallback-login]")) return;
-      event.preventDefault();
-      const message = document.getElementById("fallback-login-message");
-      const email = document.getElementById("email").value.trim();
-      const button = form.querySelector('button[type="submit"]');
-      if (!window.supabase || !window.supabase.createClient) {
-        message.textContent = "A conexão de acesso não carregou. Verifique a internet e atualize a página.";
-        return;
-      }
-      button.disabled = true;
-      message.textContent = "Enviando código de acesso...";
-      try {
-        const client = window.supabase.createClient(
-          "https://xwctsfpqwugygxpsrcfw.supabase.co",
-          "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s"
-        );
-        const result = await client.auth.signInWithOtp({
-          email: email,
-          options: {
-            emailRedirectTo: window.location.origin + window.location.pathname,
-            shouldCreateUser: true
-          }
-        });
-        if (result.error) throw result.error;
-        message.textContent = "Código enviado! Confira seu e-mail para continuar na LaCorte.";
-      } catch (error) {
-        message.textContent = "Não foi possível enviar o link: " + (error.message || "erro desconhecido");
-      } finally {
-        button.disabled = false;
-      }
-    });
+    // Acesso de contingência por código de 6 dígitos, caso app.js não carregue.
+    (function() {
+      const root = document.getElementById("step-content");
+      const client = window.supabase && window.supabase.createClient
+        ? window.supabase.createClient(
+            "https://xwctsfpqwugygxpsrcfw.supabase.co",
+            "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s",
+            { auth: { detectSessionInUrl: false, flowType: "implicit" } }
+          )
+        : null;
+      document.addEventListener("submit", async function(event) {
+        const form = event.target;
+        if (!form || !form.matches("[data-fallback-login]")) return;
+        event.preventDefault();
+        const message = document.getElementById("fallback-login-message");
+        const email = document.getElementById("email").value.trim();
+        const button = form.querySelector('button[type="submit"]');
+        if (!client) {
+          message.textContent = "A conexão não carregou. Atualize a página.";
+          return;
+        }
+        button.disabled = true;
+        message.textContent = "Enviando código...";
+        try {
+          const result = await client.auth.signInWithOtp({
+            email: email,
+            options: { shouldCreateUser: true }
+          });
+          if (result.error) throw result.error;
+          root.innerHTML = '<form id="fallback-code-form"><label for="fallback-code">Código de acesso</label><input id="fallback-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required><p class="muted">Digite os 6 números enviados para <strong></strong>.</p><p id="fallback-code-message" class="muted" role="status"></p><button class="btn btn-primary" type="submit">CONFIRMAR CÓDIGO</button></form>';
+          root.querySelector("strong").textContent = email;
+          document.getElementById("step-title").textContent = "Digite seu código";
+          document.getElementById("step-description").textContent = "Informe o código de 6 dígitos enviado para seu e-mail.";
+          root.querySelector("#fallback-code-form").addEventListener("submit", async function(ev) {
+            ev.preventDefault();
+            const code = document.getElementById("fallback-code").value.trim();
+            const status = document.getElementById("fallback-code-message");
+            if (!/^[0-9]{6}$/.test(code)) {
+              status.textContent = "Digite os 6 números do código.";
+              return;
+            }
+            status.textContent = "Validando código...";
+            const verified = await client.auth.verifyOtp({ email: email, token: code, type: "email" });
+            if (verified.error) {
+              status.textContent = "Código inválido ou expirado: " + verified.error.message;
+              return;
+            }
+            status.textContent = "Código confirmado. Atualizando o acesso...";
+            window.location.reload();
+          });
+        } catch (error) {
+          message.textContent = "Não foi possível enviar o código: " + (error.message || "erro desconhecido");
+          button.disabled = false;
+        }
+      });
+    })();
   </script>
-  <script src="app.js?v=20261105-5"></script>
+  <script src="app.js?v=20261105-6"></script>
 </body>
 </html>
