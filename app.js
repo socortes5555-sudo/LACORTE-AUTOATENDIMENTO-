@@ -1004,9 +1004,8 @@ async function initLaCorte(){
   }
 
   db.auth.onAuthStateChange(function(event, session){
-    if (event === "SIGNED_IN" && session) {
-      setTimeout(function(){ routeAuthenticatedUser(session.user); }, 0);
-    }
+    // O login por código já direciona o usuário no próprio formulário.
+    // Evita executar routeAuthenticatedUser duas vezes durante a confirmação do OTP.
     if (event === "SIGNED_OUT") {
       state.user = null;
       state.customer = null;
