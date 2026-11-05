@@ -953,30 +953,6 @@ renderConfirmation = function(){
     state.submitting
   );
 };
-  setHeader("ETAPA 05", "Confira sua solicitação", "Confira seus dados, serviços e barbeiro antes de entrar na fila.");
-  const total = state.selectedServices.reduce(function(sum, service){ return sum + Number(service.price); }, 0);
-  content.innerHTML =
-    '<div class="summary">' +
-      '<div class="summary-row"><span>Cliente</span><strong>' + safe(state.customer.first_name) + ' ' + safe(state.customer.last_name) + '</strong></div>' +
-      '<div class="summary-row"><span>Telefone</span><strong>' + safe(state.customer.phone) + '</strong></div>' +
-      '<div class="summary-row"><span>E-mail</span><strong>' + safe(state.customer.email) + '</strong></div>' +
-    '</div>' +
-    '<div class="summary"><strong>Serviços</strong>' +
-      state.selectedServices.map(function(service){
-        return '<div class="summary-row"><span>' + safe(service.name) + '</span><strong>' + money(Number(service.price)) + '</strong></div>';
-      }).join("") +
-      '<div class="summary-row summary-total"><span>Total</span><strong>' + money(total) + '</strong></div>' +
-    '</div>' +
-    '<div class="summary"><div class="summary-row"><span>Barbeiro</span><strong>' + safe(state.barber.name) + '</strong></div></div>' +
-    '<p id="app-message" class="muted">' + safe(state.message) + '</p>';
-
-  setActions(
-    function(){ state.step = 4; render(); },
-    submitQueueEntry,
-    "CONFIRMAR E ENTRAR NA FILA",
-    state.submitting
-  );
-};
 
 // Substitui o carregamento inicial antigo: primeiro identifica o perfil, depois abre a área correta.
 async function initLaCorte(){
