@@ -32,7 +32,9 @@ const state = {
   customer:null,
   selectedServices:[],
   barber:null,
-  message:""
+  message:"",
+  customerPlan:null,
+  customerPlanBenefits:[]
 };
 
 const content = document.querySelector("#step-content");
@@ -253,6 +255,27 @@ function renderProfile(){
   });
 }
 
+function renderCustomerPlanCard(){
+  const plan = state.customerPlan;
+  if(!plan) return '<section class="summary"><h3>MEU PLANO LACORTE</h3><p class="muted">Você não possui uma assinatura registrada no momento.</p></section>';
+  const today = new Date().toISOString().slice(0,10);
+  const expiredByDate = plan.expires_at < today;
+  const remaining = Math.max(0,Number(plan.included_cuts)-Number(plan.used_cuts));
+  const status = plan.status === "suspended" ? "Suspenso" :
+    (expiredByDate || plan.status === "expired" ? "Vencido" :
+    (remaining === 0 || plan.status === "exhausted" ? "Cortes esgotados" : "Ativo"));
+  const benefits = state.customerPlanBenefits || [];
+  return '<section class="summary"><h3>MEU PLANO LACORTE</h3>' +
+    '<p><strong>'+safe(plan.plan_name)+'</strong></p>' +
+    '<div class="summary-row"><span>Valor mensal</span><strong>'+money(Number(plan.monthly_price))+'</strong></div>' +
+    '<div class="summary-row"><span>Validade</span><strong>'+safe(plan.start_date)+' até '+safe(plan.expires_at)+'</strong></div>' +
+    '<div class="summary-row"><span>Cortes utilizados</span><strong>'+Number(plan.used_cuts)+' de '+Number(plan.included_cuts)+'</strong></div>' +
+    '<div class="summary-row"><span>Cortes restantes</span><strong>'+remaining+'</strong></div>' +
+    '<div class="summary-row"><span>Status</span><strong>'+status+'</strong></div>' +
+    (benefits.length ? '<p><strong>Benefícios</strong></p><ul>'+benefits.map(function(b){return '<li>'+safe(b)+'</li>';}).join('')+'</ul>' : '') +
+    '</section>';
+}
+
 function renderServices(){
   setHeader(
     "ETAPA 03",
@@ -260,7 +283,7 @@ function renderServices(){
     "Você pode selecionar mais de um serviço."
   );
 
-  content.innerHTML='<div class="grid" id="choices"></div>';
+  content.innerHTML=renderCustomerPlanCard()+'<div class="grid" id="choices"></div>';
 
   const grid=document.querySelector("#choices");
 
@@ -445,14 +468,36 @@ async function loadCustomer(user){
   }
 
   state.customer=data;
+  state.customerPlan=null;
+  state.customerPlanBenefits=[];
 
   if(data){
+    const planResult = await db.from("lacorte_customer_plans")
+      .select("*")
+      .eq("customer_id",data.id)
+      .order("created_at",{ascending:false})
+      .limit(1)
+      .maybeSingle();
+    if(planResult.error){
+      state.message="Não foi possível consultar seu plano: "+planResult.error.message;
+    } else if(planResult.data){
+      state.customerPlan=planResult.data;
+      if(planResult.data.plan_id){
+        const benefitResult=await db.from("lacorte_plans")
+          .select("benefits")
+          .eq("id",planResult.data.plan_id)
+          .maybeSingle();
+        if(!benefitResult.error && benefitResult.data && Array.isArray(benefitResult.data.benefits)){
+          state.customerPlanBenefits=benefitResult.data.benefits;
+        }
+      }
+    }
     state.step=3;
   }else{
     state.step=2;
   }
 
-  state.message="";
+  if(!state.message) state.message="";
   render();
 }
 
