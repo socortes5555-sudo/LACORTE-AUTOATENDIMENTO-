@@ -2,7 +2,7 @@
 const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
-const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false } }) : null;
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -932,6 +932,27 @@ async function initLaCorte(){
     render();
     showMessage("A conexão segura não carregou. Verifique a internet e atualize a página para entrar.");
     return;
+  }
+
+  // Processa explicitamente o código de retorno do link mágico antes de consultar a sessão.
+  const callbackUrl = new URL(window.location.href);
+  const authCode = callbackUrl.searchParams.get("code");
+  const authError = callbackUrl.searchParams.get("error_description");
+
+  if (authError) {
+    state.message = "Não foi possível confirmar o acesso: " + authError.replace(/\+/g, " ");
+  }
+
+  if (authCode) {
+    const exchangeResult = await db.auth.exchangeCodeForSession(authCode);
+    if (exchangeResult.error) {
+      state.message = "Falha ao confirmar o link: " + exchangeResult.error.message;
+    } else {
+      callbackUrl.searchParams.delete("code");
+      callbackUrl.searchParams.delete("error");
+      callbackUrl.searchParams.delete("error_description");
+      window.history.replaceState({}, document.title, callbackUrl.pathname + callbackUrl.search + callbackUrl.hash);
+    }
   }
 
   const sessionResult = await db.auth.getSession();
