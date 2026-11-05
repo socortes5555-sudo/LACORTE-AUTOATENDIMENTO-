@@ -117,8 +117,25 @@
               status.textContent = "Código inválido ou expirado: " + verified.error.message;
               return;
             }
-            status.textContent = "Código confirmado. Atualizando o acesso...";
-            window.location.reload();
+            status.textContent = "Código confirmado. Salvando sua sessão...";
+            try {
+              if (verified.data && verified.data.session) {
+                const saved = await client.auth.setSession({
+                  access_token: verified.data.session.access_token,
+                  refresh_token: verified.data.session.refresh_token
+                });
+                if (saved.error) throw saved.error;
+              }
+              const check = await client.auth.getSession();
+              if (check.error) throw check.error;
+              if (!check.data || !check.data.session) {
+                throw new Error("A sessão não foi mantida após a confirmação do código.");
+              }
+              status.textContent = "Acesso confirmado. Abrindo o autoatendimento...";
+              window.location.reload();
+            } catch (sessionError) {
+              status.textContent = "Código confirmado, mas houve falha ao salvar o acesso: " + (sessionError.message || "erro desconhecido") + ". Tente atualizar a página.";
+            }
           });
         } catch (error) {
           message.textContent = "Não foi possível enviar o código: " + (error.message || "erro desconhecido");
@@ -127,6 +144,6 @@
       });
     })();
   </script>
-  <script src="app.js?v=20261105-9"></script>
+  <script src="app.js?v=20261105-10"></script>
 </body>
 </html>
