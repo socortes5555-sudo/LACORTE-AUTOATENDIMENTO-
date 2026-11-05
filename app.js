@@ -858,4 +858,152 @@ async function initLaCorte(){
   });
 }
 
+
+// ===== GERENCIAMENTO ADMINISTRATIVO LACORTE =====
+let adminView = "queue";
+
+function adminNavigation(){
+  if(state.role !== "admin") return "";
+  return '<div class="actions admin-nav">' +
+    '<button class="btn ' + (adminView === "queue" ? "btn-primary" : "btn-secondary") + '" data-admin-view="queue">FILA DE HOJE</button>' +
+    '<button class="btn ' + (adminView === "manage" ? "btn-primary" : "btn-secondary") + '" data-admin-view="manage">GERENCIAR</button>' +
+    '</div>';
+}
+
+function bindAdminNavigation(){
+  content.querySelectorAll("[data-admin-view]").forEach(function(button){
+    button.addEventListener("click", function(){
+      adminView = button.dataset.adminView;
+      if(adminView === "manage") renderAdminManagement();
+      else renderQueueDashboard();
+    });
+  });
+}
+
+async function renderAdminManagement(){
+  if(state.role !== "admin") return renderQueueDashboard();
+  setAppMode(true);
+  setHeader("ADMINISTRAÇÃO LACORTE", "Gerenciar a barbearia", "Altere serviços, preços, barbeiros e comissões. As permissões também são verificadas pelo banco de dados.");
+  notice.textContent = "Área exclusiva do administrador. As alterações são salvas diretamente no Supabase.";
+  dashboardActions();
+  content.innerHTML = adminNavigation() + '<p class="muted">Carregando cadastros...</p>';
+  try {
+    const results = await Promise.all([
+      db.from("barbers").select("id,name,active,commission_percent").order("name"),
+      db.from("services").select("id,name,detail,price,active").order("name")
+    ]);
+    if(results[0].error) throw new Error("Erro ao carregar barbeiros: " + results[0].error.message);
+    if(results[1].error) throw new Error("Erro ao carregar serviços: " + results[1].error.message);
+    const barberRows = results[0].data || [];
+    const serviceRows = results[1].data || [];
+    let html = adminNavigation();
+    html += '<section class="summary"><h3>BARBEIROS</h3><p class="muted">Edite nome, comissão e disponibilidade. Desativar preserva o histórico.</p>';
+    html += '<form id="new-barber-form" class="admin-form"><h4>Novo barbeiro</h4><label>Nome</label><input name="name" maxlength="80" required placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form>';
+    barberRows.forEach(function(b){
+      html += '<form class="summary admin-item" data-barber-form="' + safe(b.id) + '">' +
+        '<label>Nome</label><input name="name" maxlength="80" required value="' + safe(b.name) + '">' +
+        '<label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" required value="' + Number(b.commission_percent || 0) + '">' +
+        '<label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? "checked" : "") + '> Ativo e disponível no totem</label>' +
+        '<button class="btn btn-primary" type="submit">SALVAR ' + safe(b.name).toUpperCase() + '</button></form>';
+    });
+    html += '</section><section class="summary"><h3>SERVIÇOS E COMBOS</h3><p class="muted">Edite nomes, descrições, preços e disponibilidade no autoatendimento.</p>';
+    html += '<form id="new-service-form" class="admin-form"><h4>Novo serviço ou combo</h4><label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: Corte infantil"><label>Descrição</label><input name="detail" maxlength="180" placeholder="Descrição opcional"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required><button class="btn btn-primary" type="submit">CADASTRAR SERVIÇO</button></form>';
+    serviceRows.forEach(function(s){
+      html += '<form class="summary admin-item" data-service-form="' + safe(s.id) + '">' +
+        '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(s.name) + '">' +
+        '<label>Descrição</label><input name="detail" maxlength="180" value="' + safe(s.detail || "") + '">' +
+        '<label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required value="' + Number(s.price) + '">' +
+        '<label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? "checked" : "") + '> Ativo no totem</label>' +
+        '<button class="btn btn-primary" type="submit">SALVAR ' + safe(s.name).toUpperCase() + '</button></form>';
+    });
+    html += '</section>';
+    content.innerHTML = html;
+    bindAdminNavigation();
+
+    const newBarber = content.querySelector("#new-barber-form");
+    newBarber.addEventListener("submit", async function(e){
+      e.preventDefault();
+      const fd = new FormData(newBarber);
+      const name = String(fd.get("name") || "").trim();
+      const id = "barbeiro-" + slugId(name);
+      const commission = Number(fd.get("commission"));
+      if(!name || !Number.isFinite(commission) || commission < 0 || commission > 100) return alert("Confira o nome e a comissão (0 a 100%).");
+      const result = await db.from("barbers").insert({id:id,name:name,active:true,commission_percent:commission});
+      if(result.error) return alert("Não foi possível cadastrar. Verifique se o ID já existe. " + result.error.message);
+      alert("Barbeiro cadastrado. Para acessar o painel, ainda será necessário criar a conta de acesso e vinculá-la ao perfil.");
+      renderAdminManagement();
+    });
+
+    content.querySelectorAll("[data-barber-form]").forEach(function(form){
+      form.addEventListener("submit", async function(e){
+        e.preventDefault();
+        const fd = new FormData(form);
+        const commission = Number(fd.get("commission"));
+        if(!Number.isFinite(commission) || commission < 0 || commission > 100) return alert("A comissão deve ficar entre 0 e 100%.");
+        const result = await db.from("barbers").update({
+          name:String(fd.get("name") || "").trim(),
+          commission_percent:commission,
+          active:fd.get("active") === "on"
+        }).eq("id",form.dataset.barberForm);
+        if(result.error) return alert("Erro ao salvar barbeiro: " + result.error.message);
+        alert("Barbeiro atualizado.");
+        renderAdminManagement();
+      });
+    });
+
+    const newService = content.querySelector("#new-service-form");
+    newService.addEventListener("submit", async function(e){
+      e.preventDefault();
+      const fd = new FormData(newService);
+      const name = String(fd.get("name") || "").trim();
+      const price = Number(fd.get("price"));
+      if(!name || !Number.isFinite(price) || price < 0) return alert("Confira o nome e o preço.");
+      const id = slugId(name);
+      const result = await db.from("services").insert({
+        id:id,name:name,detail:String(fd.get("detail") || "").trim(),price:price,active:true
+      });
+      if(result.error) return alert("Não foi possível cadastrar. O identificador pode já existir. " + result.error.message);
+      alert("Serviço cadastrado.");
+      renderAdminManagement();
+    });
+
+    content.querySelectorAll("[data-service-form]").forEach(function(form){
+      form.addEventListener("submit", async function(e){
+        e.preventDefault();
+        const fd = new FormData(form);
+        const price = Number(fd.get("price"));
+        if(!Number.isFinite(price) || price < 0) return alert("Informe um preço válido.");
+        const result = await db.from("services").update({
+          name:String(fd.get("name") || "").trim(),
+          detail:String(fd.get("detail") || "").trim(),
+          price:price,
+          active:fd.get("active") === "on"
+        }).eq("id",form.dataset.serviceForm);
+        if(result.error) return alert("Erro ao salvar serviço: " + result.error.message);
+        alert("Serviço atualizado.");
+        renderAdminManagement();
+      });
+    });
+  } catch(error) {
+    content.innerHTML = adminNavigation() + '<p class="muted">' + safe(error.message) + '</p>';
+    bindAdminNavigation();
+  }
+}
+
+function slugId(value){
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,45);
+}
+
+const originalRenderQueueDashboard = renderQueueDashboard;
+renderQueueDashboard = function(){
+  if(state.role === "admin" && adminView === "manage") return renderAdminManagement();
+  originalRenderQueueDashboard();
+  if(state.role === "admin"){
+    const previous = content.innerHTML;
+    content.innerHTML = adminNavigation() + previous;
+    bindAdminNavigation();
+  }
+};
+
 initLaCorte();
