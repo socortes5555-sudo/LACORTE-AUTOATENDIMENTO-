@@ -204,8 +204,25 @@ function renderLogin(){
       return;
     }
     state.pendingEmail="";
-    if(data && data.user) await routeAuthenticatedUser(data.user);
-    else showMessage("Código confirmado, mas não recebemos os dados da conta. Atualize a página.");
+    try {
+      if (data && data.session) {
+        const savedSession = await db.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+        if (savedSession.error) throw savedSession.error;
+      }
+      const sessionCheck = await db.auth.getSession();
+      const authenticatedUser = (sessionCheck.data && sessionCheck.data.session && sessionCheck.data.session.user) || (data && data.user);
+      if (sessionCheck.error) throw sessionCheck.error;
+      if (authenticatedUser) {
+        await routeAuthenticatedUser(authenticatedUser);
+      } else {
+        showMessage("Código confirmado, mas a sessão não foi salva. Tente entrar novamente.");
+      }
+    } catch (routeError) {
+      showMessage("Código confirmado, mas não foi possível abrir seu cadastro: " + (routeError.message || routeError));
+    }
   });
 }
 
