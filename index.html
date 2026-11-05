@@ -45,7 +45,7 @@
         <form id="login-form" data-fallback-login>
           <label for="email">Seu e-mail</label>
           <input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" required>
-          <p class="muted">Você receberá um link de acesso no seu e-mail. Não precisa criar senha.</p>
+          <p class="muted">Você receberá um código de 6 dígitos no seu e-mail. Não precisa criar senha.</p>
           <p id="fallback-login-message" class="muted" role="status"></p>
           <button class="btn btn-primary" type="submit">ENVIAR LINK DE ACESSO</button>
         </form>
@@ -83,7 +83,7 @@
         return;
       }
       button.disabled = true;
-      message.textContent = "Enviando link de acesso...";
+      message.textContent = "Enviando código de acesso...";
       try {
         const client = window.supabase.createClient(
           "https://xwctsfpqwugygxpsrcfw.supabase.co",
@@ -97,7 +97,7 @@
           }
         });
         if (result.error) throw result.error;
-        message.textContent = "Link enviado! Abra seu e-mail e clique no link para continuar na LaCorte.";
+        message.textContent = "Código enviado! Confira seu e-mail para continuar na LaCorte.";
       } catch (error) {
         message.textContent = "Não foi possível enviar o link: " + (error.message || "erro desconhecido");
       } finally {
@@ -105,6 +105,6 @@
       }
     });
   </script>
-  <script src="app.js?v=20261105-4"></script>
+  <script src="app.js?v=20261105-5"></script>
 </body>
 </html>
