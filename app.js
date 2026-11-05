@@ -837,8 +837,66 @@ function renderQueueSuccess(){
   actions.replaceChildren(makeButton("SAIR DA CONTA", async function(){ await db.auth.signOut(); }, true));
 }
 
-// A confirmação passa a gravar a entrada real na fila usando a função protegida do Supabase.
+// Calcula a prévia do benefício. O banco continua sendo a autoridade final
+// e valida os créditos reservados no momento da entrada na fila.
+function getCustomerPlanPreview(){
+  const plan = state.customerPlan;
+  const selected = state.selectedServices || [];
+  if (!plan || selected.length !== 1) return null;
+
+  const today = localQueueDate();
+  const eligible = plan.status === "active"
+    && plan.start_date <= today
+    && plan.expires_at >= today
+    && Number(plan.used_cuts) < Number(plan.included_cuts);
+
+  if (!eligible) return null;
+
+  if (selected[0].id === "corte") {
+    return { total: 0, normal: Number(selected[0].price), description: "Corte incluído no plano" };
+  }
+
+  if (selected[0].id === "corte-barba") {
+    const beard = services.find(function(service){ return service.id === "barba"; });
+    return { total: beard ? Number(beard.price) : 40, normal: Number(selected[0].price), description: "1 corte do plano + valor da barba" };
+  }
+
+  return null;
+}
+
+// A confirmação mostra a prévia do benefício; o banco valida a reserva definitivamente.
 renderConfirmation = function(){
+  setHeader("ETAPA 05", "Confira sua solicitação", "Confira seus dados, serviços e barbeiro antes de entrar na fila.");
+  const preview = getCustomerPlanPreview();
+  const total = preview
+    ? preview.total
+    : state.selectedServices.reduce(function(sum, service){ return sum + Number(service.price); }, 0);
+  content.innerHTML =
+    '<div class="summary">' +
+      '<div class="summary-row"><span>Cliente</span><strong>' + safe(state.customer.first_name) + ' ' + safe(state.customer.last_name) + '</strong></div>' +
+      '<div class="summary-row"><span>Telefone</span><strong>' + safe(state.customer.phone) + '</strong></div>' +
+      '<div class="summary-row"><span>E-mail</span><strong>' + safe(state.customer.email) + '</strong></div>' +
+    '</div>' +
+    '<div class="summary"><strong>Serviços</strong>' +
+      state.selectedServices.map(function(service){
+        const linePrice = preview ? preview.total : Number(service.price);
+        return '<div class="summary-row"><span>' + safe(service.name) + '</span><strong>' + money(linePrice) + '</strong></div>';
+      }).join("") +
+      (preview
+        ? '<p class="muted">' + safe(preview.description) + '. Valor normal: ' + money(preview.normal) + '.</p><p class="muted">Benefício sujeito à confirmação de crédito disponível ao registrar a fila.</p>'
+        : '') +
+      '<div class="summary-row summary-total"><span>Total</span><strong>' + money(total) + '</strong></div>' +
+    '</div>' +
+    '<div class="summary"><div class="summary-row"><span>Barbeiro</span><strong>' + safe(state.barber.name) + '</strong></div></div>' +
+    '<p id="app-message" class="muted">' + safe(state.message) + '</p>';
+
+  setActions(
+    function(){ state.step = 4; render(); },
+    submitQueueEntry,
+    "CONFIRMAR E ENTRAR NA FILA",
+    state.submitting
+  );
+};
   setHeader("ETAPA 05", "Confira sua solicitação", "Confira seus dados, serviços e barbeiro antes de entrar na fila.");
   const total = state.selectedServices.reduce(function(sum, service){ return sum + Number(service.price); }, 0);
   content.innerHTML =
