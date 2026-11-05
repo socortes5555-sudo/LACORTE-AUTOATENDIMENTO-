@@ -996,22 +996,59 @@ async function renderAdminManagement(){
 async function renderAdminPlans(){
   if(state.role !== "admin") return renderQueueDashboard();
   setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE", "Planos de assinatura", "Cadastre e mantenha os planos mensais da barbearia.");
-  notice.textContent = "Cadastro de planos. A cobrança recorrente automática será integrada em uma etapa separada.";
+  setHeader("ADMINISTRAÇÃO LACORTE", "Planos e assinaturas", "Cadastre planos e controle as assinaturas dos clientes.");
+  notice.textContent = "Ativação manual após confirmar o pagamento fora do site. Nenhuma cobrança é feita aqui.";
   dashboardActions();
-  content.innerHTML = adminNavigation() + '<p class="muted">Carregando planos...</p>';
+  content.innerHTML = adminNavigation() + '<p class="muted">Carregando planos e assinaturas...</p>';
   try {
-    const result = await db.from("lacorte_plans").select("id,name,description,monthly_price,benefits,active").order("created_at", {ascending:false});
-    if(result.error) throw new Error("Erro ao carregar planos: " + result.error.message);
-    const rows = result.data || [];
+    const results = await Promise.all([
+      db.from("lacorte_plans").select("id,name,description,monthly_price,benefits,active").order("created_at", {ascending:false}),
+      db.from("customers").select("id,first_name,last_name,phone,email").order("first_name"),
+      db.from("lacorte_customer_plans").select("*").order("created_at", {ascending:false})
+    ]);
+    results.forEach(function(r){ if(r.error) throw new Error(r.error.message); });
+    const rows = results[0].data || [];
+    const customers = results[1].data || [];
+    const subscriptions = results[2].data || [];
+    const customerById = {};
+    customers.forEach(function(c){ customerById[c.id] = c; });
     let html = adminNavigation();
-    html += '<section class="summary"><h3>NOVO PLANO</h3><p class="muted">Cadastre o valor mensal e um benefício por linha.</p><form id="new-plan-form" class="admin-form">' +
+    html += '<section class="summary"><h3>ATIVAR ASSINATURA DE CLIENTE</h3><p class="muted">Confirme o pagamento primeiro. Depois selecione o cliente, o plano e o período de validade.</p>';
+    if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
+    else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
+    else {
+      const today = new Date();
+      const dateValue = function(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+      const nextMonth = new Date(today.getFullYear(),today.getMonth()+1,today.getDate());
+      html += '<form id="activate-customer-plan" class="admin-form">' +
+        '<label>Cliente</label><select name="customer_id" required><option value="">Selecione o cliente</option>' +
+        customers.map(function(c){return '<option value="'+safe(c.id)+'">'+safe(c.first_name+' '+c.last_name)+' • '+safe(c.phone || c.email || '')+'</option>';}).join('') +
+        '</select><label>Plano</label><select name="plan_id" required><option value="">Selecione o plano</option>' +
+        rows.filter(function(p){return p.active;}).map(function(p){return '<option value="'+safe(p.id)+'">'+safe(p.name)+' • '+money(p.monthly_price)+'</option>';}).join('') +
+        '</select><label>Início da assinatura</label><input name="start_date" type="date" required value="'+dateValue(today)+'">' +
+        '<label>Vencimento</label><input name="expires_at" type="date" required value="'+dateValue(nextMonth)+'">' +
+        '<label>Pagamento confirmado por</label><select name="payment_method" required><option value="">Selecione</option><option>InfinitePay</option><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Outro</option></select>' +
+        '<label>Observação (opcional)</label><input name="notes" maxlength="500" placeholder="Ex.: comprovante conferido">' +
+        '<button class="btn btn-primary" type="submit">ATIVAR ASSINATURA</button></form>';
+    }
+    html += '</section>';
+    html += '<section class="summary"><h3>ASSINATURAS DOS CLIENTES</h3>';
+    if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
+    subscriptions.forEach(function(sub){
+      const c = customerById[sub.customer_id] || {};
+      const remaining = Math.max(0,Number(sub.included_cuts)-Number(sub.used_cuts));
+      const statusLabel = ({active:"Ativa",expired:"Vencida",exhausted:"Cortes esgotados",suspended:"Suspensa"})[sub.status] || sub.status;
+      html += '<article class="summary admin-item"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe((c.first_name || "Cliente")+' '+(c.last_name || ""))+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Validade:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p><p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
+      if(sub.status === "active") html += '<button class="btn btn-secondary" type="button" data-suspend-plan="'+safe(sub.id)+'">SUSPENDER ASSINATURA</button>';
+      html += '</article>';
+    });
+    html += '</section>';
+    html += '<section class="summary"><h3>PLANOS CADASTRADOS</h3><p class="muted">Cadastre o valor mensal e um benefício por linha.</p><form id="new-plan-form" class="admin-form">' +
       '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
       '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
       '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
-      '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="2 cortes por mês&#10;Desconto em produtos"></textarea>' +
-      '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form></section>';
-    html += '<section class="summary"><h3>PLANOS CADASTRADOS</h3>';
+      '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="4 cortes por mês&#10;Desconto em produtos"></textarea>' +
+      '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form>';
     if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
     rows.forEach(function(p){
       const benefits = Array.isArray(p.benefits) ? p.benefits.join("\n") : "";
@@ -1026,6 +1063,36 @@ async function renderAdminPlans(){
     html += '</section>';
     content.innerHTML = html;
     bindAdminNavigation();
+    const activationForm = content.querySelector("#activate-customer-plan");
+    if(activationForm) activationForm.addEventListener("submit", async function(e){
+      e.preventDefault();
+      const fd = new FormData(activationForm);
+      const customerId = String(fd.get("customer_id") || "");
+      const plan = rows.find(function(p){return p.id === String(fd.get("plan_id") || "");});
+      const startDate = String(fd.get("start_date") || "");
+      const expiresAt = String(fd.get("expires_at") || "");
+      if(!customerId || !plan || !startDate || !expiresAt || expiresAt < startDate) return alert("Confira cliente, plano e datas.");
+      const existing = await db.from("lacorte_customer_plans").select("id").eq("customer_id",customerId).eq("status","active").limit(1);
+      if(existing.error) return alert("Não foi possível verificar assinaturas anteriores: "+existing.error.message);
+      if(existing.data && existing.data.length) return alert("Este cliente já possui uma assinatura ativa. Suspenda a anterior antes de ativar outra.");
+      const saved = await db.from("lacorte_customer_plans").insert({
+        customer_id:customerId,plan_id:plan.id,plan_name:plan.name,monthly_price:plan.monthly_price,
+        start_date:startDate,expires_at:expiresAt,included_cuts:4,used_cuts:0,status:"active",
+        paid_at:new Date().toISOString(),payment_method:String(fd.get("payment_method") || ""),
+        notes:String(fd.get("notes") || "").trim()
+      });
+      if(saved.error) return alert("Erro ao ativar assinatura: "+saved.error.message);
+      alert("Assinatura ativada. O pagamento foi registrado como confirmado manualmente.");
+      renderAdminPlans();
+    });
+    content.querySelectorAll("[data-suspend-plan]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        if(!confirm("Deseja suspender esta assinatura?")) return;
+        const updated = await db.from("lacorte_customer_plans").update({status:"suspended",updated_at:new Date().toISOString()}).eq("id",button.dataset.suspendPlan);
+        if(updated.error) return alert("Erro ao suspender: "+updated.error.message);
+        renderAdminPlans();
+      });
+    });
     content.querySelector("#new-plan-form").addEventListener("submit", async function(e){
       e.preventDefault();
       const form = e.currentTarget, fd = new FormData(form), name = String(fd.get("name") || "").trim(), price = Number(fd.get("monthly_price"));
@@ -1047,7 +1114,7 @@ async function renderAdminPlans(){
       });
     });
   } catch(error) {
-    content.innerHTML = adminNavigation() + '<p class="muted">' + safe(error.message) + '</p>';
+    content.innerHTML = adminNavigation() + '<p class="muted">Erro ao carregar planos e assinaturas: ' + safe(error.message) + '</p>';
     bindAdminNavigation();
   }
 }
