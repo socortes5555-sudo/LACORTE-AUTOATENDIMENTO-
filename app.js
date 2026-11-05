@@ -2,7 +2,7 @@
 const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
-const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: true, flowType: "pkce" } }) : null;
+const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false, flowType: "implicit" } }) : null;
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -115,9 +115,55 @@ function render(){
 function renderLogin(){
   setHeader(
     "ETAPA 01",
-    "Acesse sua conta",
-    "Informe seu e-mail para receber um link seguro de acesso."
+    state.pendingEmail ? "Digite seu código" : "Acesse sua conta",
+    state.pendingEmail
+      ? "Informe o código de 6 dígitos enviado para seu e-mail."
+      : "Informe seu e-mail para receber um código seguro de acesso."
   );
+
+  if(state.pendingEmail){
+    content.innerHTML=`
+      <form id="verify-code-form">
+        <label for="email-code">Código de acesso</label>
+        <input
+          id="email-code"
+          name="token"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxlength="6"
+          placeholder="000000"
+          required
+        >
+        <p class="muted">Enviamos um código para <strong>${safe(state.pendingEmail)}</strong>. Digite os 6 números para entrar.</p>
+        <p id="app-message" class="muted">${safe(state.message)}</p>
+        <button class="btn btn-primary" type="submit">CONFIRMAR CÓDIGO</button>
+      </form>
+    `;
+    actions.replaceChildren();
+    document.querySelector("#verify-code-form").addEventListener("submit",async e=>{
+      e.preventDefault();
+      const token=document.querySelector("#email-code").value.trim();
+      if(!/^[0-9]{6}$/.test(token)){
+        showMessage("Digite os 6 números do código recebido.");
+        return;
+      }
+      showMessage("Validando código...");
+      const {data,error}=await db.auth.verifyOtp({
+        email:state.pendingEmail,
+        token:token,
+        type:"email"
+      });
+      if(error){
+        showMessage("Não foi possível validar o código: "+error.message);
+        return;
+      }
+      state.pendingEmail="";
+      if(data && data.user) await routeAuthenticatedUser(data.user);
+    });
+    return;
+  }
 
   content.innerHTML=`
     <form id="login-form">
@@ -131,12 +177,12 @@ function renderLogin(){
         required
       >
       <p class="muted">
-        Você receberá um link de acesso no seu e-mail.
+        Você receberá um código de 6 dígitos no seu e-mail.
         Não precisa criar senha.
       </p>
       <p id="app-message" class="muted">${safe(state.message)}</p>
       <button class="btn btn-primary" type="submit">
-        ENVIAR LINK DE ACESSO
+        ENVIAR CÓDIGO DE ACESSO
       </button>
     </form>
   `;
@@ -145,28 +191,19 @@ function renderLogin(){
 
   document.querySelector("#login-form").addEventListener("submit",async e=>{
     e.preventDefault();
-
     const email=document.querySelector("#email").value.trim();
-
-    showMessage("Enviando link de acesso...");
-
+    showMessage("Enviando código de acesso...");
     const {error}=await db.auth.signInWithOtp({
       email,
-      options:{
-        emailRedirectTo:window.location.origin+
-          window.location.pathname,
-        shouldCreateUser:true
-      }
+      options:{shouldCreateUser:true}
     });
-
     if(error){
-      showMessage("Erro: "+error.message);
+      showMessage("Erro ao enviar código: "+error.message);
       return;
     }
-
-    showMessage(
-      "Link enviado! Abra seu e-mail e clique no link para continuar na LaCorte."
-    );
+    state.pendingEmail=email;
+    state.message="Código enviado. Confira sua caixa de entrada e também o spam.";
+    renderLogin();
   });
 }
 
