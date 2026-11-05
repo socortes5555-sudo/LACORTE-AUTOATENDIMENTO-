@@ -868,6 +868,7 @@ function adminNavigation(){
   return '<div class="actions admin-nav">' +
     '<button class="btn ' + (adminView === "queue" ? "btn-primary" : "btn-secondary") + '" data-admin-view="queue">FILA DE HOJE</button>' +
     '<button class="btn ' + (adminView === "manage" ? "btn-primary" : "btn-secondary") + '" data-admin-view="manage">GERENCIAR</button>' +
+    '<button class="btn ' + (adminView === "plans" ? "btn-primary" : "btn-secondary") + '" data-admin-view="plans">PLANOS</button>' +
     '</div>';
 }
 
@@ -876,6 +877,7 @@ function bindAdminNavigation(){
     button.addEventListener("click", function(){
       adminView = button.dataset.adminView;
       if(adminView === "manage") renderAdminManagement();
+      else if(adminView === "plans") renderAdminPlans();
       else renderQueueDashboard();
     });
   });
@@ -991,6 +993,65 @@ async function renderAdminManagement(){
   }
 }
 
+async function renderAdminPlans(){
+  if(state.role !== "admin") return renderQueueDashboard();
+  setAppMode(true);
+  setHeader("ADMINISTRAÇÃO LACORTE", "Planos de assinatura", "Cadastre e mantenha os planos mensais da barbearia.");
+  notice.textContent = "Cadastro de planos. A cobrança recorrente automática será integrada em uma etapa separada.";
+  dashboardActions();
+  content.innerHTML = adminNavigation() + '<p class="muted">Carregando planos...</p>';
+  try {
+    const result = await db.from("lacorte_plans").select("id,name,description,monthly_price,benefits,active").order("created_at", {ascending:false});
+    if(result.error) throw new Error("Erro ao carregar planos: " + result.error.message);
+    const rows = result.data || [];
+    let html = adminNavigation();
+    html += '<section class="summary"><h3>NOVO PLANO</h3><p class="muted">Cadastre o valor mensal e um benefício por linha.</p><form id="new-plan-form" class="admin-form">' +
+      '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
+      '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
+      '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
+      '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="2 cortes por mês&#10;Desconto em produtos"></textarea>' +
+      '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form></section>';
+    html += '<section class="summary"><h3>PLANOS CADASTRADOS</h3>';
+    if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
+    rows.forEach(function(p){
+      const benefits = Array.isArray(p.benefits) ? p.benefits.join("\n") : "";
+      html += '<form class="summary admin-item" data-plan-form="' + safe(p.id) + '">' +
+        '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(p.name) + '">' +
+        '<label>Descrição</label><textarea name="description" maxlength="500" rows="3">' + safe(p.description || "") + '</textarea>' +
+        '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required value="' + Number(p.monthly_price) + '">' +
+        '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4">' + safe(benefits) + '</textarea>' +
+        '<label class="admin-check"><input name="active" type="checkbox" ' + (p.active ? "checked" : "") + '> Disponível para venda</label>' +
+        '<button class="btn btn-primary" type="submit">SALVAR PLANO</button></form>';
+    });
+    html += '</section>';
+    content.innerHTML = html;
+    bindAdminNavigation();
+    content.querySelector("#new-plan-form").addEventListener("submit", async function(e){
+      e.preventDefault();
+      const form = e.currentTarget, fd = new FormData(form), name = String(fd.get("name") || "").trim(), price = Number(fd.get("monthly_price"));
+      if(!name || !Number.isFinite(price) || price < 0) return alert("Confira o nome e o valor mensal.");
+      const benefits = String(fd.get("benefits") || "").split("\n").map(x=>x.trim()).filter(Boolean);
+      const saved = await db.from("lacorte_plans").insert({name,description:String(fd.get("description") || "").trim(),monthly_price:price,benefits,active:true});
+      if(saved.error) return alert("Erro ao cadastrar: " + saved.error.message);
+      alert("Plano cadastrado."); renderAdminPlans();
+    });
+    content.querySelectorAll("[data-plan-form]").forEach(function(form){
+      form.addEventListener("submit", async function(e){
+        e.preventDefault();
+        const fd = new FormData(form), name = String(fd.get("name") || "").trim(), price = Number(fd.get("monthly_price"));
+        if(!name || !Number.isFinite(price) || price < 0) return alert("Confira o nome e o valor mensal.");
+        const benefits = String(fd.get("benefits") || "").split("\n").map(x=>x.trim()).filter(Boolean);
+        const saved = await db.from("lacorte_plans").update({name,description:String(fd.get("description") || "").trim(),monthly_price:price,benefits,active:fd.get("active") === "on",updated_at:new Date().toISOString()}).eq("id",form.dataset.planForm);
+        if(saved.error) return alert("Erro ao salvar plano: " + saved.error.message);
+        alert("Plano atualizado."); renderAdminPlans();
+      });
+    });
+  } catch(error) {
+    content.innerHTML = adminNavigation() + '<p class="muted">' + safe(error.message) + '</p>';
+    bindAdminNavigation();
+  }
+}
+
 function slugId(value){
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,45);
@@ -999,6 +1060,7 @@ function slugId(value){
 const originalRenderQueueDashboard = renderQueueDashboard;
 renderQueueDashboard = function(){
   if(state.role === "admin" && adminView === "manage") return renderAdminManagement();
+  if(state.role === "admin" && adminView === "plans") return renderAdminPlans();
   originalRenderQueueDashboard();
   if(state.role === "admin"){
     const previous = content.innerHTML;
