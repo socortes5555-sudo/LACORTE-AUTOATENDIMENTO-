@@ -658,7 +658,8 @@ function renderQueueDashboard(){
       });
     }
 
-    content.innerHTML = html;
+    content.innerHTML = (state.role === "admin" ? adminNavigation() : "") + html;
+    if(state.role === "admin") bindAdminNavigation();
     content.querySelectorAll("[data-start]").forEach(function(button){
       button.addEventListener("click", async function(){
         button.disabled = true;
