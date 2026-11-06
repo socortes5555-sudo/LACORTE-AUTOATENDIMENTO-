@@ -171,7 +171,7 @@ function renderReturningCustomerLookup(){
     const result=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:identifier});button.disabled=false;
     if(result.error){showMessage('Não foi possível localizar: '+result.error.message);return;}
     const customer=Array.isArray(result.data)?result.data[0]:result.data;if(!customer){showMessage('Cadastro não encontrado. Confira os dados ou faça o primeiro cadastro.');return;}
-    state.user=null;state.customer=customer;state.customerPlan=null;state.customerPlanBenefits=[];const planResult=await db.rpc('lacorte_get_customer_plan_for_kiosk',{p_customer_id:customer.id});if(!planResult.error&&planResult.data){state.customerPlan=planResult.data;state.customerPlanBenefits=Array.isArray(planResult.data.benefits)?planResult.data.benefits:[];}state.selectedServices=[];state.queueTicket=null;state.role='customer';state.message='';setAppMode(false);state.step=3;render();
+    state.user=null;state.customer=customer;state.customerPlan=customer.customer_plan||null;state.customerPlanBenefits=state.customerPlan&&Array.isArray(state.customerPlan.benefits)?state.customerPlan.benefits:[];state.selectedServices=[];state.queueTicket=null;state.role='customer';state.message='';setAppMode(false);state.step=3;render();
   });
 }
 
