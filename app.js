@@ -603,6 +603,24 @@ function getCustomerPlanPreview(){
 
 // A confirmação mostra a prévia do benefício; o banco valida a reserva definitivamente.
 // Substitui o carregamento inicial antigo: primeiro identifica o perfil, depois abre a área correta.
+function passwordField(id,label,autocomplete,placeholder){
+  return '<div class="password-field"><input id="'+id+'" name="'+id+'" type="password" autocomplete="'+autocomplete+'" placeholder="'+(placeholder||"")+'" required><button class="password-toggle" type="button" data-password-toggle="'+id+'" aria-label="Mostrar senha" title="Mostrar senha"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>';
+}
+
+function bindPasswordVisibility(form){
+  form.querySelectorAll("[data-password-toggle]").forEach(function(button){
+    button.addEventListener("click",function(){
+      const input=form.querySelector("#"+button.dataset.passwordToggle);
+      if(!input) return;
+      const visible=input.type==="password";
+      input.type=visible?"text":"password";
+      button.setAttribute("aria-label",visible?"Ocultar senha":"Mostrar senha");
+      button.setAttribute("title",visible?"Ocultar senha":"Mostrar senha");
+      button.classList.toggle("is-visible",visible);
+    });
+  });
+}
+
 function renderStaffLogin(message){
   state.role = null;
   state.user = null;
@@ -610,21 +628,74 @@ function renderStaffLogin(message){
   setAppMode(false);
   setHeader("ÁREA PROFISSIONAL","Acesso da equipe LaCorte","Entre com seu e-mail e senha. No primeiro acesso, crie sua senha.");
   notice.textContent = "Acesso exclusivo para barbeiros e administrador. Clientes devem usar o autoatendimento.";
-  content.innerHTML = '<form id="staff-login-form" class="staff-login-form"><label for="staff-email">E-mail profissional</label><input id="staff-email" name="email" type="email" autocomplete="username" placeholder="Seu e-mail cadastrado" required><label for="staff-password">Senha</label><input id="staff-password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required><p id="staff-login-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENTRAR NO PAINEL</button><button class="btn btn-secondary" id="staff-first-access" type="button">PRIMEIRO ACESSO? CRIAR MINHA SENHA</button></form>';
+  content.innerHTML = '<form id="staff-login-form" class="staff-login-form"><label for="staff-email">E-mail profissional</label><input id="staff-email" name="email" type="email" autocomplete="username" placeholder="Seu e-mail cadastrado" required><label for="staff-password">Senha</label>'+passwordField("staff-password","Senha","current-password","Sua senha")+'<p id="staff-login-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENTRAR NO PAINEL</button><button class="btn btn-secondary" id="staff-forgot-password" type="button">ESQUECI MINHA SENHA</button><button class="btn btn-secondary" id="staff-first-access" type="button">PRIMEIRO ACESSO? CRIAR MINHA SENHA</button></form>';
   actions.replaceChildren();
   const form=content.querySelector("#staff-login-form");
+  bindPasswordVisibility(form);
   form.addEventListener("submit",async function(event){
     event.preventDefault();
     const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-login-message");
     const email=form.querySelector("#staff-email").value.trim(),password=form.querySelector("#staff-password").value;
     button.disabled=true;status.textContent="Verificando acesso...";
     const result=await db.auth.signInWithPassword({email,password});
-    if(result.error){status.textContent="E-mail ou senha inválidos. Se ainda não criou sua senha, use a opção Primeiro acesso.";button.disabled=false;return;}
+    if(result.error){status.textContent="E-mail ou senha incorretos. Confira os dados ou use ESQUECI MINHA SENHA para redefinir.";button.disabled=false;return;}
     await routeAuthenticatedUser(result.data.user);
   });
   content.querySelector("#staff-first-access").addEventListener("click",function(){
     const email=form.querySelector("#staff-email").value.trim();
     renderStaffPasswordSetup(email);
+  });
+  content.querySelector("#staff-forgot-password").addEventListener("click",function(){
+    renderStaffForgotPassword(form.querySelector("#staff-email").value.trim());
+  });
+}
+
+function renderStaffForgotPassword(initialEmail,message){
+  setAppMode(false);
+  setHeader("RECUPERAR ACESSO","Esqueci minha senha","Informe o e-mail profissional para receber o link seguro de redefinição.");
+  notice.textContent="Por segurança, o link será enviado somente ao endereço de e-mail cadastrado.";
+  content.innerHTML='<form id="staff-forgot-form" class="staff-login-form"><label for="staff-recovery-email">E-mail profissional</label><input id="staff-recovery-email" type="email" autocomplete="email" value="'+safe(initialEmail||"")+'" placeholder="Seu e-mail cadastrado" required><p id="staff-forgot-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENVIAR LINK DE REDEFINIÇÃO</button><button class="btn btn-secondary" id="staff-forgot-back" type="button">VOLTAR AO LOGIN</button></form>';
+  actions.replaceChildren();
+  const form=content.querySelector("#staff-forgot-form");
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    const email=form.querySelector("#staff-recovery-email").value.trim().toLowerCase();
+    const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-forgot-message");
+    button.disabled=true;status.textContent="Solicitando link de recuperação...";
+    const redirectTo=window.location.origin+window.location.pathname;
+    const result=await db.auth.resetPasswordForEmail(email,{redirectTo});
+    if(result.error){status.textContent="Não foi possível enviar o link. Confira o e-mail e tente novamente. "+result.error.message;button.disabled=false;return;}
+    status.textContent="Se o e-mail estiver cadastrado, você receberá um link para criar uma nova senha. Confira também o spam.";
+    button.disabled=false;
+  });
+  form.querySelector("#staff-forgot-back").addEventListener("click",function(){renderStaffLogin();});
+}
+
+async function renderStaffPasswordReset(message){
+  setAppMode(false);
+  setHeader("REDEFINIR SENHA","Criar nova senha","Escolha uma nova senha para acessar o painel profissional.");
+  notice.textContent="O link de recuperação foi validado. Defina uma senha nova com pelo menos 8 caracteres.";
+  content.innerHTML='<form id="staff-reset-form" class="staff-login-form"><label for="staff-reset-password">Nova senha</label>'+passwordField("staff-reset-password","Nova senha","new-password","Mínimo 8 caracteres")+'<label for="staff-reset-confirm">Confirmar nova senha</label>'+passwordField("staff-reset-confirm","Confirmar nova senha","new-password","Repita a nova senha")+'<p id="staff-reset-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">SALVAR NOVA SENHA</button></form>';
+  actions.replaceChildren();
+  const form=content.querySelector("#staff-reset-form");
+  bindPasswordVisibility(form);
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    const password=form.querySelector("#staff-reset-password").value;
+    const confirmation=form.querySelector("#staff-reset-confirm").value;
+    const status=form.querySelector("#staff-reset-message"),button=form.querySelector('button[type="submit"]');
+    if(password.length<8){status.textContent="A senha precisa ter pelo menos 8 caracteres.";return;}
+    if(password!==confirmation){status.textContent="As senhas não conferem.";return;}
+    button.disabled=true;status.textContent="Salvando nova senha...";
+    const role=await db.from("lacorte_user_roles").select("role,barber_id").eq("user_id",(await db.auth.getUser()).data.user.id).maybeSingle();
+    if(role.error||!role.data||!["admin","barber"].includes(role.data.role)){
+      await db.auth.signOut({scope:"local"});
+      renderStaffLogin("Este e-mail não está autorizado como conta profissional.");
+      return;
+    }
+    const saved=await db.auth.updateUser({password:password});
+    if(saved.error){status.textContent="Não foi possível salvar a nova senha: "+saved.error.message;button.disabled=false;return;}
+    await routeAuthenticatedUser(saved.data.user);
   });
 }
 
@@ -651,9 +722,10 @@ function renderStaffPasswordVerification(email,message){
   setAppMode(false);
   setHeader("CONFIRMAR E-MAIL","Definir sua senha","Digite o código recebido e escolha uma senha pessoal.");
   notice.textContent = "O código confirma que você tem acesso à caixa de e-mail profissional.";
-  content.innerHTML = '<form id="staff-password-verify" class="staff-login-form"><label for="staff-otp">Código recebido por e-mail</label><input id="staff-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required><label for="staff-new-password">Criar senha (mínimo 8 caracteres)</label><input id="staff-new-password" type="password" autocomplete="new-password" minlength="8" required><label for="staff-confirm-password">Confirmar senha</label><input id="staff-confirm-password" type="password" autocomplete="new-password" minlength="8" required><p id="staff-verify-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR E SALVAR SENHA</button><button class="btn btn-secondary" id="staff-resend-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="staff-verify-back" type="button">VOLTAR AO LOGIN</button></form>';
+  content.innerHTML = '<form id="staff-password-verify" class="staff-login-form"><label for="staff-otp">Código recebido por e-mail</label><input id="staff-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required><label for="staff-new-password">Criar senha (mínimo 8 caracteres)</label>'+passwordField("staff-new-password","Criar senha","new-password","Mínimo 8 caracteres")+'<label for="staff-confirm-password">Confirmar senha</label>'+passwordField("staff-confirm-password","Confirmar senha","new-password","Repita a senha")+'<p id="staff-verify-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR E SALVAR SENHA</button><button class="btn btn-secondary" id="staff-resend-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="staff-verify-back" type="button">VOLTAR AO LOGIN</button></form>';
   actions.replaceChildren();
   const form=content.querySelector("#staff-password-verify");
+  bindPasswordVisibility(form);
   form.addEventListener("submit",async function(event){
     event.preventDefault();
     const token=form.querySelector("#staff-otp").value.trim();
@@ -688,8 +760,9 @@ function renderStaffPasswordOnly(message){
   setAppMode(false);
   setHeader("QUASE PRONTO","Salvar sua senha","Seu e-mail já foi confirmado. Agora finalize a criação da senha.");
   notice.textContent = "Escolha uma senha com pelo menos 8 caracteres.";
-  content.innerHTML = '<form id="staff-password-only" class="staff-login-form"><label for="staff-password-only-new">Nova senha</label><input id="staff-password-only-new" type="password" autocomplete="new-password" minlength="8" required><label for="staff-password-only-confirm">Confirmar senha</label><input id="staff-password-only-confirm" type="password" autocomplete="new-password" minlength="8" required><p id="staff-password-only-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">SALVAR SENHA</button></form>';
+  content.innerHTML = '<form id="staff-password-only" class="staff-login-form"><label for="staff-password-only-new">Nova senha</label>'+passwordField("staff-password-only-new","Nova senha","new-password","Mínimo 8 caracteres")+'<label for="staff-password-only-confirm">Confirmar senha</label>'+passwordField("staff-password-only-confirm","Confirmar senha","new-password","Repita a senha")+'<p id="staff-password-only-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">SALVAR SENHA</button></form>';
   const form=content.querySelector("#staff-password-only");
+  bindPasswordVisibility(form);
   form.addEventListener("submit",async function(event){
     event.preventDefault();
     const password=form.querySelector("#staff-password-only-new").value;
@@ -713,10 +786,18 @@ async function initLaCorte(){
   }
 
   if (STAFF_PORTAL) {
-    const staffSession = await db.auth.getSession();
-    if (staffSession.error) { renderStaffLogin("Não foi possível verificar a sessão. Entre novamente."); return; }
-    if (staffSession.data && staffSession.data.session) await routeAuthenticatedUser(staffSession.data.session.user);
-    else renderStaffLogin();
+    const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,""));
+    if(hashParams.get("type")==="recovery" && hashParams.get("access_token") && hashParams.get("refresh_token")){
+      const restored=await db.auth.setSession({access_token:hashParams.get("access_token"),refresh_token:hashParams.get("refresh_token")});
+      window.history.replaceState({},document.title,window.location.pathname+window.location.search);
+      if(restored.error){renderStaffLogin("O link de recuperação expirou ou já foi utilizado. Solicite outro.");return;}
+      await renderStaffPasswordReset();
+    }else{
+      const staffSession = await db.auth.getSession();
+      if (staffSession.error) { renderStaffLogin("Não foi possível verificar a sessão. Entre novamente."); return; }
+      if (staffSession.data && staffSession.data.session) await routeAuthenticatedUser(staffSession.data.session.user);
+      else renderStaffLogin();
+    }
     db.auth.onAuthStateChange(function(event){
       if(event === "SIGNED_OUT") renderStaffLogin();
     });
