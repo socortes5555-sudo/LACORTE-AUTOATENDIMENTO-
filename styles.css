@@ -297,3 +297,85 @@ body:has(.admin-nav) label{color:#aaa!important}
 body:has(.admin-nav) .report-table th{color:#ff791f!important}
 body:has(.admin-nav) .report-table td{color:#eee!important}
 body:has(.admin-nav) .report-pie-hole{background:#191919!important}
+
+
+/* Refinamento profissional: interface compacta, hierarquia clara e navegação consistente */
+body.admin-dashboard .shell,
+body.professional-dashboard .shell{padding:14px 18px 22px}
+body.admin-dashboard .panel,
+body.professional-dashboard .panel{padding:0}
+body.admin-dashboard .panel-heading,
+body.professional-dashboard .panel-heading{margin:0 0 12px;padding:0}
+body.admin-dashboard .panel-heading h2,
+body.professional-dashboard .panel-heading h2{font-size:25px;margin:2px 0 4px}
+body.admin-dashboard .panel-heading .muted,
+body.professional-dashboard .panel-heading .muted{font-size:12px;line-height:1.4;margin:4px 0}
+body.admin-dashboard #step-content:has(.admin-nav){grid-template-columns:205px minmax(0,1fr);gap:16px}
+body.admin-dashboard .admin-nav{top:10px;min-height:0;padding:12px 9px;border-radius:12px;gap:4px}
+body.admin-dashboard .admin-brand{padding:3px 6px 12px}
+body.admin-dashboard .admin-brand-mark{width:32px;height:32px;border-radius:9px}
+body.admin-dashboard .admin-nav-caption{padding:12px 7px 4px;font-size:8px}
+body.admin-dashboard .admin-nav-item{padding:9px 8px;gap:9px;font-size:11px;border-radius:7px}
+body.admin-dashboard .admin-nav-icon{font-size:15px;width:19px}
+body.admin-dashboard .admin-nav-footer{padding:10px 7px 2px}
+body.admin-dashboard .summary{padding:12px;margin:8px 0;border-radius:10px}
+body.admin-dashboard .summary h3{font-size:16px;margin:0 0 8px}
+body.admin-dashboard .admin-form{padding:10px 0;margin-top:8px;gap:7px}
+body.admin-dashboard .admin-item{gap:6px;margin:8px 0}
+body.admin-dashboard .admin-form input:not([type=checkbox]),
+body.admin-dashboard .admin-item input:not([type=checkbox]),
+body.admin-dashboard .admin-form textarea,
+body.admin-dashboard .admin-item textarea,
+body.admin-dashboard .report-filter select,
+body.admin-dashboard .report-filter input{min-height:38px;padding:9px 10px;font-size:13px;border-radius:7px}
+body.admin-dashboard .admin-form textarea,
+body.admin-dashboard .admin-item textarea{min-height:66px}
+body.admin-dashboard .btn{padding:10px 13px;font-size:11px;border-radius:7px}
+body.admin-dashboard .admin-kpis{gap:8px;margin:0 0 14px}
+body.admin-dashboard .admin-kpis article{padding:11px 12px;gap:3px;border-radius:10px}
+body.admin-dashboard .admin-kpis article strong{font-size:23px}
+body.admin-dashboard .admin-agenda-heading{margin:4px 1px 8px}
+body.admin-dashboard .admin-agenda-heading h3{font-size:18px}
+body.admin-dashboard .admin-agenda-board{gap:9px}
+body.admin-dashboard .admin-agenda-column{padding:8px;border-radius:10px}
+body.admin-dashboard .admin-agenda-column>header{padding:2px 1px 8px;margin-bottom:8px}
+body.admin-dashboard .admin-appointment{padding:9px;margin-bottom:7px;border-radius:8px}
+body.admin-dashboard .report-kpis{gap:8px}
+body.admin-dashboard .report-kpis .summary{padding:10px}
+body.admin-dashboard .report-chart-grid{gap:8px}
+body.admin-dashboard .report-chart-grid .summary{padding:11px}
+body.admin-dashboard .report-status-grid{gap:7px}
+body.admin-dashboard .report-status-grid>div{padding:9px}
+body.admin-dashboard .report-table th,
+body.admin-dashboard .report-table td{padding:8px 7px}
+body.admin-dashboard #step-actions{margin:8px 0 0}
+body.admin-dashboard #step-actions .btn{max-width:145px}
+body.professional-dashboard{background:#101010;color:#f7f5f2}
+body.professional-dashboard .topbar{height:54px;padding:0 18px;background:#151515;border-bottom:1px solid #333}
+body.professional-dashboard .shell{max-width:1180px;padding:14px 18px 22px}
+body.professional-dashboard .panel{background:transparent;border:0;box-shadow:none;border-radius:0}
+body.professional-dashboard .summary{background:#191919;border:1px solid #383838;padding:12px;margin:8px 0;border-radius:10px}
+body.professional-dashboard .summary-row{padding:6px 0;font-size:12px}
+body.professional-dashboard .btn{padding:11px 14px;font-size:11px;border-radius:7px}
+body.professional-dashboard .muted{font-size:12px}
+body.admin-dashboard .report-filter{gap:8px}
+body.admin-dashboard .report-date-fields{gap:8px}
+@media(max-width:850px){
+ body.admin-dashboard .shell,body.professional-dashboard .shell{padding:10px 12px 18px}
+ body.admin-dashboard #step-content:has(.admin-nav){grid-template-columns:1fr;gap:10px}
+ body.admin-dashboard #step-content>.admin-nav{position:relative;top:auto;grid-template-columns:repeat(2,minmax(0,1fr));padding:9px;gap:4px}
+ body.admin-dashboard .admin-brand{padding-bottom:8px}
+ body.admin-dashboard .admin-nav-caption{padding:7px 7px 3px}
+ body.admin-dashboard .admin-nav-item{padding:8px;font-size:10px}
+}
+@media(max-width:520px){
+ body.admin-dashboard .shell,body.professional-dashboard .shell{padding:8px 9px 16px}
+ body.admin-dashboard .panel-heading h2,body.professional-dashboard .panel-heading h2{font-size:22px}
+ body.admin-dashboard .admin-kpis{gap:7px}
+ body.admin-dashboard .admin-kpis article{padding:10px}
+ body.admin-dashboard .admin-kpis article span{font-size:8px}
+ body.admin-dashboard .admin-kpis article strong{font-size:21px}
+ body.admin-dashboard .admin-nav{border-radius:10px}
+ body.admin-dashboard .report-kpis .summary{padding:9px}
+ body.professional-dashboard .summary{padding:10px}
+}
