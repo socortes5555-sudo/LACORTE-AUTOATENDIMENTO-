@@ -1178,7 +1178,7 @@ async function renderAdminManagement(){
     html += '<section class="summary"><h3>ACESSOS PROFISSIONAIS</h3><p class="muted">Gerencie o e-mail de acesso do Barbeiro 2. Seu acesso de administrador permanece separado e não pode ser alterado por esta tela.</p>' +
       '<form id="barber-access-form" class="admin-form"><label>E-mail atualmente vinculado ao Barbeiro 2</label><input type="email" value="' + safe(accessEmail) + '" readonly>' +
       '<label>Novo e-mail profissional</label><input name="email" type="email" maxlength="254" autocomplete="off" placeholder="Digite o e-mail definitivo do barbeiro" required>' +
-      '<p id="barber-access-message" class="muted" role="status">' + safe(accessLoadMessage || "A troca será concluída após a confirmação enviada ao novo endereço.") + '</p>' +
+      '<p id="barber-access-message" class="muted" role="status">' + safe(accessLoadMessage || "Após a troca, o barbeiro usará PRIMEIRO ACESSO para receber um código neste endereço e criar a própria senha.") + '</p>' +
       '<button class="btn btn-primary" type="submit">SOLICITAR TROCA DE E-MAIL</button></form></section>';
     html += '<section class="summary"><h3>BARBEIROS</h3><p class="muted">Edite nome, comissão e disponibilidade. Desativar preserva o histórico.</p>';
     html += '<form id="new-barber-form" class="admin-form"><h4>Novo barbeiro</h4><label>Nome</label><input name="name" maxlength="80" required placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form>';
