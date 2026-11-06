@@ -1434,8 +1434,12 @@ async function renderAdminPlans(){
       const todayDate = new Date(todayString+"T00:00:00");
       const expiryDate = sub.expires_at ? new Date(sub.expires_at+"T00:00:00") : null;
       const daysRemaining = expiryDate ? Math.ceil((expiryDate-todayDate)/86400000) : null;
-      const expiryNotice = sub.status === "active" && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7
-        ? '<p class="muted"><strong>ATENÇÃO:</strong> '+(daysRemaining === 0 ? "A assinatura vence hoje." : "A assinatura vence em "+daysRemaining+" dia(s).")+'</p>' : "";
+      const isExpired = sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
+      const expiryNotice = isExpired
+        ? '<p class="notice"><strong>ASSINATURA VENCIDA:</strong> Esta assinatura passou da data de validade.</p>'
+        : sub.status === "active" && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7
+          ? '<p class="notice"><strong>ATENÇÃO:</strong> '+(daysRemaining === 0 ? "A assinatura vence hoje." : "A assinatura vence em "+daysRemaining+" dia(s).")+'</p>'
+          : "";
       const searchText = [customerName,c.phone || "",c.email || "",sub.plan_name || "",statusLabel].join(" ").toLowerCase();
       const paidDate = sub.paid_at ? new Date(sub.paid_at).toLocaleString("pt-BR") : "Não informado";
       html += '<article class="summary admin-item" data-subscription-history-card data-search="'+safe(searchText)+'"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe(customerName)+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Período:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p>'+expiryNotice+'<p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Pagamento registrado:</strong> '+safe(paidDate)+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
