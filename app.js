@@ -583,39 +583,6 @@ function getCustomerPlanPreview(){
 }
 
 // A confirmação mostra a prévia do benefício; o banco valida a reserva definitivamente.
-renderConfirmation = function(){
-  setHeader("ETAPA 05", "Confira sua solicitação", "Confira seus dados, serviços e barbeiro antes de entrar na fila.");
-  const preview = getCustomerPlanPreview();
-  const total = preview
-    ? preview.total
-    : state.selectedServices.reduce(function(sum, service){ return sum + Number(service.price); }, 0);
-  content.innerHTML =
-    '<div class="summary">' +
-      '<div class="summary-row"><span>Cliente</span><strong>' + safe(state.customer.first_name) + ' ' + safe(state.customer.last_name) + '</strong></div>' +
-      '<div class="summary-row"><span>Telefone</span><strong>' + safe(state.customer.phone) + '</strong></div>' +
-      '<div class="summary-row"><span>E-mail</span><strong>' + safe(state.customer.email) + '</strong></div>' +
-    '</div>' +
-    '<div class="summary"><strong>Serviços</strong>' +
-      state.selectedServices.map(function(service){
-        const linePrice = preview ? preview.total : Number(service.price);
-        return '<div class="summary-row"><span>' + safe(service.name) + '</span><strong>' + money(linePrice) + '</strong></div>';
-      }).join("") +
-      (preview
-        ? '<p class="muted">' + safe(preview.description) + '. Valor normal: ' + money(preview.normal) + '.</p><p class="muted">Benefício sujeito à confirmação de crédito disponível ao registrar a fila.</p>'
-        : '') +
-      '<div class="summary-row summary-total"><span>Total</span><strong>' + money(total) + '</strong></div>' +
-    '</div>' +
-    '<div class="summary"><div class="summary-row"><span>Barbeiro</span><strong>' + safe(state.barber.name) + '</strong></div></div>' +
-    '<p id="app-message" class="muted">' + safe(state.message) + '</p>';
-
-  setActions(
-    function(){ state.step = 4; render(); },
-    submitQueueEntry,
-    "CONFIRMAR E ENTRAR NA FILA",
-    state.submitting
-  );
-};
-
 // Substitui o carregamento inicial antigo: primeiro identifica o perfil, depois abre a área correta.
 async function initLaCorte(){
   setAppMode(false);
