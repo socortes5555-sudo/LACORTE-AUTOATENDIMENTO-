@@ -823,6 +823,7 @@ async function renderAdminReports(){
 
     const periodOptions = '<option value="today" '+(adminReportFilters.period==="today"?"selected":"")+'>Hoje</option>'+
       '<option value="week" '+(adminReportFilters.period==="week"?"selected":"")+'>Esta semana</option>'+
+      '<option value="fortnight" '+(adminReportFilters.period==="fortnight"?"selected":"")+'>Quinzena</option>'+
       '<option value="month" '+(adminReportFilters.period==="month"?"selected":"")+'>Este mês</option>'+
       '<option value="custom" '+(adminReportFilters.period==="custom"?"selected":"")+'>Personalizado</option>';
     let html = adminNavigation();
