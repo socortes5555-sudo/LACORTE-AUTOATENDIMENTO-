@@ -1020,6 +1020,217 @@ async function initLaCorte(){
 }
 
 
+
+// ===== RELATÓRIOS ADMINISTRATIVOS LACORTE =====
+let adminReportFilters = { period: "month", start: "", end: "" };
+
+function reportShiftDate(dateText, days){
+  const parts = dateText.split("-").map(Number);
+  const date = new Date(parts[0], parts[1]-1, parts[2], 12);
+  date.setDate(date.getDate()+days);
+  return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+}
+
+function reportDateRange(){
+  const today = localQueueDate();
+  const period = adminReportFilters.period || "month";
+  if(period === "today") return {start:today,end:today,label:"Hoje"};
+  if(period === "week"){
+    const d = new Date(today+"T12:00:00");
+    const weekday = d.getDay();
+    return {start:reportShiftDate(today, -(weekday === 0 ? 6 : weekday-1)),end:today,label:"Esta semana"};
+  }
+  if(period === "month") return {start:today.slice(0,7)+"-01",end:today,label:"Este mês"};
+  const start = adminReportFilters.start;
+  const end = adminReportFilters.end;
+  if(!start || !end || start > end) throw new Error("Informe um intervalo válido: a data inicial deve ser anterior ou igual à data final.");
+  return {start:start,end:end,label:"Período personalizado"};
+}
+
+function reportLineChart(items){
+  if(!items.length) return '<p class="muted">Sem faturamento concluído neste período.</p>';
+  const width=640, height=230, left=42, right=18, top=18, bottom=42;
+  const max=Math.max(1,...items.map(function(item){return item.value;}));
+  const points=items.map(function(item,index){
+    const x=left+(items.length===1?0:index*(width-left-right)/(items.length-1));
+    const y=top+(height-top-bottom)-(item.value/max)*(height-top-bottom);
+    return {x:x,y:y,item:item};
+  });
+  const path=points.map(function(p,index){return (index===0?"M":"L")+p.x.toFixed(1)+" "+p.y.toFixed(1);}).join(" ");
+  const labelStep=Math.max(1,Math.ceil(items.length/7));
+  let labels="";
+  points.forEach(function(p,index){
+    if(index%labelStep===0 || index===points.length-1){
+      labels+='<text x="'+p.x.toFixed(1)+'" y="'+(height-13)+'" text-anchor="middle" class="chart-label">'+safe(p.item.label)+'</text>';
+    }
+  });
+  let dots="";
+  points.forEach(function(p){
+    dots+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4" class="chart-dot"><title>'+safe(p.item.label)+': '+money(p.item.value)+'</title></circle>';
+  });
+  let grid="";
+  for(let i=0;i<4;i++){
+    const y=top+i*(height-top-bottom)/3;
+    grid+='<line x1="'+left+'" y1="'+y.toFixed(1)+'" x2="'+(width-right)+'" y2="'+y.toFixed(1)+'" class="chart-grid"/>';
+  }
+  return '<svg class="report-line-svg" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Faturamento por dia">'+grid+
+    '<path d="'+path+'" class="chart-line"/>'+dots+labels+'</svg>';
+}
+
+function reportBarChart(items, valueFormatter){
+  if(!items.length) return '<p class="muted">Sem dados para este período.</p>';
+  const max=Math.max(1,...items.map(function(item){return item.value;}));
+  return '<div class="report-bars">'+items.map(function(item){
+    const percent=Math.max(0,Math.min(100,(item.value/max)*100));
+    return '<div class="report-bar-row"><div class="report-bar-heading"><span>'+safe(item.label)+'</span><strong>'+valueFormatter(item.value)+'</strong></div><div class="report-bar-track"><i style="width:'+percent.toFixed(1)+'%"></i></div></div>';
+  }).join("")+'</div>';
+}
+
+async function renderAdminReports(){
+  if(state.role !== "admin") return renderQueueDashboard();
+  adminView = "reports";
+  setAppMode(true);
+  setHeader("ADMINISTRAÇÃO LACORTE","Relatórios e faturamento","Acompanhe resultados, serviços e comissões por período.");
+  notice.textContent = "Relatórios exclusivos do administrador • Valores financeiros consideram somente atendimentos concluídos.";
+  dashboardActions();
+  content.innerHTML = adminNavigation() + '<p class="muted">Carregando relatórios...</p>';
+  let range;
+  try {
+    range = reportDateRange();
+    const queueResult = await db.from("lacorte_queue")
+      .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_percent,commission_amount,created_at,completed_at")
+      .gte("queue_date",range.start).lte("queue_date",range.end)
+      .order("queue_date",{ascending:true}).order("created_at",{ascending:true});
+    if(queueResult.error) throw new Error("Não foi possível consultar os atendimentos: "+queueResult.error.message);
+    const rows = queueResult.data || [];
+    const completedRows = rows.filter(function(row){return row.status === "completed";});
+    const barberResult = await db.from("barbers").select("id,name,active").order("name");
+    if(barberResult.error) throw new Error("Não foi possível consultar os barbeiros: "+barberResult.error.message);
+    const customerIds = Array.from(new Set(rows.map(function(row){return row.customer_id;}).filter(Boolean)));
+    const queueIds = rows.map(function(row){return row.id;});
+    const lookups = await Promise.all([
+      customerIds.length ? db.from("customers").select("id,first_name,last_name,phone").in("id",customerIds) : Promise.resolve({data:[],error:null}),
+      queueIds.length ? db.from("lacorte_queue_items").select("queue_id,service_name,unit_price").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
+    ]);
+    if(lookups[0].error) throw new Error("Não foi possível consultar os clientes: "+lookups[0].error.message);
+    if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);
+    const barberById = {};
+    (barberResult.data || []).forEach(function(barber){barberById[barber.id]=barber.name;});
+    const customerById = {};
+    (lookups[0].data || []).forEach(function(customer){customerById[customer.id]=customer;});
+    const itemsByQueue = {};
+    (lookups[1].data || []).forEach(function(item){
+      if(!itemsByQueue[item.queue_id]) itemsByQueue[item.queue_id]=[];
+      itemsByQueue[item.queue_id].push(item);
+    });
+
+    const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);
+    const commissions = completedRows.reduce(function(sum,row){return sum+Number(row.commission_amount || 0);},0);
+    const net = revenue-commissions;
+    const counts = {
+      completed:completedRows.length,
+      waiting:rows.filter(function(row){return row.status==="waiting";}).length,
+      in_progress:rows.filter(function(row){return row.status==="in_progress";}).length,
+      cancelled:rows.filter(function(row){return row.status==="cancelled";}).length
+    };
+    const daily = {};
+    const cursorDates = [];
+    for(let date=range.start;date<=range.end;date=reportShiftDate(date,1)){
+      cursorDates.push(date);
+      if(cursorDates.length>370) break;
+    }
+    cursorDates.forEach(function(date){daily[date]=0;});
+    completedRows.forEach(function(row){
+      daily[row.queue_date]=(daily[row.queue_date] || 0)+Number(row.total_amount || 0);
+    });
+    const dailyItems = cursorDates.map(function(date){
+      return {label:date.slice(8,10)+"/"+date.slice(5,7),value:daily[date] || 0};
+    });
+    const commissionsByBarber = {};
+    completedRows.forEach(function(row){
+      const name=barberById[row.barber_id] || row.barber_id || "Não identificado";
+      commissionsByBarber[name]=(commissionsByBarber[name] || 0)+Number(row.commission_amount || 0);
+    });
+    const commissionItems = Object.keys(commissionsByBarber).map(function(name){
+      return {label:name,value:commissionsByBarber[name]};
+    }).sort(function(a,b){return b.value-a.value;});
+    const serviceCounts = {};
+    completedRows.forEach(function(row){
+      (itemsByQueue[row.id] || []).forEach(function(item){
+        serviceCounts[item.service_name]=(serviceCounts[item.service_name] || 0)+1;
+      });
+    });
+    const serviceItems = Object.keys(serviceCounts).map(function(name){
+      return {label:name,value:serviceCounts[name]};
+    }).sort(function(a,b){return b.value-a.value;}).slice(0,8);
+    const customerName = function(row){
+      const c=customerById[row.customer_id] || {};
+      return ((c.first_name || "Cliente")+" "+(c.last_name || "")).trim();
+    };
+    let history = "";
+    rows.slice().sort(function(a,b){
+      return String(b.created_at).localeCompare(String(a.created_at));
+    }).forEach(function(row){
+      const serviceText=(itemsByQueue[row.id] || []).map(function(item){
+        return safe(item.service_name)+" ("+money(Number(item.unit_price || 0))+")";
+      }).join(", ") || "—";
+      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id)+'</td><td>'+serviceText+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
+    });
+
+    const periodOptions = '<option value="today" '+(adminReportFilters.period==="today"?"selected":"")+'>Hoje</option>'+
+      '<option value="week" '+(adminReportFilters.period==="week"?"selected":"")+'>Esta semana</option>'+
+      '<option value="month" '+(adminReportFilters.period==="month"?"selected":"")+'>Este mês</option>'+
+      '<option value="custom" '+(adminReportFilters.period==="custom"?"selected":"")+'>Personalizado</option>';
+    let html = adminNavigation();
+    html += '<form id="report-filter" class="summary report-filter"><label for="report-period">PERÍODO DO RELATÓRIO</label><select id="report-period" name="period">'+periodOptions+'</select>'+
+      '<div class="report-date-fields"><label>Data inicial<input type="date" id="report-start" name="start" value="'+safe(adminReportFilters.start || range.start)+'"></label>'+
+      '<label>Data final<input type="date" id="report-end" name="end" value="'+safe(adminReportFilters.end || range.end)+'"></label></div>'+
+      '<button class="btn btn-primary" type="submit">APLICAR PERÍODO</button></form>';
+    html += '<div class="report-kpis">'+
+      '<article class="summary"><span class="muted">Faturamento</span><strong>'+money(revenue)+'</strong></article>'+
+      '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
+      '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
+      '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
+    html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportLineChart(dailyItems)+'</section>';
+    html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportBarChart(commissionItems,money)+'</section>'+
+      '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportBarChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
+    html += '<section class="summary"><h3>STATUS DOS ATENDIMENTOS</h3><div class="report-status-grid">'+
+      '<div><span>Aguardando</span><strong>'+counts.waiting+'</strong></div>'+
+      '<div><span>Em atendimento</span><strong>'+counts.in_progress+'</strong></div>'+
+      '<div><span>Concluídos</span><strong>'+counts.completed+'</strong></div>'+
+      '<div><span>Cancelados</span><strong>'+counts.cancelled+'</strong></div></div></section>';
+    html += '<section class="summary"><h3>HISTÓRICO DO PERÍODO</h3><p class="muted">'+rows.length+' registro(s) encontrado(s).</p>'+
+      (rows.length ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>' : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
+      '</section>';
+
+    if(state.role !== "admin" || adminView !== "reports") return;
+    content.innerHTML = html;
+    bindAdminNavigation();
+    const filter = content.querySelector("#report-filter");
+    filter.querySelector("#report-period").addEventListener("change",function(){
+      const custom=this.value==="custom";
+      filter.querySelector("#report-start").disabled=!custom;
+      filter.querySelector("#report-end").disabled=!custom;
+    });
+    const customFields=adminReportFilters.period==="custom";
+    filter.querySelector("#report-start").disabled=!customFields;
+    filter.querySelector("#report-end").disabled=!customFields;
+    filter.addEventListener("submit",function(event){
+      event.preventDefault();
+      const fd=new FormData(filter);
+      adminReportFilters.period=String(fd.get("period") || "month");
+      adminReportFilters.start=String(fd.get("start") || "");
+      adminReportFilters.end=String(fd.get("end") || "");
+      renderAdminReports();
+    });
+  } catch(error) {
+    if(state.role !== "admin" || adminView !== "reports") return;
+    content.innerHTML = adminNavigation() + '<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';
+    bindAdminNavigation();
+  }
+}
+
+
 // ===== GERENCIAMENTO ADMINISTRATIVO LACORTE =====
 let adminView = "queue";
 
@@ -1029,6 +1240,7 @@ function adminNavigation(){
     '<button class="btn ' + (adminView === "queue" ? "btn-primary" : "btn-secondary") + '" data-admin-view="queue">FILA DE HOJE</button>' +
     '<button class="btn ' + (adminView === "manage" ? "btn-primary" : "btn-secondary") + '" data-admin-view="manage">GERENCIAR</button>' +
     '<button class="btn ' + (adminView === "plans" ? "btn-primary" : "btn-secondary") + '" data-admin-view="plans">PLANOS</button>' +
+    '<button class="btn ' + (adminView === "reports" ? "btn-primary" : "btn-secondary") + '" data-admin-view="reports">RELATÓRIOS</button>' +
     '</div>';
 }
 
@@ -1038,6 +1250,7 @@ function bindAdminNavigation(){
       adminView = button.dataset.adminView;
       if(adminView === "manage") renderAdminManagement();
       else if(adminView === "plans") renderAdminPlans();
+      else if(adminView === "reports") renderAdminReports();
       else renderQueueDashboard();
     });
   });
@@ -1307,6 +1520,7 @@ const originalRenderQueueDashboard = renderQueueDashboard;
 renderQueueDashboard = function(){
   if(state.role === "admin" && adminView === "manage") return renderAdminManagement();
   if(state.role === "admin" && adminView === "plans") return renderAdminPlans();
+  if(state.role === "admin" && adminView === "reports") return renderAdminReports();
   originalRenderQueueDashboard();
   if(state.role === "admin"){
     const previous = content.innerHTML;
