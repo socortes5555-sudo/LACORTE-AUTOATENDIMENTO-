@@ -144,7 +144,7 @@ function renderLogin(){
   document.querySelector('#existing-customer-button').addEventListener('click',renderReturningCustomerLookup);
   document.querySelector('#send-code-button').addEventListener('click',async function(){
     const email=document.querySelector('#email').value.trim();if(!email){showMessage('Informe seu e-mail primeiro.');return;}
-    this.disabled=true;showMessage('Enviando código...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
+    this.disabled=true;showMessage('Verificando se já existe cadastro...');const existing=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:email});if(existing.error){this.disabled=false;showMessage('Não foi possível verificar o cadastro: '+existing.error.message);return;}if(existing.data&&existing.data.length){this.disabled=false;showMessage('Este e-mail já possui cadastro. Use o botão JÁ TENHO CADASTRO para entrar sem novo código.');return;}showMessage('Enviando código...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
     if(result.error){showMessage('Erro ao enviar código: '+result.error.message);return;}state.pendingEmail=email;showMessage('Código enviado. Digite os 6 números acima.');document.querySelector('#email-code').focus();
   });
   document.querySelector('#login-form').addEventListener('submit',async function(e){
