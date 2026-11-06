@@ -395,3 +395,24 @@ body.admin-dashboard .report-date-fields{gap:8px}
 .admin-queue-card .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .admin-queue-card.waiting{border-left:4px solid #ff791f}
 .admin-queue-card.progress{border-left:4px solid #e7a42d}
+
+
+/* Botão de envio do código: compacto e abaixo do campo de e-mail */
+#login-form .btn-primary{
+  display:block;
+  width:auto;
+  max-width:230px;
+  flex:none;
+  margin:14px 0 0;
+  padding:10px 16px;
+  font-size:11px;
+  line-height:1.25;
+}
+@media(max-width:520px){
+  #login-form .btn-primary{
+    width:auto;
+    max-width:210px;
+    padding:10px 14px;
+    font-size:10px;
+  }
+}
