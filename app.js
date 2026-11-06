@@ -1047,24 +1047,22 @@ function reportDateRange(){
   return {start:start,end:end,label:"Período personalizado"};
 }
 
-function reportLineChart(items){
-  if(!items.length) return '<p class="muted">Sem faturamento concluído neste período.</p>';
-  const max=Math.max(1,...items.map(function(item){return Number(item.value)||0;}));
-  return '<div class="report-daily-chart">'+items.map(function(item){
-    const value=Number(item.value)||0;
-    const percent=value>0?Math.max(8,(value/max)*100):0;
-    return '<div class="report-daily-column"><div class="report-daily-value">'+money(value)+'</div><div class="report-daily-track"><div class="report-daily-fill" style="height:'+percent.toFixed(1)+'%"></div></div><div class="report-daily-label">'+safe(item.label)+'</div></div>';
-  }).join('')+'</div>';
-}
-
-function reportBarChart(items, valueFormatter){
-  if(!items.length) return '<p class="muted">Sem dados para este período.</p>';
-  const max=Math.max(1,...items.map(function(item){return Number(item.value)||0;}));
-  return '<div class="report-bars">'+items.map(function(item){
-    const value=Number(item.value)||0;
-    const percent=Math.max(0,Math.min(100,(value/max)*100));
-    return '<div class="report-bar-row"><div class="report-bar-heading"><span>'+safe(item.label)+'</span><strong>'+valueFormatter(value)+'</strong></div><div class="report-bar-track"><div class="report-bar-fill" style="width:'+percent.toFixed(1)+'%"></div></div></div>';
-  }).join('')+'</div>';
+function reportPieChart(items, valueFormatter, emptyMessage){
+  const palette=["#f58220","#f5b041","#d35400","#e67e22","#f39c12","#b94b12","#ff9f43","#8e3b0d","#ffc078","#c96b22"];
+  const valid=(items || []).map(function(item){return {label:String(item.label || "Não identificado"),value:Math.max(0,Number(item.value)||0)};}).filter(function(item){return item.value>0;});
+  if(!valid.length) return '<p class="muted">'+(emptyMessage || "Sem dados para este período.")+'</p>';
+  const total=valid.reduce(function(sum,item){return sum+item.value;},0);
+  let cursor=0;
+  const stops=valid.map(function(item,index){
+    const start=cursor;
+    cursor+=(item.value/total)*100;
+    return palette[index%palette.length]+' '+start.toFixed(2)+'% '+cursor.toFixed(2)+'%';
+  });
+  const legend=valid.map(function(item,index){
+    const percent=(item.value/total)*100;
+    return '<div class="report-pie-legend-item"><span class="report-pie-dot" style="background:'+palette[index%palette.length]+'"></span><span class="report-pie-name">'+safe(item.label)+'</span><strong>'+valueFormatter(item.value)+'</strong><small>'+percent.toFixed(1).replace(".",",")+'%</small></div>';
+  }).join('');
+  return '<div class="report-pie-layout"><div class="report-pie" role="img" aria-label="Gráfico de pizza: '+valid.length+' categorias" style="background:conic-gradient('+stops.join(",")+')"><div class="report-pie-hole"><strong>'+valueFormatter(total)+'</strong><span>Total</span></div></div><div class="report-pie-legend">'+legend+'</div></div>';
 }
 
 async function renderAdminReports(){
@@ -1172,14 +1170,16 @@ async function renderAdminReports(){
       '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
       '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
       '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
-    html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportLineChart(dailyItems)+'</section>';
-    html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportBarChart(commissionItems,money)+'</section>'+
-      '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportBarChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
-    html += '<section class="summary"><h3>STATUS DOS ATENDIMENTOS</h3><div class="report-status-grid">'+
-      '<div><span>Aguardando</span><strong>'+counts.waiting+'</strong></div>'+
-      '<div><span>Em atendimento</span><strong>'+counts.in_progress+'</strong></div>'+
-      '<div><span>Concluídos</span><strong>'+counts.completed+'</strong></div>'+
-      '<div><span>Cancelados</span><strong>'+counts.cancelled+'</strong></div></div></section>';
+    html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportPieChart(dailyItems,money,"Sem faturamento concluído neste período.")+'</section>';
+    html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportPieChart(commissionItems,money)+'</section>'+
+      '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportPieChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
+    const statusItems=[
+      {label:"Aguardando",value:counts.waiting},
+      {label:"Em atendimento",value:counts.in_progress},
+      {label:"Concluídos",value:counts.completed},
+      {label:"Cancelados",value:counts.cancelled}
+    ];
+    html += '<section class="summary report-chart"><h3>STATUS DOS ATENDIMENTOS</h3>'+reportPieChart(statusItems,function(value){return String(value)+" atend.";})+'</section>';
     html += '<section class="summary"><h3>HISTÓRICO DO PERÍODO</h3><p class="muted">'+rows.length+' registro(s) encontrado(s).</p>'+
       (rows.length ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>' : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
       '</section>';
