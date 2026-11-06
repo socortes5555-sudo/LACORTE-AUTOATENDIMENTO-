@@ -134,7 +134,7 @@ function render(){
   if(state.step===1) renderLogin();
   if(state.step===2) renderProfile();
   if(state.step===3) renderServices();
-  if(state.step===5) renderConfirmation();
+  if(state.step===4) renderConfirmation();
 }
 
 function renderLogin(){
@@ -285,7 +285,7 @@ function renderServices(){
   services.forEach(function(s){const el=document.createElement('button');el.className='choice'+(state.selectedServices.some(x=>x.id===s.id)?' selected':'');el.innerHTML='<span class="name">'+safe(s.name)+'</span><span class="detail">'+safe(s.detail)+'</span><span class="price">'+money(s.price)+'</span>';el.onclick=function(){const exists=state.selectedServices.some(x=>x.id===s.id);state.selectedServices=exists?state.selectedServices.filter(x=>x.id!==s.id):state.selectedServices.concat([s]);renderServices();};grid.append(el);});
   const preview=getCustomerPlanPreview(),total=preview?preview.total:state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
   const totalEl=document.createElement('div');totalEl.className='summary';totalEl.innerHTML='<div class="summary-row"><span>Serviços selecionados</span><strong>'+state.selectedServices.length+'</strong></div>'+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div>';content.append(totalEl);
-  setActions(function(){state.step=1;render();},function(){state.step=5;renderConfirmation();},'REVISAR SOLICITAÇÃO',state.selectedServices.length===0);
+  setActions(function(){state.step=1;render();},function(){state.step=4;render();},'REVISAR SOLICITAÇÃO',state.selectedServices.length===0);
 }
 
 function renderConfirmation(){
