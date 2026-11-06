@@ -611,6 +611,7 @@ function setAppMode(dashboard){
   if (hero) hero.style.display = dashboard ? "none" : "";
   if (progress) progress.style.display = dashboard ? "none" : "";
   document.body.classList.toggle("admin-dashboard",!!dashboard && state.role==="admin");
+  document.body.classList.toggle("professional-dashboard",!!dashboard && state.role==="barber");
 }
 
 function localQueueDate(){
