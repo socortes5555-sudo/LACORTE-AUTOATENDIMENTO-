@@ -444,3 +444,11 @@ body.staff-portal footer small a:hover,
  body.staff-portal .panel{padding:20px 16px}
  body.staff-portal .panel-heading h2{font-size:24px}
 }
+
+
+/* Campo de senha com controle de visualização */
+.staff-login-form .password-field{position:relative;display:block;width:100%}
+.staff-login-form .password-field input{padding-right:54px}
+.staff-login-form .password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:42px;height:40px;display:grid;place-items:center;border:0;border-radius:7px;background:transparent;color:#ff9a55;cursor:pointer;padding:8px}
+.staff-login-form .password-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.staff-login-form .password-toggle:hover,.staff-login-form .password-toggle.is-visible{background:#ffffff12;color:#ffb27c}
