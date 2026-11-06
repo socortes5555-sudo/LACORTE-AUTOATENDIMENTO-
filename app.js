@@ -608,17 +608,97 @@ function renderStaffLogin(message){
   state.user = null;
   state.barberId = null;
   setAppMode(false);
-  setHeader("ÁREA PROFISSIONAL","Acesso da equipe LaCorte","Entre com seu e-mail e senha cadastrados pelo administrador.");
+  setHeader("ÁREA PROFISSIONAL","Acesso da equipe LaCorte","Entre com seu e-mail e senha. No primeiro acesso, crie sua senha.");
   notice.textContent = "Acesso exclusivo para barbeiros e administrador. Clientes devem usar o autoatendimento.";
-  content.innerHTML = '<form id="staff-login-form" class="staff-login-form"><label for="staff-email">E-mail profissional</label><input id="staff-email" name="email" type="email" autocomplete="username" placeholder="seuemail@lacorte.com" required><label for="staff-password">Senha</label><input id="staff-password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required><p id="staff-login-message" class="muted" role="status">'+(message||"")+'</p><button class="btn btn-primary" type="submit">ENTRAR NO PAINEL</button></form>';
+  content.innerHTML = '<form id="staff-login-form" class="staff-login-form"><label for="staff-email">E-mail profissional</label><input id="staff-email" name="email" type="email" autocomplete="username" placeholder="Seu e-mail cadastrado" required><label for="staff-password">Senha</label><input id="staff-password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required><p id="staff-login-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENTRAR NO PAINEL</button><button class="btn btn-secondary" id="staff-first-access" type="button">PRIMEIRO ACESSO? CRIAR MINHA SENHA</button></form>';
   actions.replaceChildren();
-  content.querySelector("#staff-login-form").addEventListener("submit",async function(event){
+  const form=content.querySelector("#staff-login-form");
+  form.addEventListener("submit",async function(event){
     event.preventDefault();
-    const form=event.currentTarget,button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-login-message");
+    const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-login-message");
     const email=form.querySelector("#staff-email").value.trim(),password=form.querySelector("#staff-password").value;
     button.disabled=true;status.textContent="Verificando acesso...";
     const result=await db.auth.signInWithPassword({email,password});
-    if(result.error){status.textContent="E-mail ou senha inválidos. Confira os dados e tente novamente.";button.disabled=false;return;}
+    if(result.error){status.textContent="E-mail ou senha inválidos. Se ainda não criou sua senha, use a opção Primeiro acesso.";button.disabled=false;return;}
+    await routeAuthenticatedUser(result.data.user);
+  });
+  content.querySelector("#staff-first-access").addEventListener("click",function(){
+    const email=form.querySelector("#staff-email").value.trim();
+    renderStaffPasswordSetup(email);
+  });
+}
+
+function renderStaffPasswordSetup(initialEmail,message){
+  setAppMode(false);
+  setHeader("PRIMEIRO ACESSO","Criar senha profissional","Confirme seu e-mail e defina a senha que usará nos próximos acessos.");
+  notice.textContent = "Enviaremos um código de confirmação para o e-mail cadastrado. Este procedimento é feito somente uma vez.";
+  content.innerHTML = '<form id="staff-password-setup" class="staff-login-form"><label for="staff-setup-email">E-mail profissional cadastrado</label><input id="staff-setup-email" type="email" autocomplete="email" value="'+safe(initialEmail||"")+'" placeholder="Seu e-mail cadastrado" required><p id="staff-setup-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENVIAR CÓDIGO DE CONFIRMAÇÃO</button><button class="btn btn-secondary" id="staff-setup-back" type="button">VOLTAR AO LOGIN</button></form>';
+  actions.replaceChildren();
+  const form=content.querySelector("#staff-password-setup");
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    const email=form.querySelector("#staff-setup-email").value.trim().toLowerCase();
+    const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-setup-message");
+    button.disabled=true;status.textContent="Enviando código para seu e-mail...";
+    const sent=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:false}});
+    if(sent.error){status.textContent="Não foi possível enviar o código. Confira o e-mail cadastrado e tente novamente. "+sent.error.message;button.disabled=false;return;}
+    renderStaffPasswordVerification(email);
+  });
+  form.querySelector("#staff-setup-back").addEventListener("click",function(){renderStaffLogin();});
+}
+
+function renderStaffPasswordVerification(email,message){
+  setAppMode(false);
+  setHeader("CONFIRMAR E-MAIL","Definir sua senha","Digite o código recebido e escolha uma senha pessoal.");
+  notice.textContent = "O código confirma que você tem acesso à caixa de e-mail profissional.";
+  content.innerHTML = '<form id="staff-password-verify" class="staff-login-form"><label for="staff-otp">Código recebido por e-mail</label><input id="staff-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required><label for="staff-new-password">Criar senha (mínimo 8 caracteres)</label><input id="staff-new-password" type="password" autocomplete="new-password" minlength="8" required><label for="staff-confirm-password">Confirmar senha</label><input id="staff-confirm-password" type="password" autocomplete="new-password" minlength="8" required><p id="staff-verify-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR E SALVAR SENHA</button><button class="btn btn-secondary" id="staff-resend-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="staff-verify-back" type="button">VOLTAR AO LOGIN</button></form>';
+  actions.replaceChildren();
+  const form=content.querySelector("#staff-password-verify");
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    const token=form.querySelector("#staff-otp").value.trim();
+    const password=form.querySelector("#staff-new-password").value;
+    const confirmation=form.querySelector("#staff-confirm-password").value;
+    const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-verify-message");
+    if(!/^[0-9]{6}$/.test(token)){status.textContent="Digite o código de 6 números recebido.";return;}
+    if(password.length<8){status.textContent="A senha precisa ter pelo menos 8 caracteres.";return;}
+    if(password!==confirmation){status.textContent="As senhas não conferem.";return;}
+    button.disabled=true;status.textContent="Confirmando seu e-mail...";
+    const verified=await db.auth.verifyOtp({email:email,token:token,type:"email"});
+    if(verified.error){status.textContent="Código inválido ou expirado. Solicite outro código e tente novamente.";button.disabled=false;return;}
+    const session=verified.data && verified.data.session;
+    const user=(session&&session.user)||(verified.data&&verified.data.user);
+    if(!user){status.textContent="Não foi possível iniciar a sessão após a confirmação. Tente novamente.";button.disabled=false;return;}
+    const role=await db.from("lacorte_user_roles").select("role,barber_id").eq("user_id",user.id).maybeSingle();
+    if(role.error || !role.data || !["admin","barber"].includes(role.data.role)){
+      await db.auth.signOut({scope:"local"});
+      renderStaffLogin("Este e-mail não está autorizado como conta profissional. Peça ao administrador para conferir o cadastro.");
+      return;
+    }
+    status.textContent="Salvando sua senha...";
+    const saved=await db.auth.updateUser({password:password});
+    if(saved.error){renderStaffPasswordOnly(saved.error.message);return;}
+    await routeAuthenticatedUser(saved.data.user||user);
+  });
+  form.querySelector("#staff-resend-code").addEventListener("click",function(){renderStaffPasswordSetup(email,"Solicite um novo código para este e-mail.");});
+  form.querySelector("#staff-verify-back").addEventListener("click",function(){db.auth.signOut({scope:"local"}).then(function(){renderStaffLogin();});});
+}
+
+function renderStaffPasswordOnly(message){
+  setAppMode(false);
+  setHeader("QUASE PRONTO","Salvar sua senha","Seu e-mail já foi confirmado. Agora finalize a criação da senha.");
+  notice.textContent = "Escolha uma senha com pelo menos 8 caracteres.";
+  content.innerHTML = '<form id="staff-password-only" class="staff-login-form"><label for="staff-password-only-new">Nova senha</label><input id="staff-password-only-new" type="password" autocomplete="new-password" minlength="8" required><label for="staff-password-only-confirm">Confirmar senha</label><input id="staff-password-only-confirm" type="password" autocomplete="new-password" minlength="8" required><p id="staff-password-only-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">SALVAR SENHA</button></form>';
+  const form=content.querySelector("#staff-password-only");
+  form.addEventListener("submit",async function(event){
+    event.preventDefault();
+    const password=form.querySelector("#staff-password-only-new").value;
+    const confirm=form.querySelector("#staff-password-only-confirm").value;
+    const status=form.querySelector("#staff-password-only-message");
+    if(password.length<8){status.textContent="A senha precisa ter pelo menos 8 caracteres.";return;}
+    if(password!==confirm){status.textContent="As senhas não conferem.";return;}
+    const result=await db.auth.updateUser({password:password});
+    if(result.error){status.textContent="Não foi possível salvar a senha: "+result.error.message;return;}
     await routeAuthenticatedUser(result.data.user);
   });
 }
