@@ -82,3 +82,13 @@ footer{padding:28px 0 8px;font:700 16px Oswald,sans-serif;letter-spacing:1px}foo
   .report-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:420px){.report-date-fields{grid-template-columns:1fr}}
+
+
+/* Gráficos em HTML/CSS para compatibilidade com navegadores móveis */
+.report-daily-chart{display:flex;align-items:flex-end;gap:8px;min-height:190px;padding:14px 4px 4px;overflow-x:auto}
+.report-daily-column{flex:1 0 34px;min-width:34px;max-width:72px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:180px}
+.report-daily-value{font-size:10px;font-weight:700;color:var(--orange);white-space:nowrap}
+.report-daily-track{width: min(100%,34px);height:125px;display:flex;align-items:flex-end;justify-content:center;background:#292929;border-radius:7px 7px 3px 3px;overflow:hidden}
+.report-daily-fill{width:100%;min-height:0;background:var(--orange);border-radius:7px 7px 3px 3px}
+.report-daily-label{font-size:10px;color:#aaa;white-space:nowrap}
+.report-bar-fill{height:100%;background:var(--orange);border-radius:20px}
