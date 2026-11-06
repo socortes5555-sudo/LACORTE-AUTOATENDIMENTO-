@@ -140,116 +140,38 @@ function render(){
 }
 
 function renderLogin(){
-  setHeader(
-    "ETAPA 01",
-    "Acesse sua conta",
-    "Informe seu e-mail, solicite o código e digite os 6 números aqui mesmo."
-  );
-
-  content.innerHTML=`
-    <form id="login-form">
-      <label for="email">Seu e-mail</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        placeholder="seuemail@exemplo.com"
-        autocomplete="email"
-        value="${safe(state.pendingEmail || "")}"
-        required
-      >
-      <button class="btn btn-secondary" id="send-code-button" type="button">
-        ENVIAR CÓDIGO DE ACESSO
-      </button>
-      <label for="email-code">Código de 6 dígitos</label>
-      <input
-        id="email-code"
-        name="token"
-        type="text"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        pattern="[0-9]{6}"
-        maxlength="6"
-        placeholder="000000"
-      >
-      <p class="muted">O campo do código já está disponível. Confira também a caixa de spam.</p>
-      <p id="app-message" class="muted">${safe(state.message)}</p>
-      <button class="btn btn-primary" id="verify-code-button" type="submit">
-        CONFIRMAR CÓDIGO
-      </button>
-    </form>
-  `;
-
+  setHeader('PRIMEIRO ACESSO','Bem-vindo à LaCorte','Cadastre-se com seu e-mail. O código será solicitado somente no primeiro acesso.');
+  content.innerHTML='<form id="login-form"><label for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" value="'+safe(state.pendingEmail||'')+'" required><button class="btn btn-secondary" id="send-code-button" type="button">ENVIAR CÓDIGO DO PRIMEIRO ACESSO</button><label for="email-code">Código recebido por e-mail</label><input id="email-code" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><p class="muted">Nas próximas visitas, basta se identificar.</p><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="verify-code-button" type="submit">CONFIRMAR CADASTRO</button><button class="btn btn-secondary" id="existing-customer-button" type="button">JÁ TENHO CADASTRO</button></form>';
   actions.replaceChildren();
-
-  document.querySelector("#send-code-button").addEventListener("click", async function(){
-    const email=document.querySelector("#email").value.trim();
-    if(!email){
-      showMessage("Informe seu e-mail primeiro.");
-      return;
-    }
-    const button=document.querySelector("#send-code-button");
-    button.disabled=true;
-    showMessage("Enviando código de acesso...");
-    const {error}=await db.auth.signInWithOtp({
-      email:email,
-      options:{shouldCreateUser:true}
-    });
-    button.disabled=false;
-    if(error){
-      showMessage("Erro ao enviar código: "+error.message);
-      return;
-    }
-    state.pendingEmail=email;
-    showMessage("Código enviado. Digite os 6 números no campo acima.");
-    document.querySelector("#email-code").focus();
+  document.querySelector('#existing-customer-button').addEventListener('click',renderReturningCustomerLookup);
+  document.querySelector('#send-code-button').addEventListener('click',async function(){
+    const email=document.querySelector('#email').value.trim();if(!email){showMessage('Informe seu e-mail primeiro.');return;}
+    this.disabled=true;showMessage('Enviando código...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
+    if(result.error){showMessage('Erro ao enviar código: '+result.error.message);return;}state.pendingEmail=email;showMessage('Código enviado. Digite os 6 números acima.');document.querySelector('#email-code').focus();
   });
+  document.querySelector('#login-form').addEventListener('submit',async function(e){
+    e.preventDefault();const email=document.querySelector('#email').value.trim(),token=document.querySelector('#email-code').value.trim();
+    if(!/^[0-9]{6}$/.test(token)){showMessage('Digite os 6 números do código recebido.');return;}
+    const button=document.querySelector('#verify-code-button');button.disabled=true;showMessage('Validando primeiro acesso...');
+    const result=await db.auth.verifyOtp({email:email,token:token,type:'email'});
+    if(result.error){button.disabled=false;showMessage('Não foi possível validar: '+result.error.message);return;}
+    state.pendingEmail='';try{if(result.data&&result.data.session){const saved=await db.auth.setSession({access_token:result.data.session.access_token,refresh_token:result.data.session.refresh_token});if(saved.error)throw saved.error;}
+      const session=await db.auth.getSession(),user=(session.data&&session.data.session&&session.data.session.user)||(result.data&&result.data.user);
+      if(user)await routeAuthenticatedUser(user);else showMessage('Código confirmado, mas a sessão não foi salva.');
+    }catch(err){showMessage('Não foi possível abrir o cadastro: '+(err.message||err));}
+  });
+}
 
-  document.querySelector("#login-form").addEventListener("submit",async function(e){
-    e.preventDefault();
-    const email=document.querySelector("#email").value.trim();
-    const token=document.querySelector("#email-code").value.trim();
-    if(!email){
-      showMessage("Informe seu e-mail.");
-      return;
-    }
-    if(!/^[0-9]{6}$/.test(token)){
-      showMessage("Digite os 6 números do código recebido.");
-      return;
-    }
-    const button=document.querySelector("#verify-code-button");
-    button.disabled=true;
-    showMessage("Validando código...");
-    const {data,error}=await db.auth.verifyOtp({
-      email:email,
-      token:token,
-      type:"email"
-    });
-    if(error){
-      button.disabled=false;
-      showMessage("Não foi possível validar o código: "+error.message);
-      return;
-    }
-    state.pendingEmail="";
-    try {
-      if (data && data.session) {
-        const savedSession = await db.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
-        });
-        if (savedSession.error) throw savedSession.error;
-      }
-      const sessionCheck = await db.auth.getSession();
-      const authenticatedUser = (sessionCheck.data && sessionCheck.data.session && sessionCheck.data.session.user) || (data && data.user);
-      if (sessionCheck.error) throw sessionCheck.error;
-      if (authenticatedUser) {
-        await routeAuthenticatedUser(authenticatedUser);
-      } else {
-        showMessage("Código confirmado, mas a sessão não foi salva. Tente entrar novamente.");
-      }
-    } catch (routeError) {
-      showMessage("Código confirmado, mas não foi possível abrir seu cadastro: " + (routeError.message || routeError));
-    }
+function renderReturningCustomerLookup(){
+  setHeader('CLIENTE CADASTRADO','Identifique-se','Informe telefone, e-mail ou nome completo. Não será enviado novo código.');
+  content.innerHTML='<form id="returning-form"><label for="customer-identifier">Telefone, e-mail ou nome completo</label><input id="customer-identifier" autocomplete="off" placeholder="Ex.: (48) 99999-9999 ou João Silva" required><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">LOCALIZAR MEU CADASTRO</button><button class="btn btn-secondary" id="back-first-access" type="button">PRIMEIRO ACESSO / CADASTRAR</button></form>';
+  actions.replaceChildren();document.querySelector('#back-first-access').addEventListener('click',renderLogin);
+  document.querySelector('#returning-form').addEventListener('submit',async function(e){
+    e.preventDefault();const identifier=document.querySelector('#customer-identifier').value.trim(),button=this.querySelector('[type="submit"]');button.disabled=true;showMessage('Localizando cadastro...');
+    const result=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:identifier});button.disabled=false;
+    if(result.error){showMessage('Não foi possível localizar: '+result.error.message);return;}
+    const customer=Array.isArray(result.data)?result.data[0]:result.data;if(!customer){showMessage('Cadastro não encontrado. Confira os dados ou faça o primeiro cadastro.');return;}
+    state.user=null;state.customer=customer;state.customerPlan=null;state.customerPlanBenefits=[];state.selectedServices=[];state.queueTicket=null;state.role='customer';state.message='';setAppMode(false);state.step=3;render();
   });
 }
 
@@ -360,182 +282,19 @@ function renderCustomerPlanCard(){
 }
 
 function renderServices(){
-  setHeader(
-    "ETAPA 03",
-    "Escolha seus serviços",
-    "Você pode selecionar mais de um serviço."
-  );
-
-  content.innerHTML=renderCustomerPlanCard()+'<div class="grid" id="choices"></div>';
-
-  const grid=document.querySelector("#choices");
-
-  services.forEach(s=>{
-    const el=document.createElement("button");
-
-    el.className="choice"+
-      (state.selectedServices.some(x=>x.id===s.id)?" selected":"");
-
-    el.innerHTML=`
-      <span class="name">${safe(s.name)}</span>
-      <span class="detail">${safe(s.detail)}</span>
-      <span class="price">${money(s.price)}</span>
-    `;
-
-    el.onclick=()=>{
-      const exists=state.selectedServices.some(x=>x.id===s.id);
-
-      state.selectedServices=exists
-        ?state.selectedServices.filter(x=>x.id!==s.id)
-        :[...state.selectedServices,s];
-
-      renderServices();
-    };
-
-    grid.append(el);
-  });
-
-  const planPreview=getCustomerPlanPreview();
-  const total=planPreview
-    ?planPreview.total
-    :state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
-
-  const totalEl=document.createElement("div");
-  totalEl.className="summary";
-  totalEl.innerHTML=`
-    <div class="summary-row">
-      <span>Serviços selecionados</span>
-      <strong>${state.selectedServices.length}</strong>
-    </div>
-    ${planPreview?'<p class="muted">'+safe(planPreview.description)+'</p>':''}
-    <div class="summary-row summary-total">
-      <span>Total</span>
-      <strong>${money(total)}</strong>
-    </div>
-  `;
-  content.append(totalEl);
-
-  setActions(
-    ()=>{state.step=2;render();},
-    ()=>{
-      state.step=4;
-      render();
-    },
-    "ESCOLHER BARBEIRO",
-    state.selectedServices.length===0
-  );
-}
-
-function renderBarbers(){
-  setHeader(
-    "ETAPA 04",
-    "Escolha seu barbeiro",
-    "Selecione um profissional disponível."
-  );
-
-  content.innerHTML='<div class="grid" id="choices"></div>';
-
-  const grid=document.querySelector("#choices");
-
-  barbers.forEach(b=>{
-    const el=document.createElement("button");
-
-    el.className="choice"+
-      (state.barber?.id===b.id?" selected":"");
-
-    el.disabled=!b.available;
-
-    el.innerHTML=`
-      <span class="name">${safe(b.name)}</span>
-      <span class="badge">
-        ${b.available?"Disponível":"Indisponível"}
-      </span>
-    `;
-
-    el.onclick=()=>{
-      state.barber=b;
-      renderBarbers();
-    };
-
-    grid.append(el);
-  });
-
-  setActions(
-    ()=>{state.step=3;render();},
-    ()=>{
-      state.step=5;
-      render();
-    },
-    "REVISAR SOLICITAÇÃO",
-    !state.barber
-  );
+  setHeader('ETAPA 02','Escolha seus serviços','Selecione um ou mais serviços. A fila é compartilhada entre os barbeiros.');
+  content.innerHTML=renderCustomerPlanCard()+'<div class="grid" id="choices"></div>';const grid=document.querySelector('#choices');
+  services.forEach(function(s){const el=document.createElement('button');el.className='choice'+(state.selectedServices.some(x=>x.id===s.id)?' selected':'');el.innerHTML='<span class="name">'+safe(s.name)+'</span><span class="detail">'+safe(s.detail)+'</span><span class="price">'+money(s.price)+'</span>';el.onclick=function(){const exists=state.selectedServices.some(x=>x.id===s.id);state.selectedServices=exists?state.selectedServices.filter(x=>x.id!==s.id):state.selectedServices.concat([s]);renderServices();};grid.append(el);});
+  const preview=getCustomerPlanPreview(),total=preview?preview.total:state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
+  const totalEl=document.createElement('div');totalEl.className='summary';totalEl.innerHTML='<div class="summary-row"><span>Serviços selecionados</span><strong>'+state.selectedServices.length+'</strong></div>'+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div>';content.append(totalEl);
+  setActions(function(){state.step=1;render();},function(){state.step=5;renderConfirmation();},'REVISAR SOLICITAÇÃO',state.selectedServices.length===0);
 }
 
 function renderConfirmation(){
-  setHeader(
-    "ETAPA 05",
-    "Confira sua solicitação",
-    "Confira seus dados, serviços e barbeiro."
-  );
-
-  const total=state.selectedServices.reduce((sum,s)=>sum+s.price,0);
-
-  content.innerHTML=`
-    <div class="summary">
-      <div class="summary-row">
-        <span>Cliente</span>
-        <strong>${safe(state.customer.first_name)} ${safe(state.customer.last_name)}</strong>
-      </div>
-      <div class="summary-row">
-        <span>Telefone</span>
-        <strong>${safe(state.customer.phone)}</strong>
-      </div>
-      <div class="summary-row">
-        <span>E-mail</span>
-        <strong>${safe(state.customer.email)}</strong>
-      </div>
-      <div class="summary-row">
-        <span>Aniversário</span>
-        <strong>${safe(state.customer.birth_date)}</strong>
-      </div>
-    </div>
-
-    <div class="summary">
-      <strong>Serviços</strong>
-      ${state.selectedServices.map(s=>`
-        <div class="summary-row">
-          <span>${safe(s.name)}</span>
-          <strong>${money(s.price)}</strong>
-        </div>
-      `).join("")}
-      <div class="summary-row summary-total">
-        <span>Total</span>
-        <strong>${money(total)}</strong>
-      </div>
-    </div>
-
-    <div class="summary">
-      <div class="summary-row">
-        <span>Barbeiro</span>
-        <strong>${safe(state.barber.name)}</strong>
-      </div>
-    </div>
-
-    <p class="muted">
-      Seus dados de cadastro foram salvos.
-      A solicitação acima ainda não foi registrada como atendimento.
-    </p>
-  `;
-
-  setActions(
-    ()=>{state.step=4;render();},
-    ()=>{
-      showMessage(
-        "Sua seleção está pronta. A gravação do atendimento será habilitada na próxima etapa."
-      );
-    },
-    "FINALIZAR"
-  );
+  setHeader('ETAPA 03','Confira sua solicitação','Confirme seus dados e serviços antes de entrar na fila.');
+  const preview=getCustomerPlanPreview(),total=preview?preview.total:state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
+  content.innerHTML='<div class="summary"><div class="summary-row"><span>Cliente</span><strong>'+safe((state.customer.first_name||'')+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(state.customer.phone||'—')+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(state.customer.email||'—')+'</strong></div></div><div class="summary"><strong>Serviços</strong>'+state.selectedServices.map(function(s){return '<div class="summary-row"><span>'+safe(s.name)+'</span><strong>'+money(s.price)+'</strong></div>';}).join('')+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div></div><p class="muted">Você não escolhe barbeiro nem forma de pagamento. Ao confirmar, sua senha entra na fila única da LaCorte.</p><p id="app-message" class="muted">'+safe(state.message)+'</p>';
+  setActions(function(){state.step=3;renderServices();},submitQueueEntry,'ENTRAR NA FILA',state.submitting);
 }
 
 async function loadCustomer(user){
@@ -896,66 +655,18 @@ async function routeAuthenticatedUser(user){
 }
 
 async function submitQueueEntry(){
-  if (state.submitting) return;
-  if (!state.customer || !state.barber || !state.selectedServices.length) {
-    showMessage("Confira seus dados, serviços e barbeiro antes de continuar.");
-    return;
-  }
-
-  state.submitting = true;
-  showMessage("Registrando sua entrada na fila...");
-
-  let result;
-  try {
-    result = await db.rpc("lacorte_create_queue_entry", {
-      p_customer_id: state.customer.id,
-      p_barber_id: state.barber.id,
-      p_service_ids: state.selectedServices.map(function(service){ return service.id; })
-    });
-  } catch (error) {
-    showMessage("Falha de conexão ao entrar na fila: " + (error.message || "Tente novamente."));
-    return;
-  } finally {
-    state.submitting = false;
-  }
-
-  if (result.error) {
-    showMessage("Não foi possível entrar na fila: " + result.error.message);
-    return;
-  }
-
-  const ticket = Array.isArray(result.data) ? result.data[0] : result.data;
-  if (!ticket) {
-    showMessage("O banco não retornou a confirmação da fila. Consulte a recepção antes de tentar novamente.");
-    return;
-  }
-
-  state.queueTicket = ticket;
-  renderQueueSuccess();
+  if(state.submitting)return;if(!state.customer||!state.selectedServices.length){showMessage('Confira seus dados e selecione ao menos um serviço.');return;}
+  state.submitting=true;showMessage('Registrando sua entrada na fila...');
+  try{const rpcName=state.user?'lacorte_create_queue_entry':'lacorte_create_queue_entry_kiosk';const result=await db.rpc(rpcName,{p_customer_id:state.customer.id,p_service_ids:state.selectedServices.map(function(s){return s.id;})});
+    if(result.error)throw result.error;const ticket=Array.isArray(result.data)?result.data[0]:result.data;if(!ticket)throw new Error('O banco não retornou a confirmação da fila.');state.queueTicket=ticket;state.submitting=false;renderQueueSuccess();
+  }catch(error){state.submitting=false;showMessage('Não foi possível entrar na fila: '+(error.message||'Falha de conexão.'));}
 }
 
 function renderQueueSuccess(){
-  setAppMode(true);
-  setHeader("ENTRADA CONFIRMADA", "Você entrou na fila!", "Sua senha foi registrada para o barbeiro escolhido.");
-  notice.textContent = "Aguarde ser chamado pelo profissional.";
-  const ticket = state.queueTicket;
-  content.innerHTML = '<div class="waiting">' +
-    '<p class="muted">SUA SENHA</p>' +
-    '<div class="ticket">#' + safe(ticket.ticket_number) + '</div>' +
-    '<div class="waiting-card">' +
-      '<div class="summary-row"><span>Cliente</span><strong>' + safe(state.customer.first_name) + ' ' + safe(state.customer.last_name) + '</strong></div>' +
-      '<div class="summary-row"><span>Barbeiro</span><strong>' + safe(state.barber.name) + '</strong></div>' +
-      '<div class="summary-row"><span>Total</span><strong>' + money(Number(ticket.total_amount)) + '</strong></div>' +
-      '<div class="summary-row"><span>Status</span><strong>Aguardando</strong></div>' +
-    '</div>' +
-    '<p class="muted">Sua entrada foi registrada. Aguarde as orientações da equipe LaCorte.</p>' +
-    '</div>';
-  actions.replaceChildren(makeButton("SAIR DA CONTA", logoutCurrentSession, true));
-  clearCustomerAutoLogout();
-  if(state.role === "customer"){
-    notice.textContent = "Entrada confirmada. Esta sessão será encerrada automaticamente em 30 segundos.";
-    customerAutoLogoutTimer = setTimeout(logoutCurrentSession, CUSTOMER_AUTO_LOGOUT_MS);
-  }
+  setAppMode(true);setHeader('ENTRADA CONFIRMADA','Você entrou na fila!','Sua senha está na fila única da LaCorte.');notice.textContent='Aguarde ser chamado por um dos profissionais.';
+  const ticket=state.queueTicket;content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
+  actions.replaceChildren(makeButton('FINALIZAR',logoutCurrentSession,true));clearCustomerAutoLogout();
+  if(state.role==='customer'){notice.textContent='Entrada confirmada. A sessão será encerrada automaticamente em 30 segundos.';customerAutoLogoutTimer=setTimeout(logoutCurrentSession,CUSTOMER_AUTO_LOGOUT_MS);}
 }
 
 // Calcula a prévia do benefício. O banco continua sendo a autoridade final
