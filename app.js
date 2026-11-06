@@ -647,7 +647,6 @@ function reportDateRange(){
   const period = adminReportFilters.period || "month";
   if(period === "today") return {start:today,end:today,label:"Hoje"};
   if(period === "fortnight") return {start:reportShiftDate(today,-13),end:today,label:"Últimos 14 dias"};
-  if(period === "fortnight") return {start:reportShiftDate(today,-13),end:today,label:"Últimos 14 dias"};
   if(period === "week"){
     const d = new Date(today+"T12:00:00");
     const weekday = d.getDay();
