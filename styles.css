@@ -482,3 +482,13 @@ body.admin-dashboard .manage-panel .admin-form input:not([type=checkbox]){width:
  body.admin-dashboard .manage-panel .admin-item{grid-template-columns:1fr;padding:12px}
  body.admin-dashboard .manage-panel .admin-item>*{grid-column:1/-1}
 }
+
+
+/* Catálogos administrativos sob demanda: tela inicial limpa */
+body.admin-dashboard .admin-reveal-button,
+body.admin-dashboard .admin-list-toggle{display:flex;width:100%;max-width:360px;justify-content:center;align-items:center;min-height:44px;margin:12px 0;font-size:12px;letter-spacing:.25px}
+body.admin-dashboard .admin-reveal-content[hidden]{display:none!important}
+body.admin-dashboard .admin-reveal-content:not([hidden]){display:block;animation:managePanelIn .18s ease-out}
+body.admin-dashboard .manage-panel[data-manage-panel="services"] .summary>p.muted{margin-bottom:14px}
+body.admin-dashboard .manage-panel[data-manage-panel="services"] .admin-list-toggle,
+body.admin-dashboard .manage-panel[data-manage-panel="barbers"] .admin-list-toggle{margin-top:18px}
