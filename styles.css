@@ -452,3 +452,33 @@ body.staff-portal footer small a:hover,
 .staff-login-form .password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:42px;height:40px;display:grid;place-items:center;border:0;border-radius:7px;background:transparent;color:#ff9a55;cursor:pointer;padding:8px}
 .staff-login-form .password-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .staff-login-form .password-toggle:hover,.staff-login-form .password-toggle.is-visible{background:#ffffff12;color:#ffb27c}
+
+
+/* Navegação por abas: gestão sem páginas intermináveis */
+body.admin-dashboard #step-content:has(.admin-nav) .admin-workspace{min-width:0;display:flex;flex-direction:column;gap:14px}
+body.admin-dashboard .admin-section-heading{padding:4px 2px 0}
+body.admin-dashboard .admin-section-heading .eyebrow{font-size:10px;letter-spacing:1.8px;color:#ff8a3d;font-weight:800}
+body.admin-dashboard .admin-section-heading h2{font-size:25px;margin:5px 0;color:#f7f5f2}
+body.admin-dashboard .admin-section-heading p{margin:0;max-width:620px}
+body.admin-dashboard .manage-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:7px;background:#141414;border:1px solid #333;border-radius:12px;position:sticky;top:8px;z-index:8}
+body.admin-dashboard .manage-tab{appearance:none;border:1px solid transparent;background:transparent;color:#bdbdbd;padding:11px 15px;border-radius:8px;font:700 11px inherit;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+body.admin-dashboard .manage-tab:hover{background:#242424;color:#fff}
+body.admin-dashboard .manage-tab.active{background:#ff791f;color:#151515;border-color:#ff791f;box-shadow:0 4px 14px #ff791f25}
+body.admin-dashboard .manage-panel{display:none;min-width:0;animation:managePanelIn .18s ease-out}
+body.admin-dashboard .manage-panel.active{display:block}
+body.admin-dashboard .manage-panel>.summary:first-child{margin-top:0}
+body.admin-dashboard .manage-panel>.summary{max-width:100%;padding:18px}
+body.admin-dashboard .manage-panel .admin-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(130px,.45fr);align-items:end;gap:10px 14px;padding:15px;margin:12px 0;background:#171717;border:1px solid #333}
+body.admin-dashboard .manage-panel .admin-item .admin-check,
+body.admin-dashboard .manage-panel .admin-item button{grid-column:1/-1}
+body.admin-dashboard .manage-panel .admin-form{max-width:720px}
+body.admin-dashboard .manage-panel .admin-form input:not([type=checkbox]){width:100%}
+@keyframes managePanelIn{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:700px){
+ body.admin-dashboard .manage-tabs{display:grid;grid-template-columns:1fr;position:static}
+ body.admin-dashboard .manage-tab{text-align:left;padding:12px 13px;font-size:12px}
+ body.admin-dashboard .admin-section-heading h2{font-size:22px}
+ body.admin-dashboard .manage-panel>.summary{padding:13px}
+ body.admin-dashboard .manage-panel .admin-item{grid-template-columns:1fr;padding:12px}
+ body.admin-dashboard .manage-panel .admin-item>*{grid-column:1/-1}
+}
