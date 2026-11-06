@@ -1380,7 +1380,7 @@ async function renderAdminPlans(){
       '<div><span>Vencendo em até 7 dias</span><strong>'+expiringSoonCount+'</strong></div>' +
       '<div><span>Assinaturas vencidas</span><strong>'+expiredCount+'</strong></div>' +
       '</div></section>';
-    html += '<section class="summary"><h3>ATIVAR ASSINATURA DE CLIENTE</h3><p class="muted">Confirme o pagamento primeiro. Depois selecione o cliente, o plano e o período de validade.</p>';
+    html += '<section class="summary"><h3>ASSINATURAS</h3><p class="muted">Ative ou consulte assinaturas somente quando precisar.</p><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><div id="activate-plan-wrap" class="admin-reveal-content" hidden><p class="muted">Confirme o pagamento primeiro. Depois selecione o cliente, o plano e o período de validade.</p>';
     if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
     else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
     else {
@@ -1398,8 +1398,8 @@ async function renderAdminPlans(){
         '<label>Observação (opcional)</label><input name="notes" maxlength="500" placeholder="Ex.: comprovante conferido">' +
         '<button class="btn btn-primary" type="submit">ATIVAR ASSINATURA</button></form>';
     }
-    html += '</section>';
-    html += '<section class="summary"><h3>HISTÓRICO DE ASSINATURAS POR CLIENTE</h3><p class="muted">Todas as assinaturas ficam registradas. Pesquise pelo nome, telefone ou plano para consultar renovações anteriores.</p>';
+    html += '</div></section>';
+    html += '<section class="summary"><h3>HISTÓRICO DE ASSINATURAS</h3><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">CONSULTAR HISTÓRICO</button><div id="subscription-history" class="admin-reveal-content" hidden><p class="muted">Pesquise pelo nome, telefone ou plano.</p>';
     html += '<label for="subscription-history-search">Buscar no histórico</label><input id="subscription-history-search" type="search" placeholder="Nome do cliente, telefone ou plano">';
     if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
     subscriptions.forEach(function(sub){
@@ -1424,13 +1424,14 @@ async function renderAdminPlans(){
       if(sub.status === "suspended") html += '<button class="btn btn-primary" type="button" data-reactivate-plan="'+safe(sub.id)+'">REATIVAR ASSINATURA</button>';
       html += '</article>';
     });
-    html += '</section>';
-    html += '<section class="summary"><h3>PLANOS CADASTRADOS</h3><p class="muted">Cadastre o valor mensal e um benefício por linha.</p><form id="new-plan-form" class="admin-form">' +
+    html += '</div></section>';
+    html += '<section class="summary"><h3>PLANOS</h3><p class="muted">Cadastre ou consulte os planos disponíveis.</p><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
       '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
       '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
       '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
       '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="4 cortes por mês&#10;Desconto em produtos"></textarea>' +
       '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form>';
+    html += '<div id="plan-list-items" class="admin-reveal-content" hidden>';
     if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
     rows.forEach(function(p){
       const benefits = Array.isArray(p.benefits) ? p.benefits.join("\n") : "";
@@ -1445,6 +1446,17 @@ async function renderAdminPlans(){
     html += '</section>';
     content.innerHTML = html;
     bindAdminNavigation();
+    content.querySelectorAll('[data-reveal],[data-list-toggle]').forEach(function(button){
+      button.addEventListener('click',function(){
+        const id=button.dataset.reveal ? button.dataset.reveal+'-wrap' : button.dataset.listToggle;
+        const target=content.querySelector('#'+id);
+        if(!target) return;
+        target.hidden=!target.hidden;
+        const open=!target.hidden;
+        if(button.dataset.reveal) button.textContent=open?'FECHAR':'+'+(button.dataset.reveal==='new-plan-form'?' ADICIONAR PLANO':' ATIVAR ASSINATURA');
+        else button.textContent=open?'OCULTAR':'VER '+(id==='plan-list-items'?'PLANOS CADASTRADOS':'HISTÓRICO');
+      });
+    });
     const activationForm = content.querySelector("#activate-customer-plan");
     if(activationForm) activationForm.addEventListener("submit", async function(e){
       e.preventDefault();
