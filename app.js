@@ -171,7 +171,7 @@ function renderReturningCustomerLookup(){
     const result=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:identifier});button.disabled=false;
     if(result.error){showMessage('Não foi possível localizar: '+result.error.message);return;}
     const customer=Array.isArray(result.data)?result.data[0]:result.data;if(!customer){showMessage('Cadastro não encontrado. Confira os dados ou faça o primeiro cadastro.');return;}
-    state.user=null;state.customer=customer;state.customerPlan=null;state.customerPlanBenefits=[];state.selectedServices=[];state.queueTicket=null;state.role='customer';state.message='';setAppMode(false);state.step=3;render();
+    state.user=null;state.customer=customer;state.customerPlan=null;state.customerPlanBenefits=[];const planResult=await db.rpc('lacorte_get_customer_plan_for_kiosk',{p_customer_id:customer.id});if(!planResult.error&&planResult.data){state.customerPlan=planResult.data;state.customerPlanBenefits=Array.isArray(planResult.data.benefits)?planResult.data.benefits:[];}state.selectedServices=[];state.queueTicket=null;state.role='customer';state.message='';setAppMode(false);state.step=3;render();
   });
 }
 
@@ -466,7 +466,7 @@ async function loadQueueRows(){
 function renderQueueDashboard(){
  setAppMode(true);updateProgress();const admin=state.role==='admin';
  setHeader(admin?'ADMINISTRAÇÃO LACORTE':'PAINEL DO PROFISSIONAL',admin?'Painel central':'Fila compartilhada',admin?'Visão geral dos atendimentos de hoje.':'Escolha qualquer cliente aguardando para iniciar o atendimento.');
- notice.textContent='Fila presencial • Sem pagamento online.';content.innerHTML='<p class="muted">Carregando fila compartilhada...</p>';dashboardActions();
+ notice.textContent='Fila presencial • Sem pagamento online.';content.innerHTML='<p class="muted">Carregando fila compartilhada...</p>';dashboardActions();actions.prepend(makeButton('ATUALIZAR FILA',renderQueueDashboard,true));
  loadQueueRows().then(rows=>{if(!content.isConnected)return;const waiting=rows.filter(r=>r.status==='waiting').length,progress=rows.filter(r=>r.status==='in_progress').length,completed=rows.filter(r=>r.status==='completed').length;let html=adminNavigation();
  html+='<div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Fila compartilhada</small></article><article><span>EM ATENDIMENTO</span><strong>'+progress+'</strong><small>Com os profissionais</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>TOTAL DO DIA</span><strong>'+rows.length+'</strong><small>Todos os registros</small></article></div><div class="admin-agenda-heading"><div><small>FILA ÚNICA</small><h3>Clientes por ordem de chegada</h3></div><span>'+waiting+' aguardando</span></div>';
  if(!rows.length)html+='<div class="summary"><p class="muted">Ainda não há clientes na fila hoje.</p></div>';
