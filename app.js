@@ -431,8 +431,10 @@ function statusLabel(status){
 }
 
 function dashboardActions(){
- actions.replaceChildren();if(state.role==='barber')actions.append(makeButton('MEUS RELATÓRIOS',renderBarberReports,true));
- actions.append(makeButton('SAIR DA CONTA',async function(){await db.auth.signOut();},true));
+  actions.replaceChildren();
+  actions.append(makeButton("SAIR DA CONTA", async function(){
+    await db.auth.signOut();
+  }, true));
 }
 
 async function loadCatalogs(){
@@ -454,38 +456,372 @@ async function loadCatalogs(){
 }
 
 async function loadQueueRows(){
- const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_amount,payment_method,created_at,started_at,completed_at').eq('queue_date',localQueueDate()).order('queue_number',{ascending:true});
- if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);const rows=result.data||[];if(!rows.length)return [];
- const customerIds=Array.from(new Set(rows.map(r=>r.customer_id))),queueIds=rows.map(r=>r.id);
- const lookups=await Promise.all([db.from('customers').select('id,first_name,last_name,phone').in('id',customerIds),db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds)]);
- if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
- const customers={},items={};(lookups[0].data||[]).forEach(c=>customers[c.id]=c);(lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
- return rows.map(r=>Object.assign({},r,{customer:customers[r.customer_id]||null,items:items[r.id]||[]}));
+  let query = db.from("lacorte_queue")
+    .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_amount,created_at,started_at,completed_at")
+    .eq("queue_date", localQueueDate())
+    .order("queue_number", { ascending: true });
+
+  if (state.role === "barber") query = query.eq("barber_id", state.barberId);
+
+  const queueResult = await query;
+  if (queueResult.error) throw new Error("Erro ao consultar fila: " + queueResult.error.message);
+
+  const rows = queueResult.data || [];
+  if (!rows.length) return [];
+
+  const customerIds = Array.from(new Set(rows.map(function(row){ return row.customer_id; })));
+  const queueIds = rows.map(function(row){ return row.id; });
+
+  const results = await Promise.all([
+    db.from("customers").select("id,first_name,last_name,phone").in("id", customerIds),
+    db.from("lacorte_queue_items").select("queue_id,service_name,unit_price").in("queue_id", queueIds)
+  ]);
+
+  if (results[0].error) throw new Error("Erro ao consultar clientes da fila: " + results[0].error.message);
+  if (results[1].error) throw new Error("Erro ao consultar serviços da fila: " + results[1].error.message);
+
+  const customersById = {};
+  (results[0].data || []).forEach(function(c){ customersById[c.id] = c; });
+  const itemsByQueue = {};
+  (results[1].data || []).forEach(function(item){
+    if (!itemsByQueue[item.queue_id]) itemsByQueue[item.queue_id] = [];
+    itemsByQueue[item.queue_id].push(item);
+  });
+
+  return rows.map(function(row){
+    return Object.assign({}, row, {
+      customer: customersById[row.customer_id] || null,
+      items: itemsByQueue[row.id] || []
+    });
+  });
 }
 
 function renderQueueDashboard(){
- setAppMode(true);updateProgress();const admin=state.role==='admin';
- setHeader(admin?'ADMINISTRAÇÃO LACORTE':'PAINEL DO PROFISSIONAL',admin?'Painel central':'Fila compartilhada',admin?'Visão geral dos atendimentos de hoje.':'Escolha qualquer cliente aguardando para iniciar o atendimento.');
- notice.textContent='Fila presencial • Sem pagamento online.';content.innerHTML='<p class="muted">Carregando fila compartilhada...</p>';dashboardActions();
- loadQueueRows().then(rows=>{if(!content.isConnected)return;const waiting=rows.filter(r=>r.status==='waiting').length,progress=rows.filter(r=>r.status==='in_progress').length,completed=rows.filter(r=>r.status==='completed').length;let html=adminNavigation();
- html+='<div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Fila compartilhada</small></article><article><span>EM ATENDIMENTO</span><strong>'+progress+'</strong><small>Com os profissionais</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>TOTAL DO DIA</span><strong>'+rows.length+'</strong><small>Todos os registros</small></article></div><div class="admin-agenda-heading"><div><small>FILA ÚNICA</small><h3>Clientes por ordem de chegada</h3></div><span>'+waiting+' aguardando</span></div>';
- if(!rows.length)html+='<div class="summary"><p class="muted">Ainda não há clientes na fila hoje.</p></div>';
- rows.forEach(row=>{const c=row.customer||{},name=(c.first_name||'Cliente')+' '+(c.last_name||''),barber=barbers.find(b=>b.id===row.barber_id),serviceText=row.items.map(i=>safe(i.service_name)+' ('+money(Number(i.unit_price))+')').join(', ')||'—',cls=row.status==='completed'?'done':row.status==='in_progress'?'progress':row.status==='cancelled'?'cancelled':'waiting';
- html+='<article class="summary admin-queue-card '+cls+'"><div class="summary-row"><span>Senha #'+row.queue_number+' • '+formatDateTime(row.created_at)+'</span><strong>'+money(Number(row.total_amount))+'</strong></div><div class="summary-row"><span>Cliente</span><strong>'+safe(name.trim())+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(c.phone||'—')+'</strong></div><div class="summary-row"><span>Serviços</span><strong>'+serviceText+'</strong></div><div class="summary-row"><span>Status</span><strong>'+statusLabel(row.status)+'</strong></div>'+(row.barber_id?'<div class="summary-row"><span>Responsável</span><strong>'+safe(barber?barber.name:row.barber_id)+'</strong></div>':'')+'<div class="actions">';
- if(row.status==='waiting')html+='<button class="btn btn-primary" data-start="'+safe(row.id)+'">ESCOLHER ESTE CLIENTE</button>';
- if(row.status==='in_progress'&&(admin||row.barber_id===state.barberId))html+='<button class="btn btn-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>';
- if(admin&&row.status==='waiting')html+='<button class="btn btn-secondary" data-cancel="'+safe(row.id)+'">CANCELAR</button>';html+='</div></article>';});
- content.innerHTML=html;if(admin)bindAdminNavigation();
- content.querySelectorAll('[data-start]').forEach(button=>button.addEventListener('click',async()=>{button.disabled=true;try{const r=await db.rpc('lacorte_start_service',{p_queue_id:button.dataset.start});if(r.error)throw r.error;renderQueueDashboard();}catch(e){alert('Não foi possível assumir este atendimento: '+(e.message||'Tente novamente.'));button.disabled=false;}}));
- content.querySelectorAll('[data-finish]').forEach(button=>button.addEventListener('click',()=>openPaymentMethodDialog(button.dataset.finish)));
- content.querySelectorAll('[data-cancel]').forEach(button=>button.addEventListener('click',async()=>{if(!confirm('Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.'))return;button.disabled=true;const r=await db.rpc('lacorte_cancel_queue_entry',{p_queue_id:button.dataset.cancel});if(r.error){alert('Não foi possível cancelar: '+r.error.message);button.disabled=false;}else renderQueueDashboard();}));
- }).catch(error=>{content.innerHTML=adminNavigation()+'<div class="summary"><p class="muted">'+safe(error.message)+'</p></div>';if(admin)bindAdminNavigation();});
+  setAppMode(true);
+  updateProgress();
+  const admin = state.role === "admin";
+  setHeader(
+    admin ? "ADMINISTRAÇÃO LACORTE" : "PAINEL DO PROFISSIONAL",
+    admin ? "Painel central" : "Minha fila",
+    admin ? "Visão geral dos atendimentos de hoje." : "Acompanhe e atualize somente os seus atendimentos."
+  );
+  notice.textContent = "Fila presencial • Sem pagamento online.";
+  content.innerHTML = '<p class="muted">Carregando fila...</p>';
+  dashboardActions();
+
+  loadQueueRows().then(function(rows){
+    if (!content.isConnected) return;
+    const waiting = rows.filter(function(r){ return r.status === "waiting"; }).length;
+    const progressCount = rows.filter(function(r){ return r.status === "in_progress"; }).length;
+    const completed = rows.filter(function(r){ return r.status === "completed"; }).length;
+
+    let html = "";
+    if(state.role==="admin"){
+      html += '<div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Na fila</small></article><article><span>EM ATENDIMENTO</span><strong>'+progressCount+'</strong><small>Em execução</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>ATENDIMENTOS</span><strong>'+rows.length+'</strong><small>Total do dia</small></article></div>';
+      html += '<div class="admin-agenda-heading"><div><small>FILA DE ATENDIMENTO</small><h3>Fila por barbeiro</h3></div><span>'+rows.length+' atendimento(s)</span></div>';
+      const barberIds=Array.from(new Set(barbers.map(function(b){return b.id;}).concat(rows.map(function(r){return r.barber_id;}))));
+      html += '<div class="admin-agenda-board">';
+      barberIds.forEach(function(id){
+        const barber=barbers.find(function(b){return b.id===id;});
+        const barberRows=rows.filter(function(r){return r.barber_id===id;});
+        const barberName=barber?barber.name:id;
+        html += '<section class="admin-agenda-column"><header><span class="admin-avatar">'+safe(String(barberName).split(" ").map(function(x){return x.charAt(0);}).join("").slice(0,2).toUpperCase())+'</span><div><strong>'+safe(barberName)+'</strong><small>'+barberRows.length+' atendimento(s)</small></div></header>';
+        if(!barberRows.length) html += '<p class="admin-empty-column">Nenhum atendimento</p>';
+        barberRows.forEach(function(row){
+          const customerName=row.customer?(safe(row.customer.first_name)+" "+safe(row.customer.last_name)).trim():"Cliente";
+          const servicesText=row.items.map(function(item){return safe(item.service_name);}).join(", ")||"—";
+          const statusClass=row.status==="completed"?"done":row.status==="in_progress"?"progress":row.status==="cancelled"?"cancelled":"waiting";
+          const time=new Date(row.created_at).toLocaleTimeString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
+          html += '<article class="admin-appointment '+statusClass+'"><div class="admin-appointment-top"><strong>#'+Number(row.queue_number)+' • Entrada '+time+'</strong><b>'+money(Number(row.total_amount))+'</b></div><strong class="admin-client-name">'+customerName+'</strong><p>'+servicesText+'</p><div class="admin-appointment-bottom"><span class="admin-status '+statusClass+'">'+statusLabel(row.status)+'</span>';
+          if(row.status==="waiting") html += '<button class="admin-mini-action" data-start="'+safe(row.id)+'">Iniciar</button><button class="admin-mini-action cancel" data-cancel="'+safe(row.id)+'">Cancelar</button>';
+          else if(row.status==="in_progress") html += '<button class="admin-mini-action" data-finish="'+safe(row.id)+'">Finalizar</button>';
+          html += '</div></article>';
+        });
+        html += '</section>';
+      });
+      html += '</div>';
+      if(!rows.length) html += '<div class="admin-no-appointments">Ainda não há clientes na fila hoje.</div>';
+    } else {
+      html = '<div class="summary"><div class="summary-row"><span>Aguardando</span><strong>'+waiting+'</strong></div><div class="summary-row"><span>Em atendimento</span><strong>'+progressCount+'</strong></div><div class="summary-row"><span>Concluídos hoje</span><strong>'+completed+'</strong></div></div>';
+      if(!rows.length) html += '<div class="summary"><p class="muted">Ainda não há atendimentos na fila de hoje.</p></div>';
+      rows.forEach(function(row){
+        const customerName=row.customer?safe(row.customer.first_name)+" "+safe(row.customer.last_name):"Cliente";
+        const servicesText=row.items.map(function(item){return safe(item.service_name)+" ("+money(Number(item.unit_price))+")";}).join(", ");
+        const barber=barbers.find(function(b){return b.id===row.barber_id;});
+        html += '<article class="summary"><div class="summary-row"><span>Senha</span><strong>#'+row.queue_number+'</strong></div><div class="summary-row"><span>Cliente</span><strong>'+customerName+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(row.customer?row.customer.phone:"—")+'</strong></div><div class="summary-row"><span>Barbeiro</span><strong>'+safe(barber?barber.name:row.barber_id)+'</strong></div><div class="summary-row"><span>Serviços</span><strong>'+(servicesText||"—")+'</strong></div><div class="summary-row"><span>Valor</span><strong>'+money(Number(row.total_amount))+'</strong></div><div class="summary-row"><span>Entrada</span><strong>'+formatDateTime(row.created_at)+'</strong></div><div class="summary-row"><span>Status</span><strong>'+statusLabel(row.status)+'</strong></div><div class="actions">';
+        if(row.status==="waiting") html += '<button class="btn btn-primary" data-start="'+safe(row.id)+'">INICIAR ATENDIMENTO</button>';
+        else if(row.status==="in_progress") html += '<button class="btn btn-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>';
+        html += '</div></article>';
+      });
+    }
+
+    content.innerHTML = (state.role === "admin" ? adminNavigation() : "") + html;
+    if(state.role === "admin") bindAdminNavigation();
+    content.querySelectorAll("[data-start]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        button.disabled = true;
+        try {
+          const result = await db.rpc("lacorte_start_service", { p_queue_id: button.dataset.start });
+          if (result.error) throw result.error;
+          renderQueueDashboard();
+        } catch (error) {
+          alert("Não foi possível iniciar: " + (error.message || "Falha de conexão. Tente novamente."));
+          button.disabled = false;
+        }
+      });
+    });
+    content.querySelectorAll("[data-cancel]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        if (!confirm("Deseja cancelar este atendimento? Se houver crédito do plano reservado, ele será devolvido.")) return;
+        button.disabled = true;
+        try {
+          const result = await db.rpc("lacorte_cancel_queue_entry", { p_queue_id: button.dataset.cancel });
+          if (result.error) throw result.error;
+          alert("Atendimento cancelado. Se havia crédito reservado, ele foi liberado.");
+          renderQueueDashboard();
+        } catch (error) {
+          alert("Não foi possível cancelar: " + (error.message || "Falha de conexão. Tente novamente."));
+          button.disabled = false;
+        }
+      });
+    });
+    content.querySelectorAll("[data-finish]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        button.disabled = true;
+        try {
+          const result = await db.rpc("lacorte_finish_service", { p_queue_id: button.dataset.finish });
+          if (result.error) throw result.error;
+          renderQueueDashboard();
+        } catch (error) {
+          alert("Não foi possível finalizar: " + (error.message || "Falha de conexão. Tente novamente."));
+          button.disabled = false;
+        }
+      });
+    });
+  }).catch(function(error){
+    content.innerHTML = '<p class="muted">' + safe(error.message) + '</p>';
+  });
 }
 
-function openPaymentMethodDialog(queueId){
- const overlay=document.createElement('div');overlay.className='payment-dialog-backdrop';overlay.innerHTML='<section class="payment-dialog"><h3>FINALIZAR ATENDIMENTO</h3><p>Selecione como o cliente pagou.</p><label for="payment-method">Forma de pagamento</label><select id="payment-method"><option value="">Selecione</option><option value="pix">PIX</option><option value="dinheiro">Dinheiro</option><option value="credito">Crédito</option><option value="debito">Débito</option></select><div class="actions"><button class="btn btn-secondary" data-close>VOLTAR</button><button class="btn btn-primary" data-confirm>CONFIRMAR FINALIZAÇÃO</button></div><p class="muted" id="payment-error"></p></section>';content.append(overlay);
- overlay.querySelector('[data-close]').addEventListener('click',()=>overlay.remove());
- overlay.querySelector('[data-confirm]').addEventListener('click',async function(){const method=overlay.querySelector('#payment-method').value;if(!method){overlay.querySelector('#payment-error').textContent='Selecione uma forma de pagamento.';return;}this.disabled=true;const r=await db.rpc('lacorte_finish_service',{p_queue_id:queueId,p_payment_method:method});if(r.error){this.disabled=false;overlay.querySelector('#payment-error').textContent='Não foi possível finalizar: '+r.error.message;return;}renderQueueDashboard();});
+async function routeAuthenticatedUser(user){
+  state.user = user;
+  state.customer = null;
+  state.selectedServices = [];
+  state.barber = null;
+  state.queueTicket = null;
+  state.message = "";
+
+  const roleResult = await db.from("lacorte_user_roles")
+    .select("role,barber_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (roleResult.error) {
+    setAppMode(true);
+    setHeader("ERRO DE ACESSO", "Não foi possível identificar seu perfil", "Entre em contato com o administrador.");
+    content.textContent = roleResult.error.message;
+    dashboardActions();
+    return;
+  }
+
+  if (roleResult.data && (roleResult.data.role === "admin" || roleResult.data.role === "barber")) {
+    state.role = roleResult.data.role;
+    state.barberId = roleResult.data.barber_id;
+    try {
+      await loadCatalogs();
+    } catch (error) {
+      setAppMode(true);
+      setHeader("ERRO", "Não foi possível carregar o painel", "Verifique a conexão com o banco de dados.");
+      content.textContent = error.message;
+      dashboardActions();
+      return;
+    }
+    renderQueueDashboard();
+    return;
+  }
+
+  state.role = "customer";
+  state.barberId = null;
+  setAppMode(false);
+  try {
+    await loadCatalogs();
+  } catch (error) {
+    state.message = error.message;
+    renderLogin();
+    showMessage(error.message);
+    return;
+  }
+  await loadCustomer(user);
+}
+
+async function submitQueueEntry(){
+  if(state.submitting)return;if(!state.customer||!state.selectedServices.length){showMessage('Confira seus dados e selecione ao menos um serviço.');return;}
+  state.submitting=true;showMessage('Registrando sua entrada na fila...');
+  try{const rpcName=state.user?'lacorte_create_queue_entry':'lacorte_create_queue_entry_kiosk';const result=await db.rpc(rpcName,{p_customer_id:state.customer.id,p_service_ids:state.selectedServices.map(function(s){return s.id;})});
+    if(result.error)throw result.error;const ticket=Array.isArray(result.data)?result.data[0]:result.data;if(!ticket)throw new Error('O banco não retornou a confirmação da fila.');state.queueTicket=ticket;state.submitting=false;renderQueueSuccess();
+  }catch(error){state.submitting=false;showMessage('Não foi possível entrar na fila: '+(error.message||'Falha de conexão.'));}
+}
+
+function renderQueueSuccess(){
+  setAppMode(true);setHeader('ENTRADA CONFIRMADA','Você entrou na fila!','Sua senha está na fila única da LaCorte.');notice.textContent='Aguarde ser chamado por um dos profissionais.';
+  const ticket=state.queueTicket;content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
+  actions.replaceChildren(makeButton('FINALIZAR',logoutCurrentSession,true));clearCustomerAutoLogout();
+  if(state.role==='customer'){notice.textContent='Entrada confirmada. A sessão será encerrada automaticamente em 30 segundos.';customerAutoLogoutTimer=setTimeout(logoutCurrentSession,CUSTOMER_AUTO_LOGOUT_MS);}
+}
+
+// Calcula a prévia do benefício. O banco continua sendo a autoridade final
+// e valida os créditos reservados no momento da entrada na fila.
+function getCustomerPlanPreview(){
+  const plan = state.customerPlan;
+  const selected = state.selectedServices || [];
+  if (!plan || selected.length !== 1) return null;
+
+  const today = localQueueDate();
+  const eligible = plan.status === "active"
+    && plan.start_date <= today
+    && plan.expires_at >= today
+    && Number(plan.used_cuts) < Number(plan.included_cuts);
+
+  if (!eligible) return null;
+
+  if (selected[0].id === "corte") {
+    return { total: 0, normal: Number(selected[0].price), description: "Corte incluído no plano" };
+  }
+
+  if (selected[0].id === "corte-barba") {
+    const beard = services.find(function(service){ return service.id === "barba"; });
+    return { total: beard ? Number(beard.price) : 40, normal: Number(selected[0].price), description: "1 corte do plano + valor da barba" };
+  }
+
+  return null;
+}
+
+// A confirmação mostra a prévia do benefício; o banco valida a reserva definitivamente.
+renderConfirmation = function(){
+  setHeader("ETAPA 05", "Confira sua solicitação", "Confira seus dados, serviços e barbeiro antes de entrar na fila.");
+  const preview = getCustomerPlanPreview();
+  const total = preview
+    ? preview.total
+    : state.selectedServices.reduce(function(sum, service){ return sum + Number(service.price); }, 0);
+  content.innerHTML =
+    '<div class="summary">' +
+      '<div class="summary-row"><span>Cliente</span><strong>' + safe(state.customer.first_name) + ' ' + safe(state.customer.last_name) + '</strong></div>' +
+      '<div class="summary-row"><span>Telefone</span><strong>' + safe(state.customer.phone) + '</strong></div>' +
+      '<div class="summary-row"><span>E-mail</span><strong>' + safe(state.customer.email) + '</strong></div>' +
+    '</div>' +
+    '<div class="summary"><strong>Serviços</strong>' +
+      state.selectedServices.map(function(service){
+        const linePrice = preview ? preview.total : Number(service.price);
+        return '<div class="summary-row"><span>' + safe(service.name) + '</span><strong>' + money(linePrice) + '</strong></div>';
+      }).join("") +
+      (preview
+        ? '<p class="muted">' + safe(preview.description) + '. Valor normal: ' + money(preview.normal) + '.</p><p class="muted">Benefício sujeito à confirmação de crédito disponível ao registrar a fila.</p>'
+        : '') +
+      '<div class="summary-row summary-total"><span>Total</span><strong>' + money(total) + '</strong></div>' +
+    '</div>' +
+    '<div class="summary"><div class="summary-row"><span>Barbeiro</span><strong>' + safe(state.barber.name) + '</strong></div></div>' +
+    '<p id="app-message" class="muted">' + safe(state.message) + '</p>';
+
+  setActions(
+    function(){ state.step = 4; render(); },
+    submitQueueEntry,
+    "CONFIRMAR E ENTRAR NA FILA",
+    state.submitting
+  );
+};
+
+// Substitui o carregamento inicial antigo: primeiro identifica o perfil, depois abre a área correta.
+async function initLaCorte(){
+  setAppMode(false);
+
+  // Exibe o formulário mesmo quando a biblioteca do Supabase não carregar.
+  if (!db) {
+    state.role = null;
+    render();
+    showMessage("A conexão segura não carregou. Verifique a internet e atualize a página para entrar.");
+    return;
+  }
+
+  // O Supabase processa automaticamente o retorno do link (code ou tokens na URL).
+  const sessionResult = await db.auth.getSession();
+  if (sessionResult.error) {
+    state.message = "Erro ao verificar acesso: " + sessionResult.error.message;
+  }
+
+  if (sessionResult.data && sessionResult.data.session) {
+    await routeAuthenticatedUser(sessionResult.data.session.user);
+  } else {
+    state.role = null;
+    render();
+  }
+
+  db.auth.onAuthStateChange(function(event, session){
+    // O login por código já direciona o usuário no próprio formulário.
+    // Evita executar routeAuthenticatedUser duas vezes durante a confirmação do OTP.
+    if (event === "SIGNED_OUT") {
+      clearCustomerAutoLogout();
+      state.user = null;
+      state.customer = null;
+      state.role = null;
+      state.barberId = null;
+      state.selectedServices = [];
+      state.barber = null;
+      state.queueTicket = null;
+      state.customerPlan = null;
+      state.customerPlanBenefits = [];
+      state.submitting = false;
+      state.step = 1;
+      state.message = "";
+      setAppMode(false);
+      render();
+    }
+  });
+}
+
+
+
+// ===== RELATÓRIOS ADMINISTRATIVOS LACORTE =====
+let adminReportFilters = { period: "month", start: "", end: "" };
+
+function reportShiftDate(dateText, days){
+  const parts = dateText.split("-").map(Number);
+  const date = new Date(parts[0], parts[1]-1, parts[2], 12);
+  date.setDate(date.getDate()+days);
+  return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+}
+
+function reportDateRange(){
+  const today = localQueueDate();
+  const period = adminReportFilters.period || "month";
+  if(period === "today") return {start:today,end:today,label:"Hoje"};
+  if(period === "week"){
+    const d = new Date(today+"T12:00:00");
+    const weekday = d.getDay();
+    return {start:reportShiftDate(today, -(weekday === 0 ? 6 : weekday-1)),end:today,label:"Esta semana"};
+  }
+  if(period === "month") return {start:today.slice(0,7)+"-01",end:today,label:"Este mês"};
+  const start = adminReportFilters.start;
+  const end = adminReportFilters.end;
+  if(!start || !end || start > end) throw new Error("Informe um intervalo válido: a data inicial deve ser anterior ou igual à data final.");
+  return {start:start,end:end,label:"Período personalizado"};
+}
+
+function reportPieChart(items, valueFormatter, emptyMessage){
+  const palette=["#f58220","#f5b041","#d35400","#e67e22","#f39c12","#b94b12","#ff9f43","#8e3b0d","#ffc078","#c96b22"];
+  const valid=(items || []).map(function(item){return {label:String(item.label || "Não identificado"),value:Math.max(0,Number(item.value)||0)};}).filter(function(item){return item.value>0;});
+  if(!valid.length) return '<p class="muted">'+(emptyMessage || "Sem dados para este período.")+'</p>';
+  const total=valid.reduce(function(sum,item){return sum+item.value;},0);
+  let cursor=0;
+  const stops=valid.map(function(item,index){
+    const start=cursor;
+    cursor+=(item.value/total)*100;
+    return palette[index%palette.length]+' '+start.toFixed(2)+'% '+cursor.toFixed(2)+'%';
+  });
+  const legend=valid.map(function(item,index){
+    const percent=(item.value/total)*100;
+    return '<div class="report-pie-legend-item"><span class="report-pie-dot" style="background:'+palette[index%palette.length]+'"></span><span class="report-pie-name">'+safe(item.label)+'</span><strong>'+valueFormatter(item.value)+'</strong><small>'+percent.toFixed(1).replace(".",",")+'%</small></div>';
+  }).join('');
+  return '<div class="report-pie-layout"><div class="report-pie" role="img" aria-label="Gráfico de pizza: '+valid.length+' categorias" style="background:conic-gradient('+stops.join(",")+')"><div class="report-pie-hole"><strong>'+valueFormatter(total)+'</strong><span>Total</span></div></div><div class="report-pie-legend">'+legend+'</div></div>';
 }
 
 async function renderAdminReports(){
@@ -500,7 +836,7 @@ async function renderAdminReports(){
   try {
     range = reportDateRange();
     const queueResult = await db.from("lacorte_queue")
-      .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_percent,commission_amount,payment_method,created_at,completed_at")
+      .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_percent,commission_amount,created_at,completed_at")
       .gte("queue_date",range.start).lte("queue_date",range.end)
       .order("queue_date",{ascending:true}).order("created_at",{ascending:true});
     if(queueResult.error) throw new Error("Não foi possível consultar os atendimentos: "+queueResult.error.message);
