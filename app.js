@@ -1392,13 +1392,18 @@ async function renderAdminPlans(){
         '<button class="btn btn-primary" type="submit">ATIVAR ASSINATURA</button></form>';
     }
     html += '</section>';
-    html += '<section class="summary"><h3>ASSINATURAS DOS CLIENTES</h3>';
+    html += '<section class="summary"><h3>HISTÓRICO DE ASSINATURAS POR CLIENTE</h3><p class="muted">Todas as assinaturas ficam registradas. Pesquise pelo nome, telefone ou plano para consultar renovações anteriores.</p>';
+    html += '<label for="subscription-history-search">Buscar no histórico</label><input id="subscription-history-search" type="search" placeholder="Nome do cliente, telefone ou plano">';
     if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
     subscriptions.forEach(function(sub){
       const c = customerById[sub.customer_id] || {};
+      const customerName = (c.first_name || "Cliente")+' '+(c.last_name || "");
       const remaining = Math.max(0,Number(sub.included_cuts)-Number(sub.used_cuts));
       const statusLabel = ({active:"Ativa",expired:"Vencida",exhausted:"Cortes esgotados",suspended:"Suspensa"})[sub.status] || sub.status;
-      html += '<article class="summary admin-item"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe((c.first_name || "Cliente")+' '+(c.last_name || ""))+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Validade:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p><p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
+      const searchText = [customerName,c.phone || "",c.email || "",sub.plan_name || "",statusLabel].join(" ").toLowerCase();
+      const paidDate = sub.paid_at ? new Date(sub.paid_at).toLocaleString("pt-BR") : "Não informado";
+      html += '<article class="summary admin-item" data-subscription-history-card data-search="'+safe(searchText)+'"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe(customerName)+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Período:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p><p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Pagamento registrado:</strong> '+safe(paidDate)+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
+      if(sub.notes) html += '<p><strong>Observação:</strong> '+safe(sub.notes)+'</p>';
       if(sub.status === "active") html += '<button class="btn btn-secondary" type="button" data-suspend-plan="'+safe(sub.id)+'">SUSPENDER ASSINATURA</button>';
       if(sub.status === "suspended") html += '<button class="btn btn-primary" type="button" data-reactivate-plan="'+safe(sub.id)+'">REATIVAR ASSINATURA</button>';
       html += '</article>';
