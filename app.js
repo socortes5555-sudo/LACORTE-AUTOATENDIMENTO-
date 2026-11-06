@@ -314,7 +314,7 @@ function renderProfile(){
 function renderCustomerPlanCard(){
   const plan = state.customerPlan;
   if(!plan) return '<section class="summary"><h3>MEU PLANO LACORTE</h3><p class="muted">Você não possui uma assinatura registrada no momento.</p></section>';
-  const today = new Date().toISOString().slice(0,10);
+  const today = localQueueDate();
   const expiredByDate = plan.expires_at < today;
   const remaining = Math.max(0,Number(plan.included_cuts)-Number(plan.used_cuts));
   const status = plan.status === "suspended" ? "Suspenso" :
@@ -1383,7 +1383,7 @@ async function renderAdminPlans(){
     const localDateString = function(date){
       return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
     };
-    const todayString = localDateString(new Date());
+    const todayString = localQueueDate();
     const expiredSubscriptions = subscriptions.filter(function(sub){
       return sub.status === "active" && sub.expires_at && sub.expires_at < todayString;
     });
@@ -1418,7 +1418,7 @@ async function renderAdminPlans(){
     if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
     else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
     else {
-      const today = new Date();
+      const today = new Date(localQueueDate()+"T12:00:00");
       const dateValue = function(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
       const nextMonth = new Date(today.getFullYear(),today.getMonth()+1,today.getDate());
       html += '<form id="activate-customer-plan" class="admin-form">' +
@@ -1488,12 +1488,14 @@ async function renderAdminPlans(){
       const startDate = String(fd.get("start_date") || "");
       const expiresAt = String(fd.get("expires_at") || "");
       if(!customerId || !plan || !startDate || !expiresAt || expiresAt < startDate) return alert("Confira cliente, plano e datas.");
+      const includedCuts = planIncludedCuts(plan);
+      if(!includedCuts) return alert("Informe a quantidade de cortes nos benefícios do plano (ex.: 4 cortes por mês) antes de ativar a assinatura.");
       const existing = await db.from("lacorte_customer_plans").select("id").eq("customer_id",customerId).eq("status","active").limit(1);
       if(existing.error) return alert("Não foi possível verificar assinaturas anteriores: "+existing.error.message);
       if(existing.data && existing.data.length) return alert("Este cliente já possui uma assinatura ativa. Suspenda a anterior antes de ativar outra.");
       const saved = await db.from("lacorte_customer_plans").insert({
         customer_id:customerId,plan_id:plan.id,plan_name:plan.name,monthly_price:plan.monthly_price,
-        start_date:startDate,expires_at:expiresAt,included_cuts:4,used_cuts:0,status:"active",
+        start_date:startDate,expires_at:expiresAt,included_cuts:includedCuts,used_cuts:0,status:"active",
         paid_at:new Date().toISOString(),payment_method:String(fd.get("payment_method") || ""),
         notes:String(fd.get("notes") || "").trim()
       });
@@ -1513,7 +1515,7 @@ async function renderAdminPlans(){
       button.addEventListener("click", async function(){
         const subscription = subscriptions.find(function(item){return item.id === button.dataset.reactivatePlan;});
         if(!subscription) return alert("Assinatura não encontrada. Atualize a página.");
-        const today = new Date().toISOString().slice(0,10);
+        const today = localQueueDate();
         if(subscription.expires_at < today) return alert("Esta assinatura está vencida. Cadastre uma nova assinatura após confirmar o pagamento.");
         if(Number(subscription.used_cuts) >= Number(subscription.included_cuts)) return alert("Esta assinatura não possui cortes disponíveis. Não é possível reativar os benefícios.");
         const otherActive = await db.from("lacorte_customer_plans").select("id").eq("customer_id",subscription.customer_id).eq("status","active").neq("id",subscription.id).limit(1);
@@ -1553,6 +1555,13 @@ async function renderAdminPlans(){
   }
 }
 
+function planIncludedCuts(plan){
+  const benefits = Array.isArray(plan && plan.benefits) ? plan.benefits.join(" ") : "";
+  const match = benefits.match(/(?:^|\D)(\d{1,3})\s+cortes?\b/i);
+  if(!match) return null;
+  const count = Number(match[1]);
+  return Number.isInteger(count) && count > 0 ? count : null;
+}
 function slugId(value){
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,45);
