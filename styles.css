@@ -213,3 +213,35 @@ body.admin-dashboard .report-status-grid>div{background:#202020;border-color:#38
  .admin-nav{padding:12px 9px}
  .admin-nav-item{font-size:11px;padding:10px 8px}
 }
+
+/* Neutralização final de qualquer tom roxo no painel administrativo */
+body.admin-dashboard,
+body.admin-dashboard #step-content{--admin-accent:#ff791f;--admin-accent-soft:#3a2418;--admin-bg:#101010;--admin-card:#191919}
+body.admin-dashboard .admin-nav,
+body.admin-dashboard .admin-calendar-panel{background:linear-gradient(135deg,#111 0%,#24201c 100%)}
+body.admin-dashboard .admin-nav-item:hover,
+body.admin-dashboard .admin-nav-item.active,
+body.admin-dashboard .admin-status{background:#3a2418;color:#ff9a55}
+body.admin-dashboard .admin-brand-mark,
+body.admin-dashboard .admin-calendar-day.today,
+body.admin-dashboard .admin-mini-action,
+body.admin-dashboard .btn-primary{background:#ff791f!important;color:#111!important}
+body.admin-dashboard .admin-kpis article strong,
+body.admin-dashboard .admin-nav-icon,
+body.admin-dashboard .panel-heading .eyebrow,
+body.admin-dashboard .summary h3,
+body.admin-dashboard .report-table th{color:#ff791f}
+body.admin-dashboard .admin-calendar-top small,
+body.admin-dashboard .admin-agenda-heading small,
+body.admin-dashboard .admin-nav-caption{color:#ff9a55}
+body.admin-dashboard .summary,
+body.admin-dashboard .admin-kpis article,
+body.admin-dashboard .admin-agenda-column,
+body.admin-dashboard .admin-appointment{background-color:#191919;color:#f7f5f2}
+body.admin-dashboard .admin-appointment{border-left-color:#ff791f}
+body.admin-dashboard .admin-appointment.progress{border-left-color:#e7a42d}
+body.admin-dashboard .admin-appointment.done{border-left-color:#55c982}
+body.admin-dashboard .admin-appointment.cancelled{border-left-color:#777}
+body.admin-dashboard .admin-mini-action.cancel,
+body.admin-dashboard .btn-secondary{background:#292929!important;color:#eee!important;border-color:#444}
+body.admin-dashboard .report-pie-hole{background:#191919}
