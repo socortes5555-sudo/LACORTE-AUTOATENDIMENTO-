@@ -680,6 +680,7 @@ function reportDateRange(){
   const period = adminReportFilters.period || "month";
   if(period === "today") return {start:today,end:today,label:"Hoje"};
   if(period === "fortnight") return {start:reportShiftDate(today,-13),end:today,label:"Últimos 14 dias"};
+  if(period === "fortnight") return {start:reportShiftDate(today,-13),end:today,label:"Últimos 14 dias"};
   if(period === "week"){
     const d = new Date(today+"T12:00:00");
     const weekday = d.getDay();
@@ -711,7 +712,7 @@ function reportPieChart(items, valueFormatter, emptyMessage){
 }
 
 async function renderBarberReports(){
- if(state.role!=='barber')return renderQueueDashboard();setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
+ if(state.role!=='barber')return renderQueueDashboard();setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();actions.prepend(makeButton("VOLTAR À FILA",renderQueueDashboard,true));content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
  try{const range=reportDateRange(),r=await db.from('lacorte_queue').select('id,status,total_amount,commission_amount,payment_method,queue_date,completed_at,queue_number').eq('barber_id',state.barberId).gte('queue_date',range.start).lte('queue_date',range.end);if(r.error)throw r.error;
  const rows=r.data||[],done=rows.filter(x=>x.status==='completed'),gross=done.reduce((s,x)=>s+Number(x.total_amount||0),0),commission=done.reduce((s,x)=>s+Number(x.commission_amount||0),0),payments={pix:0,dinheiro:0,credito:0,debito:0},labels={pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'};
  done.forEach(x=>{if(payments[x.payment_method]!==undefined)payments[x.payment_method]+=Number(x.total_amount||0);});
@@ -763,6 +764,8 @@ async function renderAdminReports(){
     const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);
     const commissions = completedRows.reduce(function(sum,row){return sum+Number(row.commission_amount || 0);},0);
     const net = revenue-commissions;
+    const paymentTotals = {pix:0,dinheiro:0,credito:0,debito:0};
+    completedRows.forEach(function(row){if(paymentTotals[row.payment_method] !== undefined) paymentTotals[row.payment_method] += Number(row.total_amount || 0);});
     const counts = {
       completed:completedRows.length,
       waiting:rows.filter(function(row){return row.status==="waiting";}).length,
@@ -810,7 +813,7 @@ async function renderAdminReports(){
       const serviceText=(itemsByQueue[row.id] || []).map(function(item){
         return safe(item.service_name)+" ("+money(Number(item.unit_price || 0))+")";
       }).join(", ") || "—";
-      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id)+'</td><td>'+serviceText+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
+      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id || 'Aguardando atribuição')+'</td><td>'+serviceText+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(row.payment_method || '—')+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
     });
 
     const periodOptions = '<option value="today" '+(adminReportFilters.period==="today"?"selected":"")+'>Hoje</option>'+
@@ -827,6 +830,7 @@ async function renderAdminReports(){
       '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
       '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
       '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
+    html += '<section class="summary"><h3>FORMAS DE PAGAMENTO</h3>'+Object.keys(paymentTotals).map(function(method){return '<div class="summary-row"><span>'+({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"}[method])+'</span><strong>'+money(paymentTotals[method])+'</strong></div>';}).join("")+'</section>';
     html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportPieChart(dailyItems,money,"Sem faturamento concluído neste período.")+'</section>';
     html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportPieChart(commissionItems,money)+'</section>'+
       '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportPieChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
@@ -838,7 +842,7 @@ async function renderAdminReports(){
     ];
     html += '<section class="summary report-chart"><h3>STATUS DOS ATENDIMENTOS</h3>'+reportPieChart(statusItems,function(value){return String(value)+" atend.";})+'</section>';
     html += '<section class="summary"><h3>HISTÓRICO DO PERÍODO</h3><p class="muted">'+rows.length+' registro(s) encontrado(s).</p>'+
-      (rows.length ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>' : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
+      (rows.length ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>' : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
       '</section>';
 
     if(state.role !== "admin" || adminView !== "reports") return;
