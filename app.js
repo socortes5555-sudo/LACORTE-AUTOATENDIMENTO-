@@ -618,7 +618,6 @@ async function initLaCorte(){
       state.role = null;
       state.barberId = null;
       state.selectedServices = [];
-      state.barber = null;
       state.queueTicket = null;
       state.customerPlan = null;
       state.customerPlanBenefits = [];
