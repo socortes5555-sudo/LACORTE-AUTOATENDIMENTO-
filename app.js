@@ -368,7 +368,10 @@ function renderServices(){
     grid.append(el);
   });
 
-  const total=state.selectedServices.reduce((sum,s)=>sum+s.price,0);
+  const planPreview=getCustomerPlanPreview();
+  const total=planPreview
+    ?planPreview.total
+    :state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
 
   const totalEl=document.createElement("div");
   totalEl.className="summary";
@@ -377,6 +380,7 @@ function renderServices(){
       <span>Serviços selecionados</span>
       <strong>${state.selectedServices.length}</strong>
     </div>
+    ${planPreview?'<p class="muted">'+safe(planPreview.description)+'</p>':''}
     <div class="summary-row summary-total">
       <span>Total</span>
       <strong>${money(total)}</strong>
