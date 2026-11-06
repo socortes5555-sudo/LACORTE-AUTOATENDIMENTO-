@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>LaCorte | Área Profissional</title>
+  <link rel="stylesheet" href="styles.css?v=20261106-39">
+</head>
+<body class="staff-portal">
+  <header class="topbar">
+    <a class="brand" href="barbeiros.html" aria-label="LaCorte área profissional">LA<span>CORTE</span><b>.</b></a>
+    <span class="top-label">ÁREA PROFISSIONAL</span>
+  </header>
+  <main class="shell staff-shell">
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">ACESSO RESTRITO • EQUIPE LACORTE</p>
+          <h2 id="step-title">Painel dos profissionais</h2>
+          <p class="muted" id="step-description">Entre com seu e-mail e senha cadastrados pelo administrador.</p>
+        </div>
+      </div>
+      <div id="step-content" aria-live="polite">
+        <form id="staff-login-form" class="staff-login-form">
+          <label for="staff-email">E-mail profissional</label>
+          <input id="staff-email" name="email" type="email" autocomplete="username" placeholder="seuemail@lacorte.com" required>
+          <label for="staff-password">Senha</label>
+          <input id="staff-password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required>
+          <button class="btn btn-primary" type="submit">ENTRAR NO PAINEL</button>
+        </form>
+      </div>
+      <div class="notice" id="demo-notice">Acesso exclusivo para barbeiros e administrador. O cliente deve utilizar o autoatendimento.</div>
+      <div class="actions" id="step-actions"></div>
+    </section>
+    <footer>LA<span>CORTE</span><b>.</b><small><a href="./">Voltar ao autoatendimento do cliente</a></small></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if (!window.supabase) document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\\/script>');
+  </script>
+  <script src="app.js?v=20261106-39"></script>
+</body>
+</html>
