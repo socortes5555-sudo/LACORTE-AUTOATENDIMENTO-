@@ -492,3 +492,155 @@ body.admin-dashboard .admin-reveal-content:not([hidden]){display:block;animation
 body.admin-dashboard .manage-panel[data-manage-panel="services"] .summary>p.muted{margin-bottom:14px}
 body.admin-dashboard .manage-panel[data-manage-panel="services"] .admin-list-toggle,
 body.admin-dashboard .manage-panel[data-manage-panel="barbers"] .admin-list-toggle{margin-top:18px}
+
+
+/* LA CORTE — redesign global: experiência de aplicativo, sem aparência de documento */
+:root{--lc-bg:#0c0c0c;--lc-surface:#171717;--lc-surface-2:#1e1e1e;--lc-border:#303030;--lc-text:#f7f5f2;--lc-muted:#a6a6a6;--lc-orange:#ff791f}
+*{box-sizing:border-box}
+body{background:var(--lc-bg);color:var(--lc-text);font-family:Inter,'DM Sans',Arial,sans-serif}
+.topbar{height:62px;padding:0 clamp(16px,4vw,48px);background:rgba(15,15,15,.96);border-bottom:1px solid #292929;backdrop-filter:blur(14px)}
+.brand{font-family:Oswald,'Arial Narrow',sans-serif;font-size:21px;letter-spacing:1.5px}
+.top-label{font-size:10px;letter-spacing:2px;color:#aaa}
+.shell{width:min(100% - 28px,980px);padding:clamp(18px,4vw,42px) 0 30px}
+.hero{max-width:690px;margin:0 auto 24px;padding:clamp(18px,4vw,32px);border:1px solid #292929;border-radius:18px;background:radial-gradient(ellipse at 85% 0%,#3a2114 0%,transparent 48%),linear-gradient(145deg,#1b1b1b,#111);box-shadow:0 18px 50px #0005}
+.hero .eyebrow,.panel-heading .eyebrow{color:var(--lc-orange);font-size:10px;font-weight:800;letter-spacing:2px}
+.hero h1{font-size:clamp(34px,7vw,58px);line-height:1.02;letter-spacing:-1.5px;margin:12px 0}
+.hero h1 em{color:var(--lc-orange);font-style:normal}
+.hero .intro{max-width:430px;color:#bbb;font-size:14px;line-height:1.6}
+.progress{max-width:690px;margin:0 auto 16px;padding:13px 16px;border:1px solid #292929;border-radius:14px;background:#141414}
+.progress-step span{width:27px;height:27px;border-radius:50%;background:#292929;color:#aaa;font-weight:700}
+.progress-step.active span,.progress-step.done span{background:var(--lc-orange);color:#111}
+.progress-step small{font-size:10px;letter-spacing:.2px;color:#999}
+.progress-step.active small{color:#fff}
+.progress>i{background:#383838;height:1px}
+.panel{max-width:690px;margin:0 auto;padding:clamp(18px,4vw,30px);border:1px solid #303030;border-radius:18px;background:linear-gradient(160deg,#1a1a1a,#131313);box-shadow:0 18px 55px #0005}
+.panel-heading{margin-bottom:20px}
+.panel-heading h2{font-size:clamp(23px,4vw,30px);letter-spacing:-.5px;margin:5px 0}
+.panel-heading .muted{font-size:13px;line-height:1.55;color:#aaa}
+#step-content{min-width:0}
+#step-content form{display:grid;gap:9px}
+label{display:block;margin:8px 0 2px;color:#d0d0d0;font-size:12px;font-weight:700}
+input,select,textarea{width:100%;min-height:45px;padding:11px 13px;border:1px solid #3a3a3a;border-radius:9px;background:#101010;color:#f7f5f2;font:inherit;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:2px solid #ff791f55;border-color:var(--lc-orange)}
+.btn{min-height:43px;padding:11px 16px;border-radius:9px;font-size:11px;font-weight:800;letter-spacing:.45px;transition:transform .15s,background .15s,border-color .15s}
+.btn:active{transform:scale(.985)}
+.btn-primary{background:var(--lc-orange);border:1px solid var(--lc-orange);color:#111}
+.btn-primary:hover{background:#ff9148}
+.btn-secondary{background:#252525;border:1px solid #3b3b3b;color:#eee}
+.btn-secondary:hover{background:#303030}
+#step-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.notice{margin-top:16px;padding:10px 12px;border:1px solid #303030;border-radius:9px;background:#141414;color:#999;font-size:11px;line-height:1.5}
+.summary{padding:15px;margin:10px 0;border:1px solid #303030;border-radius:12px;background:#181818;color:#f4f4f4}
+.summary h3{font-size:13px;letter-spacing:.7px;color:#ff9a55;margin:0 0 9px}
+.summary-row{gap:12px;padding:8px 0;border-bottom:1px solid #292929;font-size:12px}
+.summary-row:last-child{border-bottom:0}
+.summary-row strong{text-align:right}
+.choice{min-height:92px;padding:14px;border:1px solid #333;border-radius:12px;background:#191919;text-align:left;transition:border-color .15s,background .15s}
+.choice:hover,.choice.selected{border-color:var(--lc-orange);background:#251a13}
+.choice .name{font-size:14px;font-weight:800}
+.choice .detail{font-size:11px;color:#aaa}
+.choice .price{font-size:14px;color:#ff9a55;font-weight:800}
+.grid{gap:9px}
+footer{margin-top:24px;color:#eee;font-size:13px;letter-spacing:1px}
+footer small{color:#888;letter-spacing:0}
+body.admin-dashboard .shell{width:min(100% - 28px,1440px);padding:18px 0 32px}
+body.admin-dashboard #step-content:has(.admin-nav){display:grid;grid-template-columns:220px minmax(0,1fr);align-items:start;gap:20px}
+body.admin-dashboard .admin-nav{position:sticky;top:12px;min-width:0;padding:14px 10px;border:1px solid #303030;border-radius:15px;background:#151515;box-shadow:0 12px 30px #0003}
+body.admin-dashboard .admin-brand{padding:7px 8px 15px;border-bottom:1px solid #2c2c2c}
+body.admin-dashboard .admin-brand strong{font-size:13px;letter-spacing:1px}
+body.admin-dashboard .admin-brand small{font-size:8px;color:#888}
+body.admin-dashboard .admin-brand-mark{width:34px;height:34px;border-radius:10px;background:var(--lc-orange);color:#111;font-weight:900}
+body.admin-dashboard .admin-nav-caption{padding:15px 8px 7px;font-size:8px;letter-spacing:1.4px;color:#777}
+body.admin-dashboard .admin-nav-item{min-height:42px;padding:10px 11px;border-radius:9px;color:#bbb;font-size:11px}
+body.admin-dashboard .admin-nav-item:hover{background:#242424;color:#fff}
+body.admin-dashboard .admin-nav-item.active{background:#3a2418;color:#ffad78}
+body.admin-dashboard .admin-nav-footer{font-size:9px;color:#777}
+body.admin-dashboard .admin-workspace{gap:12px}
+body.admin-dashboard .admin-section-heading{padding:5px 2px 8px}
+body.admin-dashboard .admin-section-heading h2{font-size:27px;letter-spacing:-.6px}
+body.admin-dashboard .admin-section-heading p{font-size:12px;color:#999}
+body.admin-dashboard .manage-tabs{position:static;display:flex;overflow-x:auto;flex-wrap:nowrap;gap:5px;padding:5px;border-radius:11px;background:#151515}
+body.admin-dashboard .manage-tab{flex:0 0 auto;padding:10px 13px;border-radius:8px;font-size:10px;white-space:nowrap}
+body.admin-dashboard .manage-panel>.summary{padding:16px}
+body.admin-dashboard .admin-kpis{gap:10px;margin:0 0 16px}
+body.admin-dashboard .admin-kpis article{padding:15px;border-radius:12px;background:#191919;border:1px solid #303030}
+body.admin-dashboard .admin-kpis article span{font-size:9px;color:#aaa;letter-spacing:.8px}
+body.admin-dashboard .admin-kpis article strong{font-size:27px;color:#ff9a55}
+body.admin-dashboard .admin-agenda-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 2px}
+body.admin-dashboard .admin-agenda-heading h3{font-size:19px;margin:4px 0}
+body.admin-dashboard .admin-agenda-heading small{font-size:9px;letter-spacing:1.5px;color:#ff9a55}
+body.admin-dashboard .admin-queue-card{padding:14px;border-radius:12px}
+body.admin-dashboard .admin-queue-card .actions{display:flex;gap:8px;flex-wrap:wrap}
+body.admin-dashboard .admin-queue-card .actions .btn{flex:1 1 145px}
+body.admin-dashboard .report-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+body.admin-dashboard .report-filter>label:first-child{grid-column:1/-1}
+body.admin-dashboard .report-filter select{grid-column:1/-1}
+body.admin-dashboard .report-date-fields{grid-column:1/-1}
+body.admin-dashboard .report-filter button{grid-column:1/-1;justify-self:start}
+body.admin-dashboard .admin-reveal-button,body.admin-dashboard .admin-list-toggle{width:100%;max-width:380px;justify-content:center;margin:10px 0}
+body.admin-dashboard .admin-reveal-content[hidden]{display:none!important}
+body.admin-dashboard .admin-reveal-content:not([hidden]){display:block;animation:managePanelIn .18s ease-out}
+body.admin-dashboard .admin-item{padding:14px;border-radius:11px}
+body.admin-dashboard details.admin-customer-card{padding:0;overflow:hidden}
+body.admin-dashboard details.admin-customer-card>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;cursor:pointer;list-style:none}
+body.admin-dashboard details.admin-customer-card>summary::-webkit-details-marker{display:none}
+body.admin-dashboard details.admin-customer-card>summary:after{content:'+';color:#ff9a55;font-size:20px;font-weight:400}
+body.admin-dashboard details.admin-customer-card[open]>summary:after{content:'−'}
+body.admin-dashboard details.admin-customer-card>*:not(summary){margin-left:14px;margin-right:14px}
+body.admin-dashboard .report-table-wrap{max-width:100%;overflow:auto;border:1px solid #303030;border-radius:10px}
+body.admin-dashboard .report-table{min-width:650px}
+body.admin-dashboard .report-table th{background:#202020}
+body.admin-dashboard .report-table td,body.admin-dashboard .report-table th{font-size:11px;padding:10px}
+body.admin-dashboard .report-kpis{gap:9px}
+body.admin-dashboard .report-kpis article{padding:13px}
+body.admin-dashboard .report-chart-grid{gap:10px}
+body.professional-dashboard .shell{width:min(100% - 28px,1040px);padding:20px 0 30px}
+body.professional-dashboard .panel{max-width:none}
+body.professional-dashboard #step-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+body.professional-dashboard #step-content>.summary{margin:0}
+body.professional-dashboard #step-content>.admin-queue-card{grid-column:1/-1}
+body.professional-dashboard .admin-queue-card{padding:16px;border:1px solid #303030;border-radius:13px;background:#191919}
+body.professional-dashboard .admin-queue-card .summary-row{font-size:12px}
+body.professional-dashboard .admin-queue-card .actions{display:flex;gap:8px;flex-wrap:wrap}
+body.staff-portal .shell{width:min(100% - 28px,560px)}
+body.staff-portal .panel{border-radius:18px}
+@media(max-width:900px){
+ body.admin-dashboard #step-content:has(.admin-nav){grid-template-columns:1fr;gap:12px}
+ body.admin-dashboard .admin-nav{position:static;display:flex;align-items:center;gap:5px;overflow-x:auto;padding:8px;white-space:nowrap}
+ body.admin-dashboard .admin-brand{flex:0 0 auto;padding:4px 10px 4px 4px;border:0;border-right:1px solid #333}
+ body.admin-dashboard .admin-brand-mark{width:30px;height:30px}
+ body.admin-dashboard .admin-nav-caption,body.admin-dashboard .admin-nav-footer{display:none}
+ body.admin-dashboard .admin-nav-item{flex:0 0 auto;min-height:36px;padding:8px 10px;font-size:10px}
+ body.admin-dashboard #step-content>.admin-nav~*{grid-column:1}
+}
+@media(max-width:600px){
+ .topbar{height:55px;padding:0 14px}
+ .shell{width:min(100% - 20px,980px);padding:14px 0 22px}
+ .hero{margin-bottom:12px;padding:20px 17px;border-radius:14px}
+ .hero h1{font-size:36px}
+ .hero .intro{font-size:12px}
+ .progress{padding:10px 7px;border-radius:11px;gap:4px}
+ .progress-step{gap:4px}
+ .progress-step span{width:23px;height:23px;font-size:10px}
+ .progress-step small{font-size:8px}
+ .panel{padding:17px 14px;border-radius:14px}
+ .panel-heading{margin-bottom:14px}
+ .panel-heading h2{font-size:23px}
+ #step-actions .btn{flex:1}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .choice{min-height:85px;padding:11px}
+ body.admin-dashboard .shell,body.professional-dashboard .shell{width:min(100% - 16px,1440px);padding:10px 0 20px}
+ body.admin-dashboard #step-content:has(.admin-nav){gap:9px}
+ body.admin-dashboard .admin-nav{border-radius:11px}
+ body.admin-dashboard .admin-nav-item{font-size:9px;padding:8px}
+ body.admin-dashboard .admin-section-heading h2{font-size:22px}
+ body.admin-dashboard .manage-tabs{gap:4px}
+ body.admin-dashboard .manage-tab{font-size:9px;padding:9px}
+ body.admin-dashboard .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ body.admin-dashboard .admin-kpis article{padding:11px}
+ body.admin-dashboard .admin-kpis article strong{font-size:23px}
+ body.admin-dashboard .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.professional-dashboard #step-content{grid-template-columns:1fr}
+ body.professional-dashboard #step-content>.admin-queue-card{grid-column:auto}
+ body.admin-dashboard .admin-reveal-button,body.admin-dashboard .admin-list-toggle{max-width:none}
+}
