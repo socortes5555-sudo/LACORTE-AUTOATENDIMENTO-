@@ -41,6 +41,33 @@ const content = document.querySelector("#step-content");
 const actions = document.querySelector("#step-actions");
 const notice = document.querySelector("#demo-notice");
 
+let customerAutoLogoutTimer = null;
+const CUSTOMER_AUTO_LOGOUT_MS = 30 * 1000;
+
+function clearCustomerAutoLogout(){
+  if(customerAutoLogoutTimer !== null){
+    clearTimeout(customerAutoLogoutTimer);
+    customerAutoLogoutTimer = null;
+  }
+}
+
+async function logoutCurrentSession(){
+  clearCustomerAutoLogout();
+  const button = actions.querySelector("button");
+  if(button) button.disabled = true;
+  try {
+    const result = await db.auth.signOut({scope:"local"});
+    if(result.error) throw result.error;
+    // SIGNED_OUT limpa o estado da tela pelo listener do Supabase.
+  } catch(error) {
+    if(button) button.disabled = false;
+    showMessage("Não foi possível encerrar a sessão. Toque em SAIR DA CONTA para tentar novamente. " + (error.message || ""));
+    if(state.role === "customer"){
+      notice.textContent = "A sessão continua ativa. Encerre manualmente para liberar o totem.";
+    }
+  }
+}
+
 function money(value){
   return value.toLocaleString("pt-BR",{
     style:"currency",
@@ -923,7 +950,12 @@ function renderQueueSuccess(){
     '</div>' +
     '<p class="muted">Sua entrada foi registrada. Aguarde as orientações da equipe LaCorte.</p>' +
     '</div>';
-  actions.replaceChildren(makeButton("SAIR DA CONTA", async function(){ await db.auth.signOut(); }, true));
+  actions.replaceChildren(makeButton("SAIR DA CONTA", logoutCurrentSession, true));
+  clearCustomerAutoLogout();
+  if(state.role === "customer"){
+    notice.textContent = "Entrada confirmada. Esta sessão será encerrada automaticamente em 30 segundos.";
+    customerAutoLogoutTimer = setTimeout(logoutCurrentSession, CUSTOMER_AUTO_LOGOUT_MS);
+  }
 }
 
 // Calcula a prévia do benefício. O banco continua sendo a autoridade final
@@ -1016,6 +1048,7 @@ async function initLaCorte(){
     // O login por código já direciona o usuário no próprio formulário.
     // Evita executar routeAuthenticatedUser duas vezes durante a confirmação do OTP.
     if (event === "SIGNED_OUT") {
+      clearCustomerAutoLogout();
       state.user = null;
       state.customer = null;
       state.role = null;
@@ -1023,6 +1056,9 @@ async function initLaCorte(){
       state.selectedServices = [];
       state.barber = null;
       state.queueTicket = null;
+      state.customerPlan = null;
+      state.customerPlanBenefits = [];
+      state.submitting = false;
       state.step = 1;
       state.message = "";
       setAppMode(false);
