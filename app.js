@@ -1196,6 +1196,7 @@ async function renderAdminPlans(){
       const statusLabel = ({active:"Ativa",expired:"Vencida",exhausted:"Cortes esgotados",suspended:"Suspensa"})[sub.status] || sub.status;
       html += '<article class="summary admin-item"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe((c.first_name || "Cliente")+' '+(c.last_name || ""))+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Validade:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p><p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
       if(sub.status === "active") html += '<button class="btn btn-secondary" type="button" data-suspend-plan="'+safe(sub.id)+'">SUSPENDER ASSINATURA</button>';
+      if(sub.status === "suspended") html += '<button class="btn btn-primary" type="button" data-reactivate-plan="'+safe(sub.id)+'">REATIVAR ASSINATURA</button>';
       html += '</article>';
     });
     html += '</section>';
@@ -1246,6 +1247,24 @@ async function renderAdminPlans(){
         if(!confirm("Deseja suspender esta assinatura?")) return;
         const updated = await db.from("lacorte_customer_plans").update({status:"suspended",updated_at:new Date().toISOString()}).eq("id",button.dataset.suspendPlan);
         if(updated.error) return alert("Erro ao suspender: "+updated.error.message);
+        renderAdminPlans();
+      });
+    });
+    content.querySelectorAll("[data-reactivate-plan]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        const subscription = subscriptions.find(function(item){return item.id === button.dataset.reactivatePlan;});
+        if(!subscription) return alert("Assinatura não encontrada. Atualize a página.");
+        const today = new Date().toISOString().slice(0,10);
+        if(subscription.expires_at < today) return alert("Esta assinatura está vencida. Cadastre uma nova assinatura após confirmar o pagamento.");
+        if(Number(subscription.used_cuts) >= Number(subscription.included_cuts)) return alert("Esta assinatura não possui cortes disponíveis. Não é possível reativar os benefícios.");
+        const otherActive = await db.from("lacorte_customer_plans").select("id").eq("customer_id",subscription.customer_id).eq("status","active").neq("id",subscription.id).limit(1);
+        if(otherActive.error) return alert("Não foi possível verificar outras assinaturas: "+otherActive.error.message);
+        if(otherActive.data && otherActive.data.length) return alert("Este cliente já possui outra assinatura ativa.");
+        if(!confirm("Deseja reativar esta assinatura mantendo os créditos e a validade atuais?")) return;
+        button.disabled = true;
+        const updated = await db.from("lacorte_customer_plans").update({status:"active",updated_at:new Date().toISOString()}).eq("id",subscription.id).eq("status","suspended");
+        if(updated.error) { button.disabled = false; return alert("Erro ao reativar: "+updated.error.message); }
+        alert("Assinatura reativada. Os créditos e a validade foram mantidos.");
         renderAdminPlans();
       });
     });
