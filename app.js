@@ -774,39 +774,42 @@ function renderQueueDashboard(){
     content.querySelectorAll("[data-start]").forEach(function(button){
       button.addEventListener("click", async function(){
         button.disabled = true;
-        const result = await db.rpc("lacorte_start_service", { p_queue_id: button.dataset.start });
-        if (result.error) {
-          alert("Não foi possível iniciar: " + result.error.message);
+        try {
+          const result = await db.rpc("lacorte_start_service", { p_queue_id: button.dataset.start });
+          if (result.error) throw result.error;
+          renderQueueDashboard();
+        } catch (error) {
+          alert("Não foi possível iniciar: " + (error.message || "Falha de conexão. Tente novamente."));
           button.disabled = false;
-          return;
         }
-        renderQueueDashboard();
       });
     });
     content.querySelectorAll("[data-cancel]").forEach(function(button){
       button.addEventListener("click", async function(){
         if (!confirm("Deseja cancelar este atendimento? Se houver crédito do plano reservado, ele será devolvido.")) return;
         button.disabled = true;
-        const result = await db.rpc("lacorte_cancel_queue_entry", { p_queue_id: button.dataset.cancel });
-        if (result.error) {
-          alert("Não foi possível cancelar: " + result.error.message);
+        try {
+          const result = await db.rpc("lacorte_cancel_queue_entry", { p_queue_id: button.dataset.cancel });
+          if (result.error) throw result.error;
+          alert("Atendimento cancelado. Se havia crédito reservado, ele foi liberado.");
+          renderQueueDashboard();
+        } catch (error) {
+          alert("Não foi possível cancelar: " + (error.message || "Falha de conexão. Tente novamente."));
           button.disabled = false;
-          return;
         }
-        alert("Atendimento cancelado. Se havia crédito reservado, ele foi liberado.");
-        renderQueueDashboard();
       });
     });
     content.querySelectorAll("[data-finish]").forEach(function(button){
       button.addEventListener("click", async function(){
         button.disabled = true;
-        const result = await db.rpc("lacorte_finish_service", { p_queue_id: button.dataset.finish });
-        if (result.error) {
-          alert("Não foi possível finalizar: " + result.error.message);
+        try {
+          const result = await db.rpc("lacorte_finish_service", { p_queue_id: button.dataset.finish });
+          if (result.error) throw result.error;
+          renderQueueDashboard();
+        } catch (error) {
+          alert("Não foi possível finalizar: " + (error.message || "Falha de conexão. Tente novamente."));
           button.disabled = false;
-          return;
         }
-        renderQueueDashboard();
       });
     });
   }).catch(function(error){
@@ -875,13 +878,19 @@ async function submitQueueEntry(){
   state.submitting = true;
   showMessage("Registrando sua entrada na fila...");
 
-  const result = await db.rpc("lacorte_create_queue_entry", {
-    p_customer_id: state.customer.id,
-    p_barber_id: state.barber.id,
-    p_service_ids: state.selectedServices.map(function(service){ return service.id; })
-  });
-
-  state.submitting = false;
+  let result;
+  try {
+    result = await db.rpc("lacorte_create_queue_entry", {
+      p_customer_id: state.customer.id,
+      p_barber_id: state.barber.id,
+      p_service_ids: state.selectedServices.map(function(service){ return service.id; })
+    });
+  } catch (error) {
+    showMessage("Falha de conexão ao entrar na fila: " + (error.message || "Tente novamente."));
+    return;
+  } finally {
+    state.submitting = false;
+  }
 
   if (result.error) {
     showMessage("Não foi possível entrar na fila: " + result.error.message);
