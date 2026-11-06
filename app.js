@@ -3,6 +3,7 @@ const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
 const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false, flowType: "implicit" } }) : null;
+const STAFF_PORTAL = /\/barbeiros(?:\.html)?\/?$/i.test(window.location.pathname);
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -510,7 +511,19 @@ async function routeAuthenticatedUser(user){
     return;
   }
 
-  if (roleResult.data && (roleResult.data.role === "admin" || roleResult.data.role === "barber")) {
+  const isStaffRole = !!(roleResult.data && (roleResult.data.role === "admin" || roleResult.data.role === "barber"));
+  if (STAFF_PORTAL && !isStaffRole) {
+    state.user = null; state.customer = null; state.barberId = null; state.role = null;
+    await db.auth.signOut({scope:"local"});
+    renderStaffLogin("Esta conta não tem permissão de equipe. Use o acesso de cliente no autoatendimento.");
+    return;
+  }
+  if (!STAFF_PORTAL && isStaffRole) {
+    window.location.replace("barbeiros.html");
+    return;
+  }
+
+  if (isStaffRole) {
     state.role = roleResult.data.role;
     state.barberId = roleResult.data.barber_id;
     try {
@@ -584,10 +597,47 @@ function getCustomerPlanPreview(){
 
 // A confirmação mostra a prévia do benefício; o banco valida a reserva definitivamente.
 // Substitui o carregamento inicial antigo: primeiro identifica o perfil, depois abre a área correta.
+function renderStaffLogin(message){
+  state.role = null;
+  state.user = null;
+  state.barberId = null;
+  setAppMode(false);
+  setHeader("ÁREA PROFISSIONAL","Acesso da equipe LaCorte","Entre com seu e-mail e senha cadastrados pelo administrador.");
+  notice.textContent = "Acesso exclusivo para barbeiros e administrador. Clientes devem usar o autoatendimento.";
+  content.innerHTML = '<form id="staff-login-form" class="staff-login-form"><label for="staff-email">E-mail profissional</label><input id="staff-email" name="email" type="email" autocomplete="username" placeholder="seuemail@lacorte.com" required><label for="staff-password">Senha</label><input id="staff-password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required><p id="staff-login-message" class="muted" role="status">'+(message||"")+'</p><button class="btn btn-primary" type="submit">ENTRAR NO PAINEL</button></form>';
+  actions.replaceChildren();
+  content.querySelector("#staff-login-form").addEventListener("submit",async function(event){
+    event.preventDefault();
+    const form=event.currentTarget,button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-login-message");
+    const email=form.querySelector("#staff-email").value.trim(),password=form.querySelector("#staff-password").value;
+    button.disabled=true;status.textContent="Verificando acesso...";
+    const result=await db.auth.signInWithPassword({email,password});
+    if(result.error){status.textContent="E-mail ou senha inválidos. Confira os dados e tente novamente.";button.disabled=false;return;}
+    await routeAuthenticatedUser(result.data.user);
+  });
+}
+
 async function initLaCorte(){
   setAppMode(false);
 
-  // Exibe o formulário mesmo quando a biblioteca do Supabase não carregar.
+  if (!db) {
+    if (STAFF_PORTAL) renderStaffLogin("A conexão segura não carregou. Atualize a página.");
+    else { state.role = null; render(); showMessage("A conexão segura não carregou. Verifique a internet e atualize a página para entrar."); }
+    return;
+  }
+
+  if (STAFF_PORTAL) {
+    const staffSession = await db.auth.getSession();
+    if (staffSession.error) { renderStaffLogin("Não foi possível verificar a sessão. Entre novamente."); return; }
+    if (staffSession.data && staffSession.data.session) await routeAuthenticatedUser(staffSession.data.session.user);
+    else renderStaffLogin();
+    db.auth.onAuthStateChange(function(event){
+      if(event === "SIGNED_OUT") renderStaffLogin();
+    });
+    return;
+  }
+
+  // O autoatendimento continua usando o fluxo de acesso do cliente.
   if (!db) {
     state.role = null;
     render();
