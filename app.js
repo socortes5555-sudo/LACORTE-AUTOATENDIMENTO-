@@ -752,6 +752,9 @@ function renderQueueDashboard(){
           '<div class="actions">';
         if (row.status === "waiting") {
           html += '<button class="btn btn-primary" data-start="' + safe(row.id) + '">INICIAR ATENDIMENTO</button>';
+          if (state.role === "admin") {
+            html += '<button class="btn btn-secondary" data-cancel="' + safe(row.id) + '">CANCELAR ATENDIMENTO</button>';
+          }
         } else if (row.status === "in_progress") {
           html += '<button class="btn btn-primary" data-finish="' + safe(row.id) + '">FINALIZAR ATENDIMENTO</button>';
         }
@@ -770,6 +773,20 @@ function renderQueueDashboard(){
           button.disabled = false;
           return;
         }
+        renderQueueDashboard();
+      });
+    });
+    content.querySelectorAll("[data-cancel]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        if (!confirm("Deseja cancelar este atendimento? Se houver crédito do plano reservado, ele será devolvido.")) return;
+        button.disabled = true;
+        const result = await db.rpc("lacorte_cancel_queue_entry", { p_queue_id: button.dataset.cancel });
+        if (result.error) {
+          alert("Não foi possível cancelar: " + result.error.message);
+          button.disabled = false;
+          return;
+        }
+        alert("Atendimento cancelado. Se havia crédito reservado, ele foi liberado.");
         renderQueueDashboard();
       });
     });
