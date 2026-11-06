@@ -433,9 +433,7 @@ function statusLabel(status){
 
 function dashboardActions(){
  actions.replaceChildren();
- if(state.barberId && (state.role==='barber' || state.role==='admin')) {
-   actions.append(makeButton(state.role==='admin'?'MEUS RELATÓRIOS • BARBEIRO 1':'MEUS RELATÓRIOS',renderBarberReports,true));
- }
+ // Acesso aos relatórios fica somente na navegação lateral do profissional.
  actions.append(makeButton('SAIR DA CONTA',async function(){await db.auth.signOut();},true));
 }
 
@@ -488,9 +486,9 @@ function bindProfessionalNavigation(){
 function renderQueueDashboard(){
  setAppMode(true);updateProgress();const admin=state.role==='admin';
  setHeader(admin?'ADMINISTRAÇÃO LACORTE':'PAINEL DO PROFISSIONAL',admin?'Painel central':'Fila compartilhada',admin?'Visão geral dos atendimentos de hoje.':'Escolha qualquer cliente aguardando para iniciar o atendimento.');
- notice.textContent='Fila presencial • Sem pagamento online.';content.innerHTML='<p class="muted">Carregando fila compartilhada...</p>';dashboardActions();actions.prepend(makeButton('ATUALIZAR FILA',renderQueueDashboard,true));
+ notice.textContent='Fila presencial • Sem pagamento online.';content.innerHTML='<p class="muted">Carregando fila compartilhada...</p>';dashboardActions();
  loadQueueRows().then(rows=>{if(!content.isConnected)return;const waiting=rows.filter(r=>r.status==='waiting').length,progress=rows.filter(r=>r.status==='in_progress').length,completed=rows.filter(r=>r.status==='completed').length;let html=admin?adminNavigation():professionalNavigation('queue');
- html+='<div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Fila compartilhada</small></article><article><span>EM ATENDIMENTO</span><strong>'+progress+'</strong><small>Com os profissionais</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>TOTAL DO DIA</span><strong>'+rows.length+'</strong><small>Todos os registros</small></article></div><div class="admin-agenda-heading"><div><small>FILA ÚNICA</small><h3>Clientes por ordem de chegada</h3></div><span>'+waiting+' aguardando</span></div>';
+ html+='<div class="professional-page-tools"><span class="professional-page-eyebrow">OPERAÇÃO EM TEMPO REAL</span><button type="button" class="professional-refresh" data-refresh-queue aria-label="Atualizar fila"><span aria-hidden="true">↻</span> ATUALIZAR FILA</button></div><div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Fila compartilhada</small></article><article><span>EM ATENDIMENTO</span><strong>'+progress+'</strong><small>Com os profissionais</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>TOTAL DO DIA</span><strong>'+rows.length+'</strong><small>Todos os registros</small></article></div><div class="admin-agenda-heading"><div><small>FILA ÚNICA</small><h3>Clientes por ordem de chegada</h3></div><span>'+waiting+' aguardando</span></div>';
  if(!rows.length)html+='<div class="summary"><p class="muted">Ainda não há clientes na fila hoje.</p></div>';
  rows.forEach(row=>{const c=row.customer||{},name=(c.first_name||'Cliente')+' '+(c.last_name||''),barber=barbers.find(b=>b.id===row.barber_id),serviceText=row.items.map(i=>safe(i.service_name)+' ('+money(Number(i.unit_price))+')').join(', ')||'—',cls=row.status==='completed'?'done':row.status==='in_progress'?'progress':row.status==='cancelled'?'cancelled':'waiting';
  html+='<article class="summary admin-queue-card '+cls+'"><div class="summary-row"><span>Senha #'+row.queue_number+' • '+formatDateTime(row.created_at)+'</span><strong>'+money(Number(row.total_amount))+'</strong></div><div class="summary-row"><span>Cliente</span><strong>'+safe(name.trim())+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(c.phone||'—')+'</strong></div><div class="summary-row"><span>Serviços</span><strong>'+serviceText+'</strong></div><div class="summary-row"><span>Status</span><strong>'+statusLabel(row.status)+'</strong></div>'+(row.barber_id?'<div class="summary-row"><span>Responsável</span><strong>'+safe(barber?barber.name:row.barber_id)+'</strong></div>':'')+'<div class="actions">';
@@ -498,6 +496,7 @@ function renderQueueDashboard(){
  if(row.status==='in_progress'&&(admin||row.barber_id===state.barberId))html+='<button class="btn btn-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>';
  if(admin&&row.status==='waiting')html+='<button class="btn btn-secondary" data-cancel="'+safe(row.id)+'">CANCELAR</button>';html+='</div></article>';});
  content.innerHTML=html;if(admin)bindAdminNavigation();else bindProfessionalNavigation();
+ const refreshQueue=content.querySelector('[data-refresh-queue]');if(refreshQueue)refreshQueue.addEventListener('click',renderQueueDashboard);
  content.querySelectorAll('[data-start]').forEach(button=>button.addEventListener('click',()=>openQueueCallDialog(button.dataset.start)));
  content.querySelectorAll('[data-finish]').forEach(button=>button.addEventListener('click',()=>openPaymentMethodDialog(button.dataset.finish)));
  content.querySelectorAll('[data-cancel]').forEach(button=>button.addEventListener('click',async()=>{if(!confirm('Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.'))return;button.disabled=true;const r=await db.rpc('lacorte_cancel_queue_entry',{p_queue_id:button.dataset.cancel});if(r.error){alert('Não foi possível cancelar: '+r.error.message);button.disabled=false;}else renderQueueDashboard();}));
