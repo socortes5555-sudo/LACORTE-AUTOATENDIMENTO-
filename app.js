@@ -1370,6 +1370,20 @@ async function renderAdminPlans(){
     const rows = results[0].data || [];
     const customers = results[1].data || [];
     const subscriptions = results[2].data || [];
+    const localDateString = function(date){
+      return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+    };
+    const todayString = localDateString(new Date());
+    const expiredSubscriptions = subscriptions.filter(function(sub){
+      return sub.status === "active" && sub.expires_at && sub.expires_at < todayString;
+    });
+    for(const expiredSub of expiredSubscriptions){
+      const expiryUpdate = await db.from("lacorte_customer_plans")
+        .update({status:"expired",updated_at:new Date().toISOString()})
+        .eq("id",expiredSub.id).eq("status","active");
+      if(expiryUpdate.error) console.warn("Não foi possível atualizar assinatura vencida:",expiryUpdate.error.message);
+      else expiredSub.status = "expired";
+    }
     const customerById = {};
     customers.forEach(function(c){ customerById[c.id] = c; });
     let html = adminNavigation();
@@ -1400,9 +1414,14 @@ async function renderAdminPlans(){
       const customerName = (c.first_name || "Cliente")+' '+(c.last_name || "");
       const remaining = Math.max(0,Number(sub.included_cuts)-Number(sub.used_cuts));
       const statusLabel = ({active:"Ativa",expired:"Vencida",exhausted:"Cortes esgotados",suspended:"Suspensa"})[sub.status] || sub.status;
+      const todayDate = new Date(todayString+"T00:00:00");
+      const expiryDate = sub.expires_at ? new Date(sub.expires_at+"T00:00:00") : null;
+      const daysRemaining = expiryDate ? Math.ceil((expiryDate-todayDate)/86400000) : null;
+      const expiryNotice = sub.status === "active" && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7
+        ? '<p class="muted"><strong>ATENÇÃO:</strong> '+(daysRemaining === 0 ? "A assinatura vence hoje." : "A assinatura vence em "+daysRemaining+" dia(s).")+'</p>' : "";
       const searchText = [customerName,c.phone || "",c.email || "",sub.plan_name || "",statusLabel].join(" ").toLowerCase();
       const paidDate = sub.paid_at ? new Date(sub.paid_at).toLocaleString("pt-BR") : "Não informado";
-      html += '<article class="summary admin-item" data-subscription-history-card data-search="'+safe(searchText)+'"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe(customerName)+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Período:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p><p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Pagamento registrado:</strong> '+safe(paidDate)+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
+      html += '<article class="summary admin-item" data-subscription-history-card data-search="'+safe(searchText)+'"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe(customerName)+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Período:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p>'+expiryNotice+'<p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Pagamento registrado:</strong> '+safe(paidDate)+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
       if(sub.notes) html += '<p><strong>Observação:</strong> '+safe(sub.notes)+'</p>';
       if(sub.status === "active") html += '<button class="btn btn-secondary" type="button" data-suspend-plan="'+safe(sub.id)+'">SUSPENDER ASSINATURA</button>';
       if(sub.status === "suspended") html += '<button class="btn btn-primary" type="button" data-reactivate-plan="'+safe(sub.id)+'">REATIVAR ASSINATURA</button>';
