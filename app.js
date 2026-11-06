@@ -86,9 +86,12 @@ function safe(value){
 }
 
 function setHeader(kicker,title,description){
-  document.querySelector("#step-kicker").textContent=kicker;
-  document.querySelector("#step-title").textContent=title;
-  document.querySelector("#step-description").textContent=description;
+  const kickerEl = document.querySelector("#step-kicker");
+  const titleEl = document.querySelector("#step-title");
+  const descriptionEl = document.querySelector("#step-description");
+  if (kickerEl) kickerEl.textContent = kicker;
+  if (titleEl) titleEl.textContent = title;
+  if (descriptionEl) descriptionEl.textContent = description;
 }
 
 function updateProgress(){
@@ -429,7 +432,10 @@ function statusLabel(status){
 }
 
 function dashboardActions(){
- actions.replaceChildren();if(state.role==='barber')actions.append(makeButton('MEUS RELATÓRIOS',renderBarberReports,true));
+ actions.replaceChildren();
+ if(state.barberId && (state.role==='barber' || state.role==='admin')) {
+   actions.append(makeButton(state.role==='admin'?'MEUS RELATÓRIOS • BARBEIRO 1':'MEUS RELATÓRIOS',renderBarberReports,true));
+ }
  actions.append(makeButton('SAIR DA CONTA',async function(){await db.auth.signOut();},true));
 }
 
@@ -728,7 +734,7 @@ function reportPieChart(items, valueFormatter, emptyMessage){
 }
 
 async function renderBarberReports(){
- if(state.role!=='barber')return renderQueueDashboard();setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();actions.prepend(makeButton("VOLTAR À FILA",renderQueueDashboard,true));content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
+ if(!(state.role==='barber' || (state.role==='admin' && state.barberId)))return renderQueueDashboard();setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();actions.prepend(makeButton("VOLTAR À FILA",renderQueueDashboard,true));content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
  try{const range=reportDateRange(),r=await db.from('lacorte_queue').select('id,customer_id,status,total_amount,commission_amount,payment_method,queue_date,completed_at,queue_number').eq('barber_id',state.barberId).gte('queue_date',range.start).lte('queue_date',range.end);if(r.error)throw r.error;
  const rows=r.data||[],done=rows.filter(x=>x.status==='completed');const ids=Array.from(new Set(done.map(x=>x.customer_id).filter(Boolean))),queueIds=done.map(x=>x.id);const extra=await Promise.all([ids.length?db.from('customers').select('id,first_name,last_name').in('id',ids):Promise.resolve({data:[],error:null}),queueIds.length?db.from('lacorte_queue_items').select('queue_id,service_name').in('queue_id',queueIds):Promise.resolve({data:[],error:null})]);if(extra[0].error)throw extra[0].error;if(extra[1].error)throw extra[1].error;const customerNames={},serviceNames={};(extra[0].data||[]).forEach(c=>customerNames[c.id]=(c.first_name+' '+c.last_name).trim());(extra[1].data||[]).forEach(i=>(serviceNames[i.queue_id]||(serviceNames[i.queue_id]=[])).push(i.service_name));const gross=done.reduce((s,x)=>s+Number(x.total_amount||0),0),commission=done.reduce((s,x)=>s+Number(x.commission_amount||0),0),payments={pix:0,dinheiro:0,credito:0,debito:0},labels={pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'};
  done.forEach(x=>{if(payments[x.payment_method]!==undefined)payments[x.payment_method]+=Number(x.total_amount||0);});
@@ -901,6 +907,7 @@ function adminNavigation(){
   return '<aside class="admin-nav"><div class="admin-brand"><span class="admin-brand-mark">LC</span><span><strong>LA CORTE</strong><small>PAINEL ADMINISTRATIVO</small></span></div>'+
     '<div class="admin-nav-caption">GESTÃO DA BARBEARIA</div>'+
     navItem("queue","Painel geral","▦")+
+    navItem("customers","Clientes cadastrados","♧")+
     navItem("manage","Serviços e equipe","♙")+
     navItem("plans","Planos e assinaturas","◇")+
     navItem("reports","Relatórios","▥")+
@@ -912,11 +919,77 @@ function bindAdminNavigation(){
     button.addEventListener("click", function(){
       adminView = button.dataset.adminView;
       if(adminView === "manage") renderAdminManagement();
+      else if(adminView === "customers") renderAdminCustomers();
       else if(adminView === "plans") renderAdminPlans();
       else if(adminView === "reports") renderAdminReports();
       else renderQueueDashboard();
     });
   });
+}
+
+
+async function renderAdminCustomers(){
+  if(state.role !== "admin") return renderQueueDashboard();
+  adminView = "customers";
+  setAppMode(true);
+  setHeader("ADMINISTRAÇÃO LACORTE","Clientes cadastrados","Cadastro permanente e histórico de visitas da clientela.");
+  notice.textContent = "Dados pessoais e histórico completos • Acesso exclusivo do administrador.";
+  dashboardActions();
+  content.innerHTML = adminNavigation() + '<p class="muted">Carregando clientes e histórico...</p>';
+  try {
+    const results = await Promise.all([
+      db.from("customers").select("id,first_name,last_name,email,phone,birth_date,created_at").order("created_at",{ascending:false}).limit(500),
+      db.from("lacorte_queue").select("id,customer_id,queue_date,queue_number,status,total_amount,barber_id,payment_method,created_at,completed_at").order("created_at",{ascending:false}).limit(2000),
+      db.from("barbers").select("id,name")
+    ]);
+    if(results[0].error) throw new Error("Não foi possível carregar os clientes: "+results[0].error.message);
+    if(results[1].error) throw new Error("Não foi possível carregar o histórico: "+results[1].error.message);
+    if(results[2].error) throw new Error("Não foi possível carregar os barbeiros: "+results[2].error.message);
+    const customers = results[0].data || [];
+    const queueRows = results[1].data || [];
+    const barberNames = {};
+    (results[2].data || []).forEach(function(b){barberNames[b.id]=b.name;});
+    const history = {};
+    queueRows.forEach(function(row){
+      if(!history[row.customer_id]) history[row.customer_id]=[];
+      history[row.customer_id].push(row);
+    });
+    let html = adminNavigation();
+    html += '<section class="summary"><h3>BASE DE CLIENTES</h3><p class="muted">'+customers.length+' cadastro(s) carregado(s). Pesquise por nome, telefone ou e-mail.</p><label for="customer-admin-search">BUSCAR CLIENTE</label><input id="customer-admin-search" type="search" placeholder="Digite nome, telefone ou e-mail"></section>';
+    if(!customers.length) html += '<section class="summary"><p class="muted">Ainda não há clientes cadastrados.</p></section>';
+    customers.forEach(function(customer){
+      const fullName=(customer.first_name||"")+" "+(customer.last_name||"");
+      const rows=history[customer.id]||[];
+      const completed=rows.filter(function(row){return row.status==="completed";});
+      const spent=completed.reduce(function(sum,row){return sum+Number(row.total_amount||0);},0);
+      const lastVisit=rows.length?rows[0].created_at:null;
+      const searchText=(fullName+" "+(customer.phone||"")+" "+(customer.email||"")).toLocaleLowerCase("pt-BR");
+      html += '<details class="summary admin-customer-card" data-customer-card data-search="'+safe(searchText)+'"><summary><strong>'+safe(fullName.trim()||"Cliente sem nome")+'</strong><span class="muted">'+rows.length+' visita(s) • '+money(spent)+'</span></summary>';
+      html += '<div class="summary-row"><span>Telefone</span><strong>'+safe(customer.phone||"—")+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(customer.email||"—")+'</strong></div><div class="summary-row"><span>Aniversário</span><strong>'+safe(customer.birth_date||"—")+'</strong></div><div class="summary-row"><span>Cadastro</span><strong>'+formatDateTime(customer.created_at)+'</strong></div><div class="summary-row"><span>Última entrada</span><strong>'+formatDateTime(lastVisit)+'</strong></div><h4>HISTÓRICO DE ATENDIMENTOS</h4>';
+      if(!rows.length) html += '<p class="muted">Nenhuma entrada na fila registrada.</p>';
+      else {
+        html += '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Data</th><th>Senha</th><th>Status</th><th>Barbeiro</th><th>Valor</th></tr></thead><tbody>';
+        rows.slice(0,30).forEach(function(row){
+          html += '<tr><td>'+safe(row.queue_date||"—")+'</td><td>#'+safe(row.queue_number)+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+safe(barberNames[row.barber_id]||"—")+'</td><td>'+money(Number(row.total_amount||0))+'</td></tr>';
+        });
+        html += '</tbody></table></div>';
+        if(rows.length>30) html += '<p class="muted">Mostrando as 30 visitas mais recentes de '+rows.length+'.</p>';
+      }
+      html += '</details>';
+    });
+    content.innerHTML=html;
+    bindAdminNavigation();
+    const search=content.querySelector("#customer-admin-search");
+    if(search) search.addEventListener("input",function(){
+      const term=search.value.trim().toLocaleLowerCase("pt-BR");
+      content.querySelectorAll("[data-customer-card]").forEach(function(card){
+        card.hidden=!card.dataset.search.includes(term);
+      });
+    });
+  } catch(error) {
+    content.innerHTML=adminNavigation()+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';
+    bindAdminNavigation();
+  }
 }
 
 async function renderAdminManagement(){
