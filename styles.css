@@ -245,3 +245,55 @@ body.admin-dashboard .admin-appointment.cancelled{border-left-color:#777}
 body.admin-dashboard .admin-mini-action.cancel,
 body.admin-dashboard .btn-secondary{background:#292929!important;color:#eee!important;border-color:#444}
 body.admin-dashboard .report-pie-hole{background:#191919}
+
+
+/* Override explícito para todas as telas administrativas, inclusive relatórios */
+body:has(.admin-nav){background:#101010!important;color:#f7f5f2!important}
+body:has(.admin-nav) .topbar{background:#151515!important;border-bottom:1px solid #383838!important;color:#fff!important}
+body:has(.admin-nav) .topbar *{color:inherit}
+body:has(.admin-nav) .topbar .brand span,
+body:has(.admin-nav) .topbar .brand b,
+body:has(.admin-nav) .topbar .top-label{color:#ff791f!important}
+body:has(.admin-nav) .shell,
+body:has(.admin-nav) .panel{background:transparent!important;color:#f7f5f2!important}
+body:has(.admin-nav) .panel-heading h2{color:#f7f5f2!important}
+body:has(.admin-nav) .panel-heading .eyebrow{color:#ff791f!important}
+body:has(.admin-nav) .panel-heading .muted,
+body:has(.admin-nav) .muted{color:#aaa!important}
+body:has(.admin-nav) .admin-nav{background:linear-gradient(135deg,#111,#24201c)!important;border:1px solid #3a3a3a!important;color:#fff!important}
+body:has(.admin-nav) .admin-nav-item{background:transparent!important;color:#eee!important}
+body:has(.admin-nav) .admin-nav-item:hover,
+body:has(.admin-nav) .admin-nav-item.active{background:#3a2418!important;color:#ff9a55!important}
+body:has(.admin-nav) .admin-nav-icon,
+body:has(.admin-nav) .admin-nav-caption{color:#ff9a55!important}
+body:has(.admin-nav) .admin-brand-mark{background:#ff791f!important;color:#111!important}
+body:has(.admin-nav) .admin-calendar-panel{background:linear-gradient(135deg,#111,#292019)!important;border:1px solid #49301f!important}
+body:has(.admin-nav) .admin-calendar-day.today{background:#ff791f!important;color:#111!important}
+body:has(.admin-nav) .admin-kpis article,
+body:has(.admin-nav) .summary,
+body:has(.admin-nav) .admin-agenda-column,
+body:has(.admin-nav) .admin-appointment{background:#191919!important;border-color:#383838!important;color:#f7f5f2!important}
+body:has(.admin-nav) .admin-kpis article strong,
+body:has(.admin-nav) .summary h3,
+body:has(.admin-nav) .admin-agenda-heading small,
+body:has(.admin-nav) .admin-kpis article span{color:#ff791f!important}
+body:has(.admin-nav) .admin-appointment{border-left:4px solid #ff791f!important}
+body:has(.admin-nav) .admin-appointment.progress{border-left-color:#e7a42d!important}
+body:has(.admin-nav) .admin-appointment.done{border-left-color:#55c982!important}
+body:has(.admin-nav) .admin-appointment.cancelled{border-left-color:#777!important}
+body:has(.admin-nav) .admin-client-name,
+body:has(.admin-nav) .admin-agenda-column>header strong,
+body:has(.admin-nav) .admin-appointment-top b{color:#f7f5f2!important}
+body:has(.admin-nav) .btn-primary,
+body:has(.admin-nav) #step-actions .btn,
+body:has(.admin-nav) .admin-mini-action{background:#ff791f!important;border-color:#ff791f!important;color:#111!important}
+body:has(.admin-nav) .btn-secondary,
+body:has(.admin-nav) .admin-mini-action.cancel{background:#292929!important;border:1px solid #444!important;color:#eee!important}
+body:has(.admin-nav) input,
+body:has(.admin-nav) select,
+body:has(.admin-nav) textarea{background:#171717!important;border-color:#444!important;color:#f7f5f2!important}
+body:has(.admin-nav) .report-filter label,
+body:has(.admin-nav) label{color:#aaa!important}
+body:has(.admin-nav) .report-table th{color:#ff791f!important}
+body:has(.admin-nav) .report-table td{color:#eee!important}
+body:has(.admin-nav) .report-pie-hole{background:#191919!important}
