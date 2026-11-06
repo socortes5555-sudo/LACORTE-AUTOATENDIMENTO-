@@ -379,3 +379,14 @@ body.admin-dashboard .report-date-fields{gap:8px}
  body.admin-dashboard .report-kpis .summary{padding:9px}
  body.professional-dashboard .summary{padding:10px}
 }
+
+
+.payment-dialog-backdrop{position:fixed;inset:0;z-index:9999;background:#000b;display:grid;place-items:center;padding:18px}
+.payment-dialog{width:min(100%,430px);background:#191919;color:#f7f5f2;border:1px solid #4a4a4a;border-radius:14px;padding:22px;box-shadow:0 20px 60px #0009}
+.payment-dialog h3{margin:0 0 8px;color:#ff791f;font:700 20px Oswald,sans-serif}
+.payment-dialog p{color:#aaa;font-size:13px}
+.payment-dialog label{display:block;margin:16px 0 7px;color:#ddd;font-size:12px}
+.payment-dialog select{width:100%;min-height:46px;padding:10px;border:1px solid #555;border-radius:8px;background:#101010;color:#fff;font-size:15px}
+.payment-dialog .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.payment-dialog .actions .btn{flex:1}
+.payment-dialog #payment-error{min-height:18px;color:#ff9a55}
