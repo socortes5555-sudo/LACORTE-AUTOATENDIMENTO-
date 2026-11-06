@@ -1175,12 +1175,16 @@ async function renderAdminManagement(){
     if(accessLoad.error) accessLoadMessage = "Não foi possível carregar o e-mail atual: " + accessLoad.error.message;
     else accessEmail = accessLoad.data.current_email || "";
     let html = adminNavigation();
-    html += '<section class="summary"><h3>ACESSOS PROFISSIONAIS</h3><p class="muted">Gerencie o e-mail de acesso do Barbeiro 2. Seu acesso de administrador permanece separado e não pode ser alterado por esta tela.</p>' +
+    html += '<div class="admin-workspace"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>Gestão da barbearia</h2><p class="muted">Escolha uma área. Cada tela mostra somente as ferramentas daquela seção.</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
+      '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos profissionais</button>' +
+      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe e comissões</button>' +
+      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="services">Serviços e preços</button></nav>';
+    html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary"><h3>ACESSOS PROFISSIONAIS</h3><p class="muted">Gerencie o e-mail de acesso do Barbeiro 2. Seu acesso de administrador permanece separado e não pode ser alterado por esta tela.</p>' +
       '<form id="barber-access-form" class="admin-form"><label>E-mail atualmente vinculado ao Barbeiro 2</label><input type="email" value="' + safe(accessEmail) + '" readonly>' +
       '<label>Novo e-mail profissional</label><input name="email" type="email" maxlength="254" autocomplete="off" placeholder="Digite o e-mail definitivo do barbeiro" required>' +
       '<p id="barber-access-message" class="muted" role="status">' + safe(accessLoadMessage || "Após a troca, o barbeiro usará PRIMEIRO ACESSO para receber um código neste endereço e criar a própria senha.") + '</p>' +
       '<button class="btn btn-primary" type="submit">SOLICITAR TROCA DE E-MAIL</button></form></section>';
-    html += '<section class="summary"><h3>BARBEIROS</h3><p class="muted">Edite nome, comissão e disponibilidade. Desativar preserva o histórico.</p>';
+    html += '</div><div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary"><h3>BARBEIROS</h3><p class="muted">Edite nome, comissão e disponibilidade. Desativar preserva o histórico.</p>';
     html += '<form id="new-barber-form" class="admin-form"><h4>Novo barbeiro</h4><label>Nome</label><input name="name" maxlength="80" required placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form>';
     barberRows.forEach(function(b){
       html += '<form class="summary admin-item" data-barber-form="' + safe(b.id) + '">' +
@@ -1189,7 +1193,7 @@ async function renderAdminManagement(){
         '<label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? "checked" : "") + '> Ativo e disponível no totem</label>' +
         '<button class="btn btn-primary" type="submit">SALVAR ' + safe(b.name).toUpperCase() + '</button></form>';
     });
-    html += '</section><section class="summary"><h3>SERVIÇOS E COMBOS</h3><p class="muted">Edite nomes, descrições, preços e disponibilidade no autoatendimento.</p>';
+    html += '</section></div><div class="manage-panel" role="tabpanel" data-manage-panel="services"><section class="summary"><h3>SERVIÇOS E COMBOS</h3><p class="muted">Edite nomes, descrições, preços e disponibilidade no autoatendimento.</p>';
     html += '<form id="new-service-form" class="admin-form"><h4>Novo serviço ou combo</h4><label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: Corte infantil"><label>Descrição</label><input name="detail" maxlength="180" placeholder="Descrição opcional"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required><button class="btn btn-primary" type="submit">CADASTRAR SERVIÇO</button></form>';
     serviceRows.forEach(function(s){
       html += '<form class="summary admin-item" data-service-form="' + safe(s.id) + '">' +
@@ -1199,9 +1203,22 @@ async function renderAdminManagement(){
         '<label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? "checked" : "") + '> Ativo no totem</label>' +
         '<button class="btn btn-primary" type="submit">SALVAR ' + safe(s.name).toUpperCase() + '</button></form>';
     });
-    html += '</section>';
+    html += '</section></div></div>';
     content.innerHTML = html;
     bindAdminNavigation();
+    content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
+      tab.addEventListener("click", function(){
+        const selected = tab.dataset.manageTab;
+        content.querySelectorAll("[data-manage-tab]").forEach(function(item){
+          const active = item === tab;
+          item.classList.toggle("active",active);
+          item.setAttribute("aria-selected",active ? "true" : "false");
+        });
+        content.querySelectorAll("[data-manage-panel]").forEach(function(panel){
+          panel.classList.toggle("active",panel.dataset.managePanel === selected);
+        });
+      });
+    });
 
     const accessForm = content.querySelector("#barber-access-form");
     accessForm.addEventListener("submit", async function(e){
