@@ -1185,7 +1185,8 @@ async function renderAdminManagement(){
       '<p id="barber-access-message" class="muted" role="status">' + safe(accessLoadMessage || "Após a troca, o barbeiro usará PRIMEIRO ACESSO para receber um código neste endereço e criar a própria senha.") + '</p>' +
       '<button class="btn btn-primary" type="submit">SOLICITAR TROCA DE E-MAIL</button></form></section>';
     html += '</div><div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary"><h3>BARBEIROS</h3><p class="muted">Edite nome, comissão e disponibilidade. Desativar preserva o histórico.</p>';
-    html += '<form id="new-barber-form" class="admin-form"><h4>Novo barbeiro</h4><label>Nome</label><input name="name" maxlength="80" required placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form>';
+    html += '<button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><h4>Novo barbeiro</h4><label>Nome</label><input name="name" maxlength="80" required placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div>';
+    html += '<button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden>';
     barberRows.forEach(function(b){
       html += '<form class="summary admin-item" data-barber-form="' + safe(b.id) + '">' +
         '<label>Nome</label><input name="name" maxlength="80" required value="' + safe(b.name) + '">' +
@@ -1193,8 +1194,9 @@ async function renderAdminManagement(){
         '<label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? "checked" : "") + '> Ativo e disponível no totem</label>' +
         '<button class="btn btn-primary" type="submit">SALVAR ' + safe(b.name).toUpperCase() + '</button></form>';
     });
-    html += '</section></div><div class="manage-panel" role="tabpanel" data-manage-panel="services"><section class="summary"><h3>SERVIÇOS E COMBOS</h3><p class="muted">Edite nomes, descrições, preços e disponibilidade no autoatendimento.</p>';
-    html += '<form id="new-service-form" class="admin-form"><h4>Novo serviço ou combo</h4><label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: Corte infantil"><label>Descrição</label><input name="detail" maxlength="180" placeholder="Descrição opcional"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required><button class="btn btn-primary" type="submit">CADASTRAR SERVIÇO</button></form>';
+    html += '</div></section></div><div class="manage-panel" role="tabpanel" data-manage-panel="services"><section class="summary"><h3>SERVIÇOS E COMBOS</h3><p class="muted">Cadastre ou consulte os serviços quando precisar.</p>';
+    html += '<button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-service-form">+ ADICIONAR CORTE / SERVIÇO</button><div id="new-service-form-wrap" class="admin-reveal-content" hidden><form id="new-service-form" class="admin-form"><h4>Novo corte ou serviço</h4><label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: Corte infantil"><label>Descrição</label><input name="detail" maxlength="180" placeholder="Descrição opcional"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required><button class="btn btn-primary" type="submit">SALVAR SERVIÇO</button></form></div>';
+    html += '<button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="service-list">VER SERVIÇOS CADASTRADOS</button><div id="service-list" class="admin-reveal-content" hidden>';
     serviceRows.forEach(function(s){
       html += '<form class="summary admin-item" data-service-form="' + safe(s.id) + '">' +
         '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(s.name) + '">' +
@@ -1203,8 +1205,26 @@ async function renderAdminManagement(){
         '<label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? "checked" : "") + '> Ativo no totem</label>' +
         '<button class="btn btn-primary" type="submit">SALVAR ' + safe(s.name).toUpperCase() + '</button></form>';
     });
-    html += '</section></div></div>';
+    html += '</div></section></div></div>';
     content.innerHTML = html;
+    content.querySelectorAll('[data-reveal]').forEach(function(button){
+      button.addEventListener('click',function(){
+        const wrap = content.querySelector('#'+button.dataset.reveal+'-wrap');
+        if(!wrap) return;
+        const opening = wrap.hidden;
+        wrap.hidden = !opening;
+        button.textContent = opening ? 'FECHAR CADASTRO' : (button.dataset.reveal === 'new-service-form' ? '+ ADICIONAR CORTE / SERVIÇO' : '+ ADICIONAR BARBEIRO');
+        if(opening) wrap.querySelector('input')?.focus();
+      });
+    });
+    content.querySelectorAll('[data-list-toggle]').forEach(function(button){
+      button.addEventListener('click',function(){
+        const list = content.querySelector('#'+button.dataset.listToggle);
+        if(!list) return;
+        list.hidden = !list.hidden;
+        button.textContent = list.hidden ? (button.dataset.listToggle === 'service-list' ? 'VER SERVIÇOS CADASTRADOS' : 'VER EQUIPE CADASTRADA') : 'OCULTAR LISTA';
+      });
+    });
     bindAdminNavigation();
     content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
       tab.addEventListener("click", function(){
