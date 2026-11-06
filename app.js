@@ -610,6 +610,7 @@ function setAppMode(dashboard){
   const progress = document.querySelector(".progress");
   if (hero) hero.style.display = dashboard ? "none" : "";
   if (progress) progress.style.display = dashboard ? "none" : "";
+  document.body.classList.toggle("admin-dashboard",!!dashboard && state.role==="admin");
 }
 
 function localQueueDate(){
@@ -727,41 +728,52 @@ function renderQueueDashboard(){
     const progressCount = rows.filter(function(r){ return r.status === "in_progress"; }).length;
     const completed = rows.filter(function(r){ return r.status === "completed"; }).length;
 
-    let html = '<div class="summary">' +
-      '<div class="summary-row"><span>Aguardando</span><strong>' + waiting + '</strong></div>' +
-      '<div class="summary-row"><span>Em atendimento</span><strong>' + progressCount + '</strong></div>' +
-      '<div class="summary-row"><span>Concluídos hoje</span><strong>' + completed + '</strong></div>' +
-      '</div>';
-
-    if (!rows.length) {
-      html += '<div class="summary"><p class="muted">Ainda não há atendimentos na fila de hoje.</p></div>';
+    let html = "";
+    if(state.role==="admin"){
+      const today=localQueueDate();
+      const dateObj=new Date(today+"T12:00:00");
+      const monthName=dateObj.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+      const firstDay=new Date(dateObj.getFullYear(),dateObj.getMonth(),1).getDay();
+      const daysInMonth=new Date(dateObj.getFullYear(),dateObj.getMonth()+1,0).getDate();
+      const dayCells=[];
+      ["dom","seg","ter","qua","qui","sex","sáb"].forEach(function(day){dayCells.push('<span class="admin-calendar-weekday">'+day+'</span>');});
+      for(let blank=0;blank<firstDay;blank++) dayCells.push('<span class="admin-calendar-blank"></span>');
+      for(let day=1;day<=daysInMonth;day++) dayCells.push('<span class="admin-calendar-day '+(day===dateObj.getDate()?'today':'')+'">'+day+'</span>');
+      html += '<section class="admin-calendar-panel"><div class="admin-calendar-top"><div><small>AGENDA</small><h3>'+monthName+'</h3></div><span class="admin-calendar-today">HOJE • '+dateObj.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})+'</span></div><div class="admin-calendar-grid">'+dayCells.join("")+'</div></section>';
+      html += '<div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Na fila</small></article><article><span>EM ATENDIMENTO</span><strong>'+progressCount+'</strong><small>Em execução</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>ATENDIMENTOS</span><strong>'+rows.length+'</strong><small>Total do dia</small></article></div>';
+      html += '<div class="admin-agenda-heading"><div><small>OPERAÇÃO DO DIA</small><h3>Agenda por profissional</h3></div><span>'+rows.length+' atendimento(s)</span></div>';
+      const barberIds=Array.from(new Set(barbers.map(function(b){return b.id;}).concat(rows.map(function(r){return r.barber_id;}))));
+      html += '<div class="admin-agenda-board">';
+      barberIds.forEach(function(id){
+        const barber=barbers.find(function(b){return b.id===id;});
+        const barberRows=rows.filter(function(r){return r.barber_id===id;});
+        const barberName=barber?barber.name:id;
+        html += '<section class="admin-agenda-column"><header><span class="admin-avatar">'+safe(String(barberName).split(" ").map(function(x){return x.charAt(0);}).join("").slice(0,2).toUpperCase())+'</span><div><strong>'+safe(barberName)+'</strong><small>'+barberRows.length+' atendimento(s)</small></div></header>';
+        if(!barberRows.length) html += '<p class="admin-empty-column">Nenhum atendimento</p>';
+        barberRows.forEach(function(row){
+          const customerName=row.customer?(safe(row.customer.first_name)+" "+safe(row.customer.last_name)).trim():"Cliente";
+          const servicesText=row.items.map(function(item){return safe(item.service_name);}).join(", ")||"—";
+          const statusClass=row.status==="completed"?"done":row.status==="in_progress"?"progress":row.status==="cancelled"?"cancelled":"waiting";
+          const time=new Date(row.created_at).toLocaleTimeString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"});
+          html += '<article class="admin-appointment '+statusClass+'"><div class="admin-appointment-top"><strong>#'+Number(row.queue_number)+' • '+time+'</strong><b>'+money(Number(row.total_amount))+'</b></div><strong class="admin-client-name">'+customerName+'</strong><p>'+servicesText+'</p><div class="admin-appointment-bottom"><span class="admin-status '+statusClass+'">'+statusLabel(row.status)+'</span>';
+          if(row.status==="waiting") html += '<button class="admin-mini-action" data-start="'+safe(row.id)+'">Iniciar</button><button class="admin-mini-action cancel" data-cancel="'+safe(row.id)+'">Cancelar</button>';
+          else if(row.status==="in_progress") html += '<button class="admin-mini-action" data-finish="'+safe(row.id)+'">Finalizar</button>';
+          html += '</div></article>';
+        });
+        html += '</section>';
+      });
+      html += '</div>';
+      if(!rows.length) html += '<div class="admin-no-appointments">Ainda não há atendimentos na fila de hoje.</div>';
     } else {
+      html = '<div class="summary"><div class="summary-row"><span>Aguardando</span><strong>'+waiting+'</strong></div><div class="summary-row"><span>Em atendimento</span><strong>'+progressCount+'</strong></div><div class="summary-row"><span>Concluídos hoje</span><strong>'+completed+'</strong></div></div>';
+      if(!rows.length) html += '<div class="summary"><p class="muted">Ainda não há atendimentos na fila de hoje.</p></div>';
       rows.forEach(function(row){
-        const customerName = row.customer
-          ? safe(row.customer.first_name) + " " + safe(row.customer.last_name)
-          : "Cliente";
-        const servicesText = row.items.map(function(item){
-          return safe(item.service_name) + " (" + money(Number(item.unit_price)) + ")";
-        }).join(", ");
-        const barber = barbers.find(function(b){ return b.id === row.barber_id; });
-        html += '<article class="summary">' +
-          '<div class="summary-row"><span>Senha</span><strong>#' + row.queue_number + '</strong></div>' +
-          '<div class="summary-row"><span>Cliente</span><strong>' + customerName + '</strong></div>' +
-          '<div class="summary-row"><span>Telefone</span><strong>' + safe(row.customer ? row.customer.phone : "—") + '</strong></div>' +
-          '<div class="summary-row"><span>Barbeiro</span><strong>' + safe(barber ? barber.name : row.barber_id) + '</strong></div>' +
-          '<div class="summary-row"><span>Serviços</span><strong>' + (servicesText || "—") + '</strong></div>' +
-          '<div class="summary-row"><span>Valor</span><strong>' + money(Number(row.total_amount)) + '</strong></div>' +
-          '<div class="summary-row"><span>Entrada</span><strong>' + formatDateTime(row.created_at) + '</strong></div>' +
-          '<div class="summary-row"><span>Status</span><strong>' + statusLabel(row.status) + '</strong></div>' +
-          '<div class="actions">';
-        if (row.status === "waiting") {
-          html += '<button class="btn btn-primary" data-start="' + safe(row.id) + '">INICIAR ATENDIMENTO</button>';
-          if (state.role === "admin") {
-            html += '<button class="btn btn-secondary" data-cancel="' + safe(row.id) + '">CANCELAR ATENDIMENTO</button>';
-          }
-        } else if (row.status === "in_progress") {
-          html += '<button class="btn btn-primary" data-finish="' + safe(row.id) + '">FINALIZAR ATENDIMENTO</button>';
-        }
+        const customerName=row.customer?safe(row.customer.first_name)+" "+safe(row.customer.last_name):"Cliente";
+        const servicesText=row.items.map(function(item){return safe(item.service_name)+" ("+money(Number(item.unit_price))+")";}).join(", ");
+        const barber=barbers.find(function(b){return b.id===row.barber_id;});
+        html += '<article class="summary"><div class="summary-row"><span>Senha</span><strong>#'+row.queue_number+'</strong></div><div class="summary-row"><span>Cliente</span><strong>'+customerName+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(row.customer?row.customer.phone:"—")+'</strong></div><div class="summary-row"><span>Barbeiro</span><strong>'+safe(barber?barber.name:row.barber_id)+'</strong></div><div class="summary-row"><span>Serviços</span><strong>'+(servicesText||"—")+'</strong></div><div class="summary-row"><span>Valor</span><strong>'+money(Number(row.total_amount))+'</strong></div><div class="summary-row"><span>Entrada</span><strong>'+formatDateTime(row.created_at)+'</strong></div><div class="summary-row"><span>Status</span><strong>'+statusLabel(row.status)+'</strong></div><div class="actions">';
+        if(row.status==="waiting") html += '<button class="btn btn-primary" data-start="'+safe(row.id)+'">INICIAR ATENDIMENTO</button>';
+        else if(row.status==="in_progress") html += '<button class="btn btn-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>';
         html += '</div></article>';
       });
     }
@@ -1217,12 +1229,16 @@ let adminView = "queue";
 
 function adminNavigation(){
   if(state.role !== "admin") return "";
-  return '<div class="actions admin-nav">' +
-    '<button class="btn ' + (adminView === "queue" ? "btn-primary" : "btn-secondary") + '" data-admin-view="queue">FILA DE HOJE</button>' +
-    '<button class="btn ' + (adminView === "manage" ? "btn-primary" : "btn-secondary") + '" data-admin-view="manage">GERENCIAR</button>' +
-    '<button class="btn ' + (adminView === "plans" ? "btn-primary" : "btn-secondary") + '" data-admin-view="plans">PLANOS</button>' +
-    '<button class="btn ' + (adminView === "reports" ? "btn-primary" : "btn-secondary") + '" data-admin-view="reports">RELATÓRIOS</button>' +
-    '</div>';
+  const navItem=function(view,label,icon){
+    return '<button type="button" class="admin-nav-item '+(adminView===view?'active':'')+'" data-admin-view="'+view+'"><span class="admin-nav-icon">'+icon+'</span><span>'+label+'</span></button>';
+  };
+  return '<aside class="admin-nav"><div class="admin-brand"><span class="admin-brand-mark">LC</span><span><strong>LA CORTE</strong><small>PAINEL ADMINISTRATIVO</small></span></div>'+
+    '<div class="admin-nav-caption">GESTÃO DA BARBEARIA</div>'+
+    navItem("queue","Painel geral","▦")+
+    navItem("manage","Serviços e equipe","♙")+
+    navItem("plans","Planos e assinaturas","◇")+
+    navItem("reports","Relatórios","▥")+
+    '<div class="admin-nav-footer"><span class="admin-online-dot"></span> Sistema operacional</div></aside>';
 }
 
 function bindAdminNavigation(){
