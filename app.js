@@ -1210,10 +1210,6 @@ async function renderAdminManagement(){
       const button = accessForm.querySelector('button[type="submit"]');
       const status = accessForm.querySelector("#barber-access-message");
       if(!email) return;
-      if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
-        status.textContent = "Informe um e-mail válido.";
-        return;
-      }
       button.disabled = true;
       status.textContent = "Enviando solicitação segura...";
       const result = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "update", email: email } });
