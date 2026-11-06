@@ -31,7 +31,6 @@ const state = {
   user:null,
   customer:null,
   selectedServices:[],
-  barber:null,
   message:"",
   customerPlan:null,
   customerPlanBenefits:[]
@@ -135,7 +134,6 @@ function render(){
   if(state.step===1) renderLogin();
   if(state.step===2) renderProfile();
   if(state.step===3) renderServices();
-  if(state.step===4) renderBarbers();
   if(state.step===5) renderConfirmation();
 }
 
@@ -374,7 +372,6 @@ async function init(){
       state.user=null;
       state.customer=null;
       state.selectedServices=[];
-      state.barber=null;
       state.step=1;
       render();
     }
@@ -497,7 +494,6 @@ async function routeAuthenticatedUser(user){
   state.user = user;
   state.customer = null;
   state.selectedServices = [];
-  state.barber = null;
   state.queueTicket = null;
   state.message = "";
 
