@@ -416,3 +416,31 @@ body.admin-dashboard .report-date-fields{gap:8px}
     font-size:10px;
   }
 }
+
+
+/* Portal separado de autenticação da equipe */
+body.staff-portal{min-height:100vh;background:#101010;color:#f7f5f2}
+body.staff-portal .topbar{background:#151515;border-bottom:1px solid #333}
+body.staff-portal .staff-shell{max-width:560px;padding-top:clamp(38px,9vh,100px)}
+body.staff-portal .panel{background:#191919;border:1px solid #383838;border-radius:14px;padding:26px;box-shadow:0 16px 45px #0006}
+body.staff-portal .panel-heading{margin-bottom:22px}
+body.staff-portal .panel-heading h2{color:#fff;font-size:28px}
+body.staff-portal .panel-heading .eyebrow{color:#ff791f}
+body.staff-portal .panel-heading .muted,
+body.staff-portal .notice{color:#aaa}
+.staff-login-form{display:grid;gap:10px}
+.staff-login-form label{margin-top:8px;color:#ddd;font-size:12px;font-weight:700}
+.staff-login-form input{width:100%;min-height:48px;padding:12px 14px;border:1px solid #484848;border-radius:8px;background:#111;color:#fff;font-size:15px}
+.staff-login-form input:focus{outline:2px solid #ff791f;border-color:#ff791f}
+.staff-login-form .btn{margin-top:12px;min-height:46px}
+body.staff-portal .notice{margin-top:20px}
+body.staff-portal footer{color:#eee}
+body.staff-portal footer small a,
+.staff-portal-entry a{color:#ff9a55;text-decoration:none}
+body.staff-portal footer small a:hover,
+.staff-portal-entry a:hover{text-decoration:underline}
+@media(max-width:520px){
+ body.staff-portal .staff-shell{padding:28px 12px}
+ body.staff-portal .panel{padding:20px 16px}
+ body.staff-portal .panel-heading h2{font-size:24px}
+}
