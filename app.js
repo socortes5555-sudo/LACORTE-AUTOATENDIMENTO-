@@ -1387,6 +1387,23 @@ async function renderAdminPlans(){
     const customerById = {};
     customers.forEach(function(c){ customerById[c.id] = c; });
     let html = adminNavigation();
+    const sevenDaysDate = new Date();
+    sevenDaysDate.setDate(sevenDaysDate.getDate()+7);
+    const sevenDaysString = localDateString(sevenDaysDate);
+    const activeSubscriptions = subscriptions.filter(function(sub){
+      return sub.status === "active" && sub.expires_at && sub.expires_at >= todayString;
+    });
+    const expiringSoonCount = activeSubscriptions.filter(function(sub){
+      return sub.expires_at <= sevenDaysString;
+    }).length;
+    const expiredCount = subscriptions.filter(function(sub){
+      return sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
+    }).length;
+    html += '<section class="summary"><h3>RESUMO DAS ASSINATURAS</h3><div class="report-status-grid">' +
+      '<div><span>Assinaturas ativas</span><strong>'+activeSubscriptions.length+'</strong></div>' +
+      '<div><span>Vencendo em até 7 dias</span><strong>'+expiringSoonCount+'</strong></div>' +
+      '<div><span>Assinaturas vencidas</span><strong>'+expiredCount+'</strong></div>' +
+      '</div></section>';
     html += '<section class="summary"><h3>ATIVAR ASSINATURA DE CLIENTE</h3><p class="muted">Confirme o pagamento primeiro. Depois selecione o cliente, o plano e o período de validade.</p>';
     if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
     else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
