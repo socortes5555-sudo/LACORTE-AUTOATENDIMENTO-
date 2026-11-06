@@ -1049,41 +1049,22 @@ function reportDateRange(){
 
 function reportLineChart(items){
   if(!items.length) return '<p class="muted">Sem faturamento concluído neste período.</p>';
-  const width=640, height=230, left=42, right=18, top=18, bottom=42;
-  const max=Math.max(1,...items.map(function(item){return item.value;}));
-  const points=items.map(function(item,index){
-    const x=left+(items.length===1?0:index*(width-left-right)/(items.length-1));
-    const y=top+(height-top-bottom)-(item.value/max)*(height-top-bottom);
-    return {x:x,y:y,item:item};
-  });
-  const path=points.map(function(p,index){return (index===0?"M":"L")+p.x.toFixed(1)+" "+p.y.toFixed(1);}).join(" ");
-  const labelStep=Math.max(1,Math.ceil(items.length/7));
-  let labels="";
-  points.forEach(function(p,index){
-    if(index%labelStep===0 || index===points.length-1){
-      labels+='<text x="'+p.x.toFixed(1)+'" y="'+(height-13)+'" text-anchor="middle" class="chart-label">'+safe(p.item.label)+'</text>';
-    }
-  });
-  let dots="";
-  points.forEach(function(p){
-    dots+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4" class="chart-dot"><title>'+safe(p.item.label)+': '+money(p.item.value)+'</title></circle>';
-  });
-  let grid="";
-  for(let i=0;i<4;i++){
-    const y=top+i*(height-top-bottom)/3;
-    grid+='<line x1="'+left+'" y1="'+y.toFixed(1)+'" x2="'+(width-right)+'" y2="'+y.toFixed(1)+'" class="chart-grid"/>';
-  }
-  return '<svg class="report-line-svg" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Faturamento por dia">'+grid+
-    '<path d="'+path+'" class="chart-line"/>'+dots+labels+'</svg>';
+  const max=Math.max(1,...items.map(function(item){return Number(item.value)||0;}));
+  return '<div class="report-daily-chart">'+items.map(function(item){
+    const value=Number(item.value)||0;
+    const percent=value>0?Math.max(8,(value/max)*100):0;
+    return '<div class="report-daily-column"><div class="report-daily-value">'+money(value)+'</div><div class="report-daily-track"><div class="report-daily-fill" style="height:'+percent.toFixed(1)+'%"></div></div><div class="report-daily-label">'+safe(item.label)+'</div></div>';
+  }).join('')+'</div>';
 }
 
 function reportBarChart(items, valueFormatter){
   if(!items.length) return '<p class="muted">Sem dados para este período.</p>';
-  const max=Math.max(1,...items.map(function(item){return item.value;}));
+  const max=Math.max(1,...items.map(function(item){return Number(item.value)||0;}));
   return '<div class="report-bars">'+items.map(function(item){
-    const percent=Math.max(0,Math.min(100,(item.value/max)*100));
-    return '<div class="report-bar-row"><div class="report-bar-heading"><span>'+safe(item.label)+'</span><strong>'+valueFormatter(item.value)+'</strong></div><div class="report-bar-track"><i style="width:'+percent.toFixed(1)+'%"></i></div></div>';
-  }).join("")+'</div>';
+    const value=Number(item.value)||0;
+    const percent=Math.max(0,Math.min(100,(value/max)*100));
+    return '<div class="report-bar-row"><div class="report-bar-heading"><span>'+safe(item.label)+'</span><strong>'+valueFormatter(value)+'</strong></div><div class="report-bar-track"><div class="report-bar-fill" style="width:'+percent.toFixed(1)+'%"></div></div></div>';
+  }).join('')+'</div>';
 }
 
 async function renderAdminReports(){
