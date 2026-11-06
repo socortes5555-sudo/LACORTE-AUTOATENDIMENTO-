@@ -679,6 +679,7 @@ function reportDateRange(){
   const today = localQueueDate();
   const period = adminReportFilters.period || "month";
   if(period === "today") return {start:today,end:today,label:"Hoje"};
+  if(period === "fortnight") return {start:reportShiftDate(today,-13),end:today,label:"Últimos 14 dias"};
   if(period === "week"){
     const d = new Date(today+"T12:00:00");
     const weekday = d.getDay();
@@ -709,6 +710,18 @@ function reportPieChart(items, valueFormatter, emptyMessage){
   return '<div class="report-pie-layout"><div class="report-pie" role="img" aria-label="Gráfico de pizza: '+valid.length+' categorias" style="background:conic-gradient('+stops.join(",")+')"><div class="report-pie-hole"><strong>'+valueFormatter(total)+'</strong><span>Total</span></div></div><div class="report-pie-legend">'+legend+'</div></div>';
 }
 
+async function renderBarberReports(){
+ if(state.role!=='barber')return renderQueueDashboard();setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
+ try{const range=reportDateRange(),r=await db.from('lacorte_queue').select('id,status,total_amount,commission_amount,payment_method,queue_date,completed_at,queue_number').eq('barber_id',state.barberId).gte('queue_date',range.start).lte('queue_date',range.end);if(r.error)throw r.error;
+ const rows=r.data||[],done=rows.filter(x=>x.status==='completed'),gross=done.reduce((s,x)=>s+Number(x.total_amount||0),0),commission=done.reduce((s,x)=>s+Number(x.commission_amount||0),0),payments={pix:0,dinheiro:0,credito:0,debito:0},labels={pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'};
+ done.forEach(x=>{if(payments[x.payment_method]!==undefined)payments[x.payment_method]+=Number(x.total_amount||0);});
+ const opts=['today','week','fortnight','month'].map(k=>'<option value="'+k+'" '+(adminReportFilters.period===k?'selected':'')+'>'+({today:'Hoje',week:'Semana',fortnight:'Quinzena',month:'Mês'}[k])+'</option>').join('');
+ let html='<section class="summary"><label for="barber-report-period">PERÍODO</label><select id="barber-report-period">'+opts+'</select><div class="report-kpis"><article class="summary"><span>Atendimentos</span><strong>'+done.length+'</strong></article><article class="summary"><span>Faturamento bruto</span><strong>'+money(gross)+'</strong></article><article class="summary"><span>Minha comissão</span><strong>'+money(commission)+'</strong></article><article class="summary"><span>Saldo da barbearia</span><strong>'+money(gross-commission)+'</strong></article></div></section><section class="summary"><h3>VALORES POR FORMA DE PAGAMENTO</h3>';
+ Object.keys(payments).forEach(k=>{html+='<div class="summary-row"><span>'+labels[k]+'</span><strong>'+money(payments[k])+'</strong></div>';});html+='</section><section class="summary"><h3>ATENDIMENTOS CONCLUÍDOS</h3>';
+ done.slice().sort((a,b)=>String(b.completed_at).localeCompare(String(a.completed_at))).forEach(x=>{html+='<div class="summary-row"><span>Senha #'+x.queue_number+' • '+formatDateTime(x.completed_at)+'</span><strong>'+money(Number(x.total_amount))+'</strong></div>';});if(!done.length)html+='<p class="muted">Nenhum atendimento concluído neste período.</p>';html+='</section>';content.innerHTML=html;
+ content.querySelector('#barber-report-period').addEventListener('change',function(){adminReportFilters.period=this.value;renderBarberReports();});
+ }catch(error){content.innerHTML='<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';}
+}
 async function renderAdminReports(){
   if(state.role !== "admin") return renderQueueDashboard();
   adminView = "reports";
