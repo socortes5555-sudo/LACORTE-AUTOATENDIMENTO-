@@ -42,7 +42,7 @@ const actions = document.querySelector("#step-actions");
 const notice = document.querySelector("#demo-notice");
 
 let customerAutoLogoutTimer = null;
-const CUSTOMER_AUTO_LOGOUT_MS = 30 * 1000;
+const CUSTOMER_AUTO_LOGOUT_MS = 5 * 1000;
 
 function clearCustomerAutoLogout(){
   if(customerAutoLogoutTimer !== null){
