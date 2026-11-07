@@ -165,8 +165,8 @@ function renderLogin(){
 }
 
 function renderReturningCustomerLookup(){
-  setHeader('CLIENTE CADASTRADO','Identifique-se','Informe telefone, e-mail ou nome completo. Não será enviado novo código.');
-  content.innerHTML='<form id="returning-form"><label for="customer-identifier">Telefone, e-mail ou nome completo</label><input id="customer-identifier" autocomplete="off" placeholder="Ex.: (48) 99999-9999 ou João Silva" required><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">LOCALIZAR MEU CADASTRO</button><button class="btn btn-secondary" id="back-first-access" type="button">PRIMEIRO ACESSO / CADASTRAR</button></form>';
+  setHeader('CLIENTE CADASTRADO','Identifique-se','Informe parte do nome, sobrenome, telefone ou e-mail. Não será enviado novo código.');
+  content.innerHTML='<form id="returning-form"><label for="customer-identifier">Nome, sobrenome, telefone ou e-mail</label><input id="customer-identifier" autocomplete="off" placeholder="Ex.: João, Silva, (48) 99999-9999 ou email" required><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">LOCALIZAR MEU CADASTRO</button><button class="btn btn-secondary" id="back-first-access" type="button">PRIMEIRO ACESSO / CADASTRAR</button></form>';
   actions.replaceChildren();document.querySelector('#back-first-access').addEventListener('click',renderLogin);
   document.querySelector('#returning-form').addEventListener('submit',async function(e){
     e.preventDefault();const identifier=document.querySelector('#customer-identifier').value.trim(),button=this.querySelector('[type="submit"]');button.disabled=true;showMessage('Localizando cadastro...');
