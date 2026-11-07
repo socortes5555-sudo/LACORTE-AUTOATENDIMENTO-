@@ -1589,3 +1589,7 @@ body:has(.shell .entry-choice) footer small{font:10px 'DM Sans',sans-serif;color
   body:has(.shell .entry-choice) .entry-choice .btn{font-size:9px}
   body:has(.shell .entry-choice) .showcase-side{grid-template-columns:.9fr 1.1fr}
 }
+
+/* Contraste correto do lettering da marca */
+body:has(.shell .entry-choice) .brand .brand-word{color:#fff}
+body:has(.shell .entry-choice) .brand .brand-word b{color:#ff791f}
