@@ -1357,3 +1357,12 @@ body:has(.shell #login-form) .membership-rule{background:linear-gradient(90deg,#
 @media(max-height:720px) and (max-width:700px){
   body:has(.shell #login-form) .experience-showcase{min-height:135px!important}
 }
+
+/* Escolha inicial do cliente: duas ações claras, sem cartões pesados */
+.entry-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 8px}
+.entry-choice .btn{min-height:48px;padding:12px 10px;font-size:12px;letter-spacing:.04em}
+#login-form[hidden],.entry-choice[hidden]{display:none!important}
+@media(max-width:700px){
+ .entry-choice{gap:7px;margin:12px 0 6px}
+ .entry-choice .btn{min-height:42px;padding:10px 6px;font-size:10px}
+}
