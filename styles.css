@@ -1593,3 +1593,66 @@ body:has(.shell .entry-choice) footer small{font:10px 'DM Sans',sans-serif;color
 /* Contraste correto do lettering da marca */
 body:has(.shell .entry-choice) .brand .brand-word{color:#fff}
 body:has(.shell .entry-choice) .brand .brand-word b{color:#ff791f}
+
+
+/* Ajuste final mobile/desktop: hero fotográfico sem áreas vazias */
+body:has(.shell .entry-choice) .hero.hero-home{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-height:440px;padding:30px 4%;display:flex;align-items:center;
+  background:#080808;border-radius:18px;margin:0 0 18px
+}
+body:has(.shell .entry-choice) .hero-copy{width:58%;max-width:620px;padding:12px 0;z-index:3}
+body:has(.shell .entry-choice) .hero-motion{
+  position:absolute;inset:0 0 0 18%;height:auto;width:82%;z-index:1;
+  border-radius:0;mask-image:linear-gradient(90deg,transparent 0%,#000 28%,#000 100%)
+}
+body:has(.shell .entry-choice) .hero-slide{
+  display:block;object-fit:cover;object-position:center 34%;
+  animation:heroPosterFade 20s infinite ease-in-out;opacity:0;
+  filter:saturate(.9) contrast(1.08)
+}
+body:has(.shell .entry-choice) .hero-slide.slide-a{animation-delay:0s}
+body:has(.shell .entry-choice) .hero-slide.slide-b{animation-delay:10s}
+body:has(.shell .entry-choice) .hero-slide.slide-c{display:none}
+body:has(.shell .entry-choice) .hero-image-shade{
+  z-index:2;background:linear-gradient(90deg,#080808 0%,#080808e8 22%,#08080855 58%,#08080812 100%),linear-gradient(0deg,#080808a8,transparent 48%)
+}
+@keyframes heroPosterFade{
+  0%,4%{opacity:1;transform:scale(1)}
+  44%{opacity:1;transform:scale(1.055)}
+  50%,100%{opacity:0;transform:scale(1.08)}
+}
+body:has(.shell .entry-choice) .hero-pretitle{font-size:clamp(22px,3vw,38px);line-height:1.1}
+body:has(.shell .entry-choice) .hero-home h1{font-size:clamp(56px,7vw,92px);line-height:.92;letter-spacing:-1.8px}
+body:has(.shell .entry-choice) .hero-values{font-size:clamp(11px,1.2vw,15px)}
+body:has(.shell .entry-choice) .hero-home .intro{font-size:13px;max-width:330px}
+@media(max-width:760px){
+  body:has(.shell .entry-choice) .hero.hero-home{
+    display:flex;min-height:350px;height:350px;padding:22px 14px;margin:0 0 12px;
+    border-radius:13px;background:#080808
+  }
+  body:has(.shell .entry-choice) .hero-copy{width:68%;max-width:270px;padding:8px 0;align-self:flex-start}
+  body:has(.shell .entry-choice) .hero-pretitle{font-size:clamp(18px,5vw,23px);white-space:nowrap}
+  body:has(.shell .entry-choice) .hero-home h1{font-size:clamp(48px,12vw,64px);line-height:.9;letter-spacing:-1.6px;margin:10px 0 16px}
+  body:has(.shell .entry-choice) .hero-values{font-size:9px;gap:7px;margin:13px 0}
+  body:has(.shell .entry-choice) .hero-values i{height:18px}
+  body:has(.shell .entry-choice) .hero-home .intro{font-size:10px;line-height:1.35;max-width:210px;margin-top:12px}
+  body:has(.shell .entry-choice) .hero-motion{inset:0;width:100%;height:100%;mask-image:none}
+  body:has(.shell .entry-choice) .hero-slide{object-position:62% center}
+  body:has(.shell .entry-choice) .hero-image-shade{
+    background:linear-gradient(90deg,#080808 0%,#080808e8 20%,#08080875 56%,#08080808 100%),linear-gradient(0deg,#080808b8,transparent 55%)
+  }
+  body:has(.shell .entry-choice) .panel{margin:0;padding:16px 14px}
+  body:has(.shell .entry-choice) .entry-choice .btn{min-height:62px;font-size:10px}
+  body:has(.shell .entry-choice) .experience-showcase{margin-top:10px}
+}
+@media(max-width:390px){
+  body:has(.shell .entry-choice) .hero.hero-home{height:325px;min-height:325px}
+  body:has(.shell .entry-choice) .hero-copy{width:72%}
+  body:has(.shell .entry-choice) .hero-home h1{font-size:47px}
+  body:has(.shell .entry-choice) .hero-pretitle{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){
+  body:has(.shell .entry-choice) .hero-slide{animation:none;opacity:1}
+  body:has(.shell .entry-choice) .hero-slide:not(.slide-a){display:none}
+}
