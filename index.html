@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <title>LaCorte | Autoatendimento</title>
-  <link rel="stylesheet" href="styles.css?v=20261107-59">
+  <link rel="stylesheet" href="styles.css?v=20261107-60">
 </head>
 <body>
   <header class="topbar">
@@ -187,11 +187,11 @@
       if (!target || !window.QRCode) return;
       new QRCode(target, {
         text: "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;",
-        width: 132,
-        height: 132,
+        width: 256,
+        height: 256,
         colorDark: "#111111",
         colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.H
       });
     });
   </script>
