@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <title>LaCorte | Autoatendimento</title>
-  <link rel="stylesheet" href="styles.css?v=20261107-53">
+  <link rel="stylesheet" href="styles.css?v=20261107-54">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#" aria-label="LaCorte início">LA<span>CORTE</span><b>.</b></a>
+    <a class="brand" href="#" aria-label="LaCorte início"><svg class="brand-croc" viewBox="0 0 64 30" aria-hidden="true"><path d="M3 17c7-7 15-9 24-7l8-5 8 2 5 5 12 2-5 5-12 1-7 5-7-2-8 2-7-3-9 1 4-6-6 0z" fill="currentColor"/><circle cx="43" cy="11" r="1.6" fill="#111"/></svg>LA<span>CORTE</span><b>.</b></a>
     <span class="top-label">AUTOATENDIMENTO</span>
   </header>
 
@@ -180,14 +180,14 @@
       });
     })();
   </script>
-  <script src="app.js?v=20261107-53"></script>
+  <script src="app.js?v=20261107-54"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script>
     window.addEventListener("load", function () {
       const target = document.getElementById("wifi-qr");
       if (!target || !window.QRCode) return;
       new QRCode(target, {
-        text: "WIFI:T:WPA;S=LaCorte_5G;P=18253030Lc@;;",
+        text: "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;",
         width: 132,
         height: 132,
         colorDark: "#111111",
