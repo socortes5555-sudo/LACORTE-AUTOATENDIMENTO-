@@ -1273,3 +1273,87 @@ body:has(.shell #login-form) footer{display:none}
   body:has(.shell #login-form) .membership-highlight,
   body:has(.shell #login-form) .connection-card{height:72px;min-height:72px}
 }
+
+
+/* Vitrine unificada LaCorte — composição tipo wallpaper */
+body:has(.shell #login-form) .experience-showcase{
+  position:relative!important;display:block!important;isolation:isolate;
+  height:100%!important;min-height:0!important;margin:0!important;overflow:hidden;
+  border-radius:20px;background:#111;
+}
+body:has(.shell #login-form) .showcase-gallery{
+  position:absolute;inset:0;width:100%;height:100%;min-height:0!important;
+  border:0;border-radius:20px;box-shadow:none;
+}
+body:has(.shell #login-form) .showcase-gallery:after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(8,8,8,.08) 0%,rgba(8,8,8,.04) 42%,rgba(8,8,8,.62) 100%),
+    linear-gradient(0deg,rgba(8,8,8,.76) 0%,transparent 56%,rgba(8,8,8,.18) 100%);
+}
+body:has(.shell #login-form) .gallery-shade{background:linear-gradient(90deg,#08070620,transparent 55%)}
+body:has(.shell #login-form) .gallery-caption{left:clamp(16px,3vw,34px);right:38%;bottom:clamp(18px,4vw,38px);z-index:3}
+body:has(.shell #login-form) .gallery-caption span{font-size:clamp(8px,.8vw,11px)}
+body:has(.shell #login-form) .gallery-caption strong{font-size:clamp(25px,3.4vw,43px)}
+body:has(.shell #login-form) .gallery-indicator{z-index:4}
+body:has(.shell #login-form) .showcase-side{
+  position:absolute!important;z-index:5;inset:0;display:block!important;pointer-events:none;
+}
+body:has(.shell #login-form) .membership-highlight{
+  position:absolute;top:clamp(14px,3vw,28px);right:clamp(14px,3vw,28px);
+  width:min(47%,330px);min-height:0;padding:clamp(12px,2vw,22px);
+  border:1px solid #ffffff25;border-radius:16px;
+  background:linear-gradient(135deg,rgba(22,20,18,.82),rgba(36,25,18,.52));
+  backdrop-filter:blur(12px);box-shadow:0 12px 34px #0004;
+}
+body:has(.shell #login-form) .membership-highlight:after{opacity:.35}
+body:has(.shell #login-form) .membership-highlight h2{font-size:clamp(21px,2.7vw,34px)}
+body:has(.shell #login-form) .membership-highlight p{font-size:clamp(9px,.9vw,12px)}
+body:has(.shell #login-form) .membership-highlight p strong{font-size:clamp(17px,2vw,25px)}
+body:has(.shell #login-form) .connection-card{
+  position:absolute;right:clamp(14px,3vw,28px);bottom:clamp(14px,3vw,28px);
+  width:min(49%,350px);min-height:0;padding:10px 12px;gap:10px;
+  border:1px solid #ffffff25;border-radius:14px;
+  background:linear-gradient(120deg,rgba(20,20,20,.84),rgba(34,30,27,.62));
+  backdrop-filter:blur(12px);box-shadow:0 12px 34px #0004;
+}
+body:has(.shell #login-form) .wifi-qr-frame{flex-basis:76px;width:76px;height:76px;padding:4px;background:#f4f1eb;border-radius:8px}
+body:has(.shell #login-form) #wifi-qr{width:68px;height:68px}
+body:has(.shell #login-form) .connection-copy>strong{font-size:clamp(14px,1.5vw,19px)}
+body:has(.shell #login-form) .connection-copy>small{font-size:9px}
+body:has(.shell #login-form) .social-links{gap:4px;margin-top:3px}
+body:has(.shell #login-form) .social-links a{font-size:9px}
+body:has(.shell #login-form) .membership-rule{background:linear-gradient(90deg,#ff9b5a,transparent);width:70px}
+@media(max-width:700px){
+  body:has(.shell #login-form) .experience-showcase{
+    flex:1 1 0!important;height:auto!important;min-height:155px!important;
+    max-height:260px;display:block!important;border-radius:15px;
+  }
+  body:has(.shell #login-form) .showcase-gallery{border-radius:15px}
+  body:has(.shell #login-form) .gallery-caption{left:12px;right:48%;bottom:13px;gap:4px}
+  body:has(.shell #login-form) .gallery-caption span{font-size:6px;letter-spacing:.8px}
+  body:has(.shell #login-form) .gallery-caption strong{font-size:clamp(16px,4.5vw,23px)}
+  body:has(.shell #login-form) .membership-highlight{
+    top:8px;right:8px;width:48%;padding:8px 9px;border-radius:10px;
+  }
+  body:has(.shell #login-form) .membership-kicker{font-size:6px;letter-spacing:.6px}
+  body:has(.shell #login-form) .membership-highlight h2{font-size:clamp(14px,4vw,19px);margin:4px 0 1px}
+  body:has(.shell #login-form) .membership-highlight p{font-size:7px;margin:2px 0 0}
+  body:has(.shell #login-form) .membership-highlight p strong{font-size:clamp(12px,3.5vw,16px)}
+  body:has(.shell #login-form) .membership-rule{width:25px;margin-top:4px}
+  body:has(.shell #login-form) .connection-card{
+    right:8px;bottom:8px;width:49%;height:auto;min-height:0;padding:6px;gap:5px;border-radius:9px;
+  }
+  body:has(.shell #login-form) .wifi-qr-frame{flex:0 0 42px;width:42px;height:42px;padding:2px;border-radius:5px}
+  body:has(.shell #login-form) #wifi-qr{width:38px;height:38px}
+  body:has(.shell #login-form) .connection-kicker{font-size:5px;letter-spacing:.5px}
+  body:has(.shell #login-form) .connection-copy{gap:1px}
+  body:has(.shell #login-form) .connection-copy>strong{font-size:11px}
+  body:has(.shell #login-form) .connection-copy>small{font-size:6px;line-height:1.1}
+  body:has(.shell #login-form) .social-links{gap:1px;margin-top:2px}
+  body:has(.shell #login-form) .social-links a{font-size:6px;gap:2px}
+  body:has(.shell #login-form) .social-icon{width:10px;height:10px;flex-basis:10px;font-size:7px}
+}
+@media(max-height:720px) and (max-width:700px){
+  body:has(.shell #login-form) .experience-showcase{min-height:135px!important}
+}
