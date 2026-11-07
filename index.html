@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <title>LaCorte | Autoatendimento</title>
-  <link rel="stylesheet" href="styles.css?v=20261106-50">
+  <link rel="stylesheet" href="styles.css?v=20261107-51">
 </head>
 <body>
   <header class="topbar">
@@ -56,6 +56,41 @@
       </div>
 
       <div class="actions" id="step-actions"></div>
+    </section>
+
+
+    <section class="experience-showcase" aria-label="Experiência LaCorte">
+      <div class="showcase-gallery" aria-label="Estilos e trabalhos de barbearia">
+        <img class="showcase-photo photo-one" src="https://prxbarbearia.com.br/images/home/man-beard-1.png" alt="Corte masculino degradê com barba alinhada" fetchpriority="low">
+        <img class="showcase-photo photo-two" src="https://ophicinadocabelo.com.br/assets/servicos/corte-masculino.png" alt="Corte masculino moderno em barbearia" loading="lazy">
+        <img class="showcase-photo photo-three" src="https://www.sector-studios.com/images/about.webp" alt="Barbeiro realizando acabamento de degradê" loading="lazy">
+        <div class="gallery-shade"></div>
+        <div class="gallery-caption"><span>ESTILO • PRECISÃO • LA CORTE</span><strong>Seu visual, no seu melhor.</strong></div>
+        <div class="gallery-indicator" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="showcase-side">
+        <div class="membership-highlight">
+          <span class="membership-kicker">VANTAGENS LACORTE</span>
+          <h2>PLANOS MENSAIS</h2>
+          <p>A PARTIR DE <strong>R$ 80,00</strong></p>
+          <span class="membership-rule"></span>
+          <span class="membership-mark">LA<span>CORTE</span><b>.</b></span>
+        </div>
+
+        <div class="connection-card">
+          <div class="wifi-qr-frame"><div id="wifi-qr" role="img" aria-label="QR Code para conectar ao Wi-Fi La Corte"></div></div>
+          <div class="connection-copy">
+            <span class="connection-kicker">CONECTE-SE</span>
+            <strong>Wi-Fi LaCorte</strong>
+            <small>Escaneie o QR Code e conecte-se.</small>
+            <div class="social-links">
+              <a href="https://instagram.com/la_corte_oficial" target="_blank" rel="noopener noreferrer" aria-label="Instagram LaCorte"><span class="social-icon">◎</span><span>@la_corte_oficial</span></a>
+              <a href="https://wa.me/5548999426466" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp LaCorte"><span class="social-icon">↗</span><span>(48) 99942-6466</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <footer>LA<span>CORTE</span><b>.</b>
@@ -146,5 +181,20 @@
     })();
   </script>
   <script src="app.js?v=20261106-50"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script>
+    window.addEventListener("load", function () {
+      const target = document.getElementById("wifi-qr");
+      if (!target || !window.QRCode) return;
+      new QRCode(target, {
+        text: "WIFI:T:WPA;S=La Corte_5G;P=18253030Lc@;;",
+        width: 132,
+        height: 132,
+        colorDark: "#111111",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    });
+  </script>
 </body>
 </html>
