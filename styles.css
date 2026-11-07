@@ -1656,3 +1656,95 @@ body:has(.shell .entry-choice) .hero-home .intro{font-size:13px;max-width:330px}
   body:has(.shell .entry-choice) .hero-slide{animation:none;opacity:1}
   body:has(.shell .entry-choice) .hero-slide:not(.slide-a){display:none}
 }
+
+
+/* LaCorte — composição limpa da página do cliente */
+body:has(#entry-choice){background:#090909}
+body:has(#entry-choice) .shell{width:min(1160px,calc(100% - 40px));max-width:1160px;padding:22px 0 30px}
+body:has(#entry-choice) .hero.hero-home{
+  display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);
+  align-items:center;gap:34px;min-height:350px;padding:22px 0 26px;margin:0 0 18px;
+  overflow:visible;background:transparent;border:0;border-radius:0;box-shadow:none
+}
+body:has(#entry-choice) .hero-copy{position:relative;z-index:3;width:auto;max-width:500px;padding:8px 0}
+body:has(#entry-choice) .hero-pretitle{margin:0 0 8px;color:#f4eee8;font-size:clamp(19px,2.3vw,29px);font-style:italic;line-height:1.2}
+body:has(#entry-choice) .hero-home h1{margin:8px 0 18px;font:700 clamp(54px,6.5vw,82px)/.94 Oswald,sans-serif;letter-spacing:-1.5px}
+body:has(#entry-choice) .hero-home h1 em{color:#ff791f}
+body:has(#entry-choice) .hero-values{display:flex;align-items:center;gap:12px;margin:18px 0;color:#f4eee8;font-size:12px;font-weight:700}
+body:has(#entry-choice) .hero-values i{height:20px;width:1px;background:#ff791f}
+body:has(#entry-choice) .hero-home .intro{max-width:340px;margin:0;color:#c3bbb4;font-size:13px;line-height:1.6}
+body:has(#entry-choice) .hero-motion{
+  position:relative;inset:auto;width:100%;height:350px;min-width:0;overflow:hidden;
+  border-radius:18px 4px 18px 4px;mask-image:none;background:#17120f;
+  box-shadow:0 20px 55px #0009
+}
+body:has(#entry-choice) .hero-slide{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 38%;filter:saturate(.88) contrast(1.06);animation:lcHeroFade 18s infinite ease-in-out;opacity:0}
+body:has(#entry-choice) .hero-slide.slide-a{animation-delay:0s}
+body:has(#entry-choice) .hero-slide.slide-b{animation-delay:9s}
+body:has(#entry-choice) .hero-slide.slide-c{display:none}
+body:has(#entry-choice) .hero-image-shade{position:absolute;inset:0;background:linear-gradient(90deg,#08080825,transparent 35%),linear-gradient(0deg,#08080855,transparent 48%);pointer-events:none}
+@keyframes lcHeroFade{0%,5%{opacity:1;transform:scale(1)}43%{opacity:1;transform:scale(1.035)}50%,100%{opacity:0;transform:scale(1.06)}}
+body:has(#entry-choice) .progress{display:none!important}
+body:has(#entry-choice) .panel{width:100%;max-width:none;margin:0;padding:24px clamp(18px,3vw,32px);border:1px solid #ffffff20;border-radius:15px;background:linear-gradient(110deg,#191512,#151515);box-shadow:0 15px 42px #0007}
+body:has(#entry-choice) .panel-heading{margin:0 0 8px}
+body:has(#entry-choice) .panel-heading h2{margin:4px 0;font:600 clamp(25px,3vw,32px)/1.1 Oswald,sans-serif}
+body:has(#entry-choice) .panel-heading .muted{margin:5px 0;color:#bdb5ae;font-size:13px}
+body:has(#entry-choice) .entry-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 2px}
+body:has(#entry-choice) .entry-choice .btn{min-height:66px;border-radius:11px;font-size:13px;letter-spacing:.6px}
+body:has(#entry-choice) .entry-choice .btn-primary{background:linear-gradient(110deg,#ff914b,#f47721);color:#111}
+body:has(#entry-choice) .entry-choice .btn-secondary{background:#ffffff08;border:1px solid #ffffff35;color:#fff}
+body:has(#entry-choice) .panel:has(.entry-choice) .notice{margin:12px 0 0;padding:0;border:0;background:transparent;color:#aaa;font-size:11px}
+body:has(#entry-choice) .experience-showcase{display:grid!important;grid-template-columns:.95fr 1.05fr;gap:16px;margin:18px 0 0;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+body:has(#entry-choice) .experience-showcase>.connection-card{position:relative!important;inset:auto!important;width:auto!important;min-height:138px;height:auto!important;padding:15px 18px;gap:16px;border:1px solid #ffffff20;border-radius:13px;background:linear-gradient(120deg,#191919,#21170f)}
+body:has(#entry-choice) .wifi-qr-frame{width:104px;height:104px;flex-basis:104px;padding:5px}
+body:has(#entry-choice) #wifi-qr{width:94px;height:94px}
+body:has(#entry-choice) .wifi-qr-frame canvas,body:has(#entry-choice) .wifi-qr-frame img{max-width:94px;max-height:94px}
+body:has(#entry-choice) .connection-copy>strong{font:600 21px Oswald,sans-serif}
+body:has(#entry-choice) .connection-copy>small{font-size:10px;line-height:1.5}
+body:has(#entry-choice) .showcase-side{position:relative!important;inset:auto!important;display:grid!important;grid-template-columns:.85fr 1.15fr;gap:12px;pointer-events:auto}
+body:has(#entry-choice) .membership-highlight{position:relative!important;inset:auto!important;width:auto!important;min-height:138px;padding:16px;border:1px solid #ffffff20;border-radius:13px;background:linear-gradient(135deg,#29201a,#171513)}
+body:has(#entry-choice) .membership-highlight h2{font-size:22px}
+body:has(#entry-choice) .contact-strip{display:grid;align-content:center;gap:8px;padding:5px}
+body:has(#entry-choice) .contact-strip>div,body:has(#entry-choice) .contact-strip>a{display:grid;gap:3px;padding:3px 0;text-decoration:none;color:#f4eee8}
+body:has(#entry-choice) .contact-strip span{font-size:8px;letter-spacing:1px;color:#ff9b5a;font-weight:800}
+body:has(#entry-choice) .contact-strip strong{font-size:10px;overflow-wrap:anywhere}
+body:has(#entry-choice) .contact-strip b{font:700 16px Oswald,sans-serif;color:#ff8a3d}
+body:has(#entry-choice) footer{display:block!important;margin-top:22px;padding:15px 0 0;border-top:1px solid #ffffff20;text-align:center;font:800 25px Oswald,sans-serif}
+body:has(#entry-choice) footer small{font:10px 'DM Sans',sans-serif;color:#aaa}
+@media(max-width:760px){
+  body:has(#entry-choice) .shell{width:calc(100% - 28px);padding:10px 0 22px}
+  body:has(#entry-choice) .hero.hero-home{grid-template-columns:1fr;gap:0;min-height:0;padding:16px 0 14px;margin-bottom:10px}
+  body:has(#entry-choice) .hero-copy{max-width:none;padding:4px 2px 14px}
+  body:has(#entry-choice) .hero-pretitle{font-size:20px}
+  body:has(#entry-choice) .hero-home h1{font-size:clamp(48px,12vw,66px);margin:7px 0 12px}
+  body:has(#entry-choice) .hero-values{gap:9px;margin:12px 0;font-size:10px}
+  body:has(#entry-choice) .hero-values i{height:16px}
+  body:has(#entry-choice) .hero-home .intro{font-size:11px}
+  body:has(#entry-choice) .hero-motion{position:relative;inset:auto;width:100%;height:220px;border-radius:12px;mask-image:none}
+  body:has(#entry-choice) .hero-slide{object-position:center 35%}
+  body:has(#entry-choice) .panel{padding:17px 15px;border-radius:12px}
+  body:has(#entry-choice) .panel-heading h2{font-size:25px}
+  body:has(#entry-choice) .panel-heading .muted{font-size:11px}
+  body:has(#entry-choice) .entry-choice{gap:8px;margin-top:13px}
+  body:has(#entry-choice) .entry-choice .btn{min-height:60px;padding:10px 7px;font-size:10px;letter-spacing:.2px}
+  body:has(#entry-choice) .experience-showcase{grid-template-columns:1fr;gap:9px;margin-top:10px}
+  body:has(#entry-choice) .experience-showcase>.connection-card{min-height:104px;padding:10px 12px;gap:12px}
+  body:has(#entry-choice) .wifi-qr-frame{width:82px;height:82px;flex-basis:82px;padding:4px}
+  body:has(#entry-choice) #wifi-qr{width:74px;height:74px}
+  body:has(#entry-choice) .wifi-qr-frame canvas,body:has(#entry-choice) .wifi-qr-frame img{max-width:74px;max-height:74px}
+  body:has(#entry-choice) .connection-copy>strong{font-size:18px}
+  body:has(#entry-choice) .showcase-side{grid-template-columns:.9fr 1.1fr;gap:8px}
+  body:has(#entry-choice) .membership-highlight{min-height:104px;padding:11px}
+  body:has(#entry-choice) .membership-highlight h2{font-size:17px;margin:6px 0 2px}
+  body:has(#entry-choice) .membership-highlight p{font-size:8px}
+  body:has(#entry-choice) .membership-highlight p strong{font-size:15px}
+  body:has(#entry-choice) .contact-strip{gap:4px;padding:3px}
+  body:has(#entry-choice) .contact-strip span{font-size:6px;letter-spacing:.4px}
+  body:has(#entry-choice) .contact-strip strong{font-size:8px}
+  body:has(#entry-choice) .contact-strip b{font-size:12px}
+}
+@media(max-width:390px){
+  body:has(#entry-choice) .hero-motion{height:190px}
+  body:has(#entry-choice) .showcase-side{grid-template-columns:.95fr 1.05fr}
+}
+@media(prefers-reduced-motion:reduce){body:has(#entry-choice) .hero-slide{animation:none;opacity:1}body:has(#entry-choice) .hero-slide:not(.slide-a){display:none}}
