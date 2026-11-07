@@ -589,7 +589,7 @@ function renderQueueSuccess(){
   setAppMode(true);setHeader('ENTRADA CONFIRMADA','Você entrou na fila!','Sua senha está na fila única da LaCorte.');notice.textContent='Aguarde ser chamado por um dos profissionais.';
   const ticket=state.queueTicket;content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
   actions.replaceChildren(makeButton('FINALIZAR',logoutCurrentSession,true));clearCustomerAutoLogout();
-  if(state.role==='customer'){notice.textContent='Entrada confirmada. A sessão será encerrada automaticamente em 30 segundos.';customerAutoLogoutTimer=setTimeout(logoutCurrentSession,CUSTOMER_AUTO_LOGOUT_MS);}
+  if(state.role==='customer'){notice.textContent='Entrada confirmada. A sessão será encerrada automaticamente em 5 segundos.';customerAutoLogoutTimer=setTimeout(logoutCurrentSession,CUSTOMER_AUTO_LOGOUT_MS);}
 }
 
 // Calcula a prévia do benefício. O banco continua sendo a autoridade final
