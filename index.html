@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <title>LaCorte | Autoatendimento</title>
-  <link rel="stylesheet" href="styles.css?v=20261107-52">
+  <link rel="stylesheet" href="styles.css?v=20261107-53">
 </head>
 <body>
   <header class="topbar">
@@ -180,14 +180,14 @@
       });
     })();
   </script>
-  <script src="app.js?v=20261106-50"></script>
+  <script src="app.js?v=20261107-53"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script>
     window.addEventListener("load", function () {
       const target = document.getElementById("wifi-qr");
       if (!target || !window.QRCode) return;
       new QRCode(target, {
-        text: "WIFI:T:WPA;S=La Corte_5G;P=18253030Lc@;;",
+        text: "WIFI:T:WPA;S=LaCorte_5G;P=18253030Lc@;;",
         width: 132,
         height: 132,
         colorDark: "#111111",
