@@ -142,13 +142,24 @@ function render(){
 }
 
 function renderLogin(){
-  setHeader('PRIMEIRO ACESSO','Bem-vindo à LaCorte','Cadastre-se com seu e-mail. O código será solicitado somente no primeiro acesso.');
-  content.innerHTML='<form id="login-form"><label for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" value="'+safe(state.pendingEmail||'')+'" required><button class="btn btn-secondary" id="send-code-button" type="button">ENVIAR CÓDIGO DO PRIMEIRO ACESSO</button><label for="email-code">Código recebido por e-mail</label><input id="email-code" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><p class="muted">Nas próximas visitas, basta se identificar.</p><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="verify-code-button" type="submit">CONFIRMAR CADASTRO</button><button class="btn btn-secondary" id="existing-customer-button" type="button">JÁ TENHO CADASTRO</button></form>';
+  setHeader('ACESSO AO AUTOATENDIMENTO','Bem-vindo à LaCorte','Escolha uma opção para continuar.');
+  content.innerHTML='<div class="entry-choice" id="entry-choice"><button class="btn btn-primary" id="start-registration" type="button">CADASTRAR</button><button class="btn btn-secondary" id="start-returning" type="button">JÁ TENHO CADASTRO</button></div><form id="login-form" hidden><label for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" value="'+safe(state.pendingEmail||'')+'" required><button class="btn btn-secondary" id="send-code-button" type="button">ENVIAR CÓDIGO DO PRIMEIRO ACESSO</button><label for="email-code">Código recebido por e-mail</label><input id="email-code" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><p class="muted">O código é solicitado somente no primeiro cadastro.</p><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="verify-code-button" type="submit">CONFIRMAR CADASTRO</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
   actions.replaceChildren();
-  document.querySelector('#existing-customer-button').addEventListener('click',renderReturningCustomerLookup);
+  document.querySelector('#start-registration').addEventListener('click',function(){
+    document.querySelector('#entry-choice').hidden=true;
+    document.querySelector('#login-form').hidden=false;
+    setHeader('PRIMEIRO ACESSO','Faça seu cadastro','Informe seu e-mail para receber o código de confirmação.');
+    document.querySelector('#email').focus();
+  });
+  document.querySelector('#start-returning').addEventListener('click',renderReturningCustomerLookup);
+  document.querySelector('#back-entry-choice').addEventListener('click',function(){
+    document.querySelector('#login-form').hidden=true;
+    document.querySelector('#entry-choice').hidden=false;
+    setHeader('ACESSO AO AUTOATENDIMENTO','Bem-vindo à LaCorte','Escolha uma opção para continuar.');
+  });
   document.querySelector('#send-code-button').addEventListener('click',async function(){
     const email=document.querySelector('#email').value.trim();if(!email){showMessage('Informe seu e-mail primeiro.');return;}
-    this.disabled=true;showMessage('Verificando se já existe cadastro...');const existing=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:email});if(existing.error){this.disabled=false;showMessage('Não foi possível verificar o cadastro: '+existing.error.message);return;}if(existing.data&&existing.data.length){this.disabled=false;showMessage('Este e-mail já possui cadastro. Use o botão JÁ TENHO CADASTRO para entrar sem novo código.');return;}showMessage('Enviando código...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
+    this.disabled=true;showMessage('Verificando se já existe cadastro...');const existing=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:email});if(existing.error){this.disabled=false;showMessage('Não foi possível verificar o cadastro: '+existing.error.message);return;}if(existing.data&&existing.data.length){this.disabled=false;showMessage('Este e-mail já possui cadastro. Use a opção JÁ TENHO CADASTRO para entrar sem novo código.');return;}showMessage('Enviando código...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
     if(result.error){showMessage('Erro ao enviar código: '+result.error.message);return;}state.pendingEmail=email;showMessage('Código enviado. Digite os 6 números acima.');document.querySelector('#email-code').focus();
   });
   document.querySelector('#login-form').addEventListener('submit',async function(e){
