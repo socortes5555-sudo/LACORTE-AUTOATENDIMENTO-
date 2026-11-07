@@ -1748,3 +1748,9 @@ body:has(#entry-choice) footer small{font:10px 'DM Sans',sans-serif;color:#aaa}
   body:has(#entry-choice) .showcase-side{grid-template-columns:.95fr 1.05fr}
 }
 @media(prefers-reduced-motion:reduce){body:has(#entry-choice) .hero-slide{animation:none;opacity:1}body:has(#entry-choice) .hero-slide:not(.slide-a){display:none}}
+
+
+/* QR Wi-Fi: tamanho legível para leitura pela câmera do celular */
+body:has(#entry-choice) .wifi-qr-frame{flex:0 0 108px!important;width:108px!important;height:108px!important;padding:4px!important;background:#fff!important}
+body:has(#entry-choice) #wifi-qr{width:100px!important;height:100px!important;overflow:visible!important}
+body:has(#entry-choice) #wifi-qr canvas,body:has(#entry-choice) #wifi-qr img{width:100px!important;height:100px!important;max-width:none!important;max-height:none!important;image-rendering:pixelated}
