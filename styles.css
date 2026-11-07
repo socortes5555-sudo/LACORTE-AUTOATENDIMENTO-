@@ -1454,3 +1454,138 @@ footer .staff-portal-entry{display:none}
  .hero-slide,.showcase-photo{animation:none;opacity:1}
  .hero-slide:not(.slide-a),.showcase-photo:not(.photo-one){display:none}
 }
+
+
+/* Correção da página inicial: composição fiel ao pôster aprovado */
+body:has(.shell .entry-choice){min-height:100svh;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important;background:#080808}
+body:has(.shell .entry-choice) .topbar{
+  width:100%;max-width:none;height:88px;min-height:88px;padding:8px clamp(18px,5vw,64px);
+  border-bottom:1px solid #ffffff18;background:linear-gradient(90deg,#080808,#17100c 65%,#080808)
+}
+body:has(.shell .entry-choice) .brand{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;font-size:0;line-height:1}
+body:has(.shell .entry-choice) .brand-croc{grid-column:1;grid-row:1 / span 2;width:74px;height:42px}
+body:has(.shell .entry-choice) .brand-word{grid-column:2;grid-row:1;font:800 clamp(27px,4vw,40px)/.95 Oswald,sans-serif;letter-spacing:1px;color:#fff}
+body:has(.shell .entry-choice) .brand-word b{color:#ff791f}
+body:has(.shell .entry-choice) .brand small{grid-column:2;grid-row:2;font:600 10px/1 'DM Sans',sans-serif;letter-spacing:6px;color:#eee;padding-left:3px}
+body:has(.shell .entry-choice) .top-label{font-size:11px;letter-spacing:3px;color:#d5d0ca}
+body:has(.shell .entry-choice) .shell{
+  width:min(1180px,100% - 44px);max-width:1180px;height:auto!important;min-height:0!important;
+  margin:0 auto;padding:24px 0 34px;display:block!important;overflow:visible!important
+}
+body:has(.shell .entry-choice) .hero.hero-home{
+  display:grid;grid-template-columns:.9fr 1.1fr;align-items:center;gap:28px;
+  max-width:none;min-height:410px;margin:0 0 20px;padding:20px 0;
+  border:0;border-radius:0;background:transparent;box-shadow:none
+}
+body:has(.shell .entry-choice) .hero-copy{position:relative;z-index:2;padding:10px 0}
+body:has(.shell .entry-choice) .hero-pretitle{margin:0;color:#f4eee8;font-size:clamp(20px,2.8vw,34px);font-style:italic}
+body:has(.shell .entry-choice) .hero-home h1{font:800 clamp(54px,7vw,88px)/.92 Oswald,sans-serif;letter-spacing:-2px;margin:8px 0 20px}
+body:has(.shell .entry-choice) .hero-home h1 em{color:#ff791f}
+body:has(.shell .entry-choice) .hero-values{display:flex;align-items:center;gap:14px;margin:20px 0;color:#f5eee8;font-size:13px;font-weight:700}
+body:has(.shell .entry-choice) .hero-values i{height:26px;width:2px;background:#ff791f}
+body:has(.shell .entry-choice) .hero-home .intro{font-size:13px;color:#c3bbb4}
+body:has(.shell .entry-choice) .hero-motion{
+  height:400px;min-width:0;position:relative;overflow:hidden;border-radius:20px 5px 20px 5px;
+  mask-image:linear-gradient(90deg,transparent 0%,#000 12%,#000 100%)
+}
+body:has(.shell .entry-choice) .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;opacity:0}
+body:has(.shell .entry-choice) .hero-image-shade{position:absolute;inset:0;background:linear-gradient(90deg,#08080820,transparent 30%,#08080815),linear-gradient(0deg,#08080880,transparent 50%)}
+body:has(.shell .entry-choice) .progress{display:none!important}
+body:has(.shell .entry-choice) .panel{
+  width:100%;max-width:none;min-height:0!important;height:auto!important;overflow:visible!important;
+  margin:0 auto;padding:22px clamp(18px,3vw,34px);border:1px solid #ffffff24;border-radius:17px;
+  background:linear-gradient(105deg,#171310e8,#15110ee8);box-shadow:0 16px 50px #0008
+}
+body:has(.shell .entry-choice) .panel-heading{margin:0 0 6px}
+body:has(.shell .entry-choice) .panel-heading h2{font:600 clamp(25px,3vw,34px)/1.1 Oswald,sans-serif;margin:4px 0}
+body:has(.shell .entry-choice) .panel-heading .muted{font-size:13px;margin:5px 0;color:#bbb}
+body:has(.shell .entry-choice) .panel-heading .eyebrow{font-size:10px;letter-spacing:2.5px}
+body:has(.shell .entry-choice) .entry-choice{max-width:100%;gap:16px;margin:18px 0 2px}
+body:has(.shell .entry-choice) .entry-choice .btn{min-height:76px;border-radius:13px;font-size:14px;letter-spacing:1px}
+body:has(.shell .entry-choice) .entry-choice .btn-primary{background:linear-gradient(110deg,#ff8d43,#f47721);color:#111}
+body:has(.shell .entry-choice) .entry-choice .btn-secondary{background:#ffffff08;border:1px solid #ffffff38;color:#fff}
+body:has(.shell .entry-choice) .panel:has(.entry-choice) .notice{margin:8px 0 0;padding:4px 0 0;font-size:11px;color:#aaa}
+body:has(.shell .entry-choice) .experience-showcase{
+  display:grid!important;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:20px;
+  height:auto!important;min-height:0!important;max-height:none!important;margin:22px 0 0;
+  overflow:visible!important;position:relative!important
+}
+body:has(.shell .entry-choice) .experience-showcase>.connection-card{
+  position:relative!important;inset:auto!important;width:auto!important;height:auto!important;min-height:150px;
+  padding:16px 20px;gap:18px;border:1px solid #ffffff25;border-radius:14px;
+  background:linear-gradient(120deg,#171717,#21170f);backdrop-filter:blur(8px)
+}
+body:has(.shell .entry-choice) .wifi-qr-frame{flex-basis:116px;width:116px;height:116px;padding:6px}
+body:has(.shell .entry-choice) #wifi-qr{width:104px;height:104px}
+body:has(.shell .entry-choice) .connection-copy>strong{font:600 23px Oswald,sans-serif}
+body:has(.shell .entry-choice) .connection-copy>small{font-size:11px}
+body:has(.shell .entry-choice) .showcase-side{position:relative!important;inset:auto!important;display:grid!important;grid-template-columns:.8fr 1.2fr;gap:14px;pointer-events:auto}
+body:has(.shell .entry-choice) .membership-highlight{
+  position:relative!important;inset:auto!important;width:auto!important;min-height:150px;padding:18px;
+  border:1px solid #ffffff25;border-radius:14px;background:linear-gradient(135deg,#29201a,#171513)
+}
+body:has(.shell .entry-choice) .membership-highlight h2{font-size:25px}
+body:has(.shell .entry-choice) .membership-highlight p{font-size:10px}
+body:has(.shell .entry-choice) .membership-highlight p strong{font-size:20px}
+body:has(.shell .entry-choice) .contact-strip{display:grid;grid-template-columns:1fr;align-content:center;gap:8px;padding:8px 0}
+body:has(.shell .entry-choice) .contact-strip>div,
+body:has(.shell .entry-choice) .contact-strip>a{display:grid;gap:3px;text-decoration:none;color:#f4eee8;padding:5px 0}
+body:has(.shell .entry-choice) .contact-strip span{font-size:8px;letter-spacing:1.2px;color:#ff9b5a;font-weight:800}
+body:has(.shell .entry-choice) .contact-strip strong{font-size:11px}
+body:has(.shell .entry-choice) .contact-strip b{font:700 17px Oswald,sans-serif;color:#ff8a3d}
+body:has(.shell .entry-choice) footer{display:block!important;margin-top:25px;padding:16px 0 0;border-top:1px solid #ffffff20;text-align:center;font:800 28px Oswald,sans-serif}
+body:has(.shell .entry-choice) footer small{font:10px 'DM Sans',sans-serif;color:#aaa}
+@media(max-width:760px){
+  body:has(.shell .entry-choice) .topbar{height:76px;min-height:76px;padding:7px 16px}
+  body:has(.shell .entry-choice) .brand-croc{width:54px;height:34px}
+  body:has(.shell .entry-choice) .brand-word{font-size:29px}
+  body:has(.shell .entry-choice) .brand small{font-size:8px;letter-spacing:4px}
+  body:has(.shell .entry-choice) .top-label{font-size:8px;letter-spacing:1.5px}
+  body:has(.shell .entry-choice) .shell{width:calc(100% - 28px);padding:10px 0 22px}
+  body:has(.shell .entry-choice) .hero.hero-home{
+    display:block;position:relative;min-height:420px;padding:20px 14px 22px;margin:0 0 12px;
+    overflow:hidden;border-radius:14px;background:#0b0b0b
+  }
+  body:has(.shell .entry-choice) .hero-copy{position:relative;z-index:3;max-width:64%;padding:12px 0}
+  body:has(.shell .entry-choice) .hero-pretitle{font-size:19px}
+  body:has(.shell .entry-choice) .hero-home h1{font-size:clamp(47px,10vw,68px);margin:7px 0 14px}
+  body:has(.shell .entry-choice) .hero-values{flex-wrap:wrap;gap:7px;font-size:9px;margin:14px 0}
+  body:has(.shell .entry-choice) .hero-values i{height:18px}
+  body:has(.shell .entry-choice) .hero-home .intro{font-size:10px;max-width:190px}
+  body:has(.shell .entry-choice) .hero-motion{
+    position:absolute;inset:0 0 0 24%;height:auto;border-radius:0;mask-image:linear-gradient(90deg,transparent 0%,#000 28%,#000 100%)
+  }
+  body:has(.shell .entry-choice) .hero-slide{object-position:57% center}
+  body:has(.shell .entry-choice) .hero-image-shade{background:linear-gradient(90deg,#080808b0 0%,#08080840 45%,#08080810 100%),linear-gradient(0deg,#080808bb 0%,transparent 65%)}
+  body:has(.shell .entry-choice) .panel{padding:15px 14px;border-radius:13px}
+  body:has(.shell .entry-choice) .panel-heading h2{font-size:24px}
+  body:has(.shell .entry-choice) .panel-heading .muted{font-size:11px}
+  body:has(.shell .entry-choice) .entry-choice{gap:8px;margin:12px 0 0}
+  body:has(.shell .entry-choice) .entry-choice .btn{min-height:62px;padding:10px 7px;font-size:10px;letter-spacing:.3px}
+  body:has(.shell .entry-choice) .panel:has(.entry-choice) .notice{font-size:9px}
+  body:has(.shell .entry-choice) .experience-showcase{grid-template-columns:1fr;gap:9px;margin-top:12px}
+  body:has(.shell .entry-choice) .experience-showcase>.connection-card{min-height:112px;padding:10px;gap:12px}
+  body:has(.shell .entry-choice) .wifi-qr-frame{flex-basis:86px;width:86px;height:86px;padding:5px}
+  body:has(.shell .entry-choice) #wifi-qr{width:76px;height:76px}
+  body:has(.shell .entry-choice) .connection-copy>strong{font-size:19px}
+  body:has(.shell .entry-choice) .connection-copy>small{font-size:9px}
+  body:has(.shell .entry-choice) .showcase-side{grid-template-columns:.8fr 1.2fr;gap:9px}
+  body:has(.shell .entry-choice) .membership-highlight{min-height:112px;padding:12px}
+  body:has(.shell .entry-choice) .membership-kicker{font-size:7px;letter-spacing:1px}
+  body:has(.shell .entry-choice) .membership-highlight h2{font-size:18px;margin:7px 0 2px}
+  body:has(.shell .entry-choice) .membership-highlight p{font-size:8px;letter-spacing:.6px}
+  body:has(.shell .entry-choice) .membership-highlight p strong{font-size:15px}
+  body:has(.shell .entry-choice) .contact-strip{gap:5px}
+  body:has(.shell .entry-choice) .contact-strip span{font-size:6px;letter-spacing:.5px}
+  body:has(.shell .entry-choice) .contact-strip strong{font-size:8px;overflow-wrap:anywhere}
+  body:has(.shell .entry-choice) .contact-strip b{font-size:13px}
+  body:has(.shell .entry-choice) footer{font-size:23px;margin-top:16px}
+}
+@media(max-width:390px){
+  body:has(.shell .entry-choice) .top-label{font-size:7px;letter-spacing:1px}
+  body:has(.shell .entry-choice) .hero.hero-home{min-height:370px}
+  body:has(.shell .entry-choice) .hero-copy{max-width:70%}
+  body:has(.shell .entry-choice) .hero-home h1{font-size:45px}
+  body:has(.shell .entry-choice) .entry-choice .btn{font-size:9px}
+  body:has(.shell .entry-choice) .showcase-side{grid-template-columns:.9fr 1.1fr}
+}
