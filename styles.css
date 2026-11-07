@@ -841,3 +841,215 @@ body.professional-dashboard .professional-main>.summary:not(.professional-custom
     min-width:0;margin-top:13px;padding:13px 0 0;border-left:0;border-top:1px solid #303030;
   }
 }
+
+
+/* LaCorte — experiência mobile dedicada para o painel do profissional */
+@media (max-width: 700px) {
+  body.professional-dashboard .shell {
+    width: calc(100% - 20px);
+    padding: 12px 0 28px;
+  }
+  body.professional-dashboard #step-content:has(.professional-nav) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+  body.professional-dashboard .professional-nav {
+    position: static;
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    padding: 10px;
+    border: 1px solid #38302a;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #1b1b1b, #111);
+    box-shadow: 0 8px 22px #0004;
+  }
+  body.professional-dashboard .professional-nav-brand {
+    justify-content: flex-start;
+    padding: 2px 3px 9px;
+    border: 0;
+    border-bottom: 1px solid #333;
+  }
+  body.professional-dashboard .professional-nav-brand > span:last-child {
+    display: block;
+  }
+  body.professional-dashboard .professional-brand-mark {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+  }
+  body.professional-dashboard .professional-nav-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    min-width: 0;
+  }
+  body.professional-dashboard .professional-nav-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 8px 9px;
+    border: 1px solid #343434;
+    border-radius: 9px;
+    background: #191919;
+    color: #ddd;
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: normal;
+  }
+  body.professional-dashboard .professional-nav-item > span:last-child {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+  body.professional-dashboard .professional-nav-icon {
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    font-size: 15px;
+  }
+  body.professional-dashboard .professional-main {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    gap: 13px;
+  }
+  body.professional-dashboard .professional-page-tools {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 2px 0 11px;
+  }
+  body.professional-dashboard .professional-page-eyebrow {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  body.professional-dashboard .professional-refresh {
+    min-height: 38px;
+    padding: 0 11px;
+    font-size: 9px;
+  }
+  body.professional-dashboard .professional-main > .admin-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  body.professional-dashboard .professional-main > .admin-kpis article {
+    min-width: 0;
+    min-height: 94px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  body.professional-dashboard .professional-main > .admin-kpis article > span {
+    font-size: 8px;
+    line-height: 1.35;
+    letter-spacing: .6px;
+  }
+  body.professional-dashboard .professional-main > .admin-kpis article > strong {
+    margin: 8px 0 4px;
+    font-size: clamp(22px, 7vw, 29px);
+    overflow-wrap: anywhere;
+  }
+  body.professional-dashboard .professional-main > .admin-kpis article > small {
+    font-size: 9px;
+    line-height: 1.35;
+  }
+  body.professional-dashboard .professional-main > .admin-agenda-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  body.professional-dashboard .professional-main > .admin-agenda-heading h3 {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+  body.professional-dashboard .professional-main > .admin-agenda-heading > span {
+    font-size: 9px;
+  }
+  body.professional-dashboard .professional-main > .professional-customer-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0;
+    padding: 13px;
+  }
+  body.professional-dashboard .professional-customer-card .summary-row {
+    display: grid;
+    grid-template-columns: minmax(76px, .7fr) minmax(0, 1.3fr);
+    gap: 8px;
+    padding: 9px 0;
+    font-size: 10px;
+  }
+  body.professional-dashboard .professional-customer-card .summary-row:first-child {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding-bottom: 11px;
+    font-size: 10px;
+  }
+  body.professional-dashboard .professional-customer-card .summary-row:first-child strong {
+    font-size: 16px;
+  }
+  body.professional-dashboard .professional-customer-card .summary-row > strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  body.professional-dashboard .professional-customer-card .actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 0 0;
+    border: 0;
+    border-top: 1px solid #333;
+  }
+  body.professional-dashboard .professional-customer-card .actions .btn {
+    min-height: 44px;
+    width: 100%;
+    font-size: 10px;
+  }
+  body.professional-dashboard .professional-main > .summary:not(.professional-customer-card) {
+    min-width: 0;
+    padding: 15px;
+    border-radius: 12px;
+  }
+  body.professional-dashboard .report-kpis,
+  body.professional-dashboard .report-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  body.professional-dashboard .report-chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.professional-dashboard .report-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 380px) {
+  body.professional-dashboard .shell {
+    width: calc(100% - 16px);
+  }
+  body.professional-dashboard .professional-nav-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.professional-dashboard .professional-main > .admin-kpis article {
+    padding: 10px;
+  }
+  body.professional-dashboard .professional-main > .admin-kpis article > strong {
+    font-size: 22px;
+  }
+}
