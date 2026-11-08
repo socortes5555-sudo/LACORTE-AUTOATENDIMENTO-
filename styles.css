@@ -3955,3 +3955,64 @@ body:has(#step-content) .footer-meta a:hover{text-decoration:underline!important
   body:has(#step-content) .hero-slide:not(.slide-a){display:none!important}
   body:has(#step-content) .hero-slide.slide-a{opacity:1!important}
 }
+
+
+/* Acabamento visual da tela pública LaCorte */
+body:has(#step-content) .topbar{
+  width:100%;height:76px!important;min-height:76px!important;
+  padding:0 max(24px,calc((100vw - 1200px)/2))!important;
+  background:rgba(13,13,13,.94);border-bottom:1px solid #ffffff18;
+}
+body:has(#step-content) .brand{gap:9px!important;color:#fff!important;text-decoration:none}
+body:has(#step-content) .brand-croc{color:#ff8128!important;filter:drop-shadow(0 3px 12px #ff812833)}
+body:has(#step-content) .brand-word{font-family:Oswald,sans-serif!important;font-weight:700!important;letter-spacing:.5px!important}
+body:has(#step-content) .top-label{padding:9px 12px;border:1px solid #ff812844;border-radius:30px;background:#ff812810}
+body:has(#step-content) .hero-copy .eyebrow{margin:0 0 14px}
+body:has(#step-content) .hero-pretitle{color:#d5d0ca;font-weight:500}
+body:has(#step-content) .hero-values span{color:#ded8d1}
+body:has(#step-content) .hero-motion{border:1px solid #ffffff20;box-shadow:0 22px 55px #0008}
+body:has(#step-content) .panel{background:linear-gradient(145deg,#1c1c1c,#141414)!important;box-shadow:0 20px 55px #0007!important}
+body:has(#step-content) #step-content form{display:grid;gap:10px}
+body:has(#step-content) #step-content form label{font-size:12px;color:#e9e2dc;font-weight:700;letter-spacing:.3px}
+body:has(#step-content) #step-content form input{
+  width:100%;min-height:50px;padding:13px 15px;
+  border:1px solid #414141;border-radius:10px;background:#101010;
+  color:#fff;font:14px 'DM Sans',sans-serif;outline:none;
+}
+body:has(#step-content) #step-content form input:focus{border-color:#ff8128;box-shadow:0 0 0 3px #ff812820}
+body:has(#step-content) #step-content form .muted{font-size:12px;margin:0}
+body:has(#step-content) #step-content form .btn{min-height:50px;margin-top:4px;letter-spacing:.5px}
+body:has(#step-content) .notice{background:#211a15;border-color:#52351f;color:#d9c2ad}
+body:has(#step-content) .experience-showcase{gap:14px!important}
+body:has(#step-content) .connection-card,
+body:has(#step-content) .membership-highlight,
+body:has(#step-content) .contact-strip>div,
+body:has(#step-content) .contact-strip>a{
+  border:1px solid #ffffff18;border-radius:14px;background:linear-gradient(145deg,#1d1d1d,#141414);
+}
+body:has(#step-content) .connection-card{display:flex;align-items:center;gap:16px}
+body:has(#step-content) .wifi-qr-frame{flex:none}
+body:has(#step-content) .membership-highlight{border-color:#ff81283d;background:linear-gradient(145deg,#2b1b11,#171411)}
+body:has(#step-content) .membership-highlight h2{font:700 23px/1.1 Oswald,sans-serif;letter-spacing:.5px}
+body:has(#step-content) .membership-highlight p{color:#c9b7a8;font-size:11px}
+body:has(#step-content) .membership-highlight p strong{color:#ff984f;font-size:20px}
+body:has(#step-content) .contact-strip>div,
+body:has(#step-content) .contact-strip>a{padding:12px}
+body:has(#step-content) .contact-strip span{color:#ff984f;font-size:9px;letter-spacing:1.2px;font-weight:700}
+body:has(#step-content) .contact-strip strong{font-size:12px;color:#f5f1ec}
+body:has(#step-content) .contact-strip b{font-size:11px;color:#aaa}
+@media(max-width:760px){
+  body:has(#step-content) .topbar{height:64px!important;min-height:64px!important;padding:0 16px!important}
+  body:has(#step-content) .brand-croc{width:39px!important;height:27px!important}
+  body:has(#step-content) .brand-word{font-size:26px!important}
+  body:has(#step-content) .top-label{font-size:8px;padding:7px 9px;letter-spacing:1px}
+  body:has(#step-content) .connection-card{min-height:118px!important}
+  body:has(#step-content) .membership-highlight{min-height:136px!important}
+}
+@media(max-width:420px){
+  body:has(#step-content) .topbar{padding:0 12px!important}
+  body:has(#step-content) .brand{gap:6px!important}
+  body:has(#step-content) .brand-croc{width:32px!important}
+  body:has(#step-content) .brand-word{font-size:23px!important}
+  body:has(#step-content) .top-label{font-size:7px;padding:6px 7px}
+}
