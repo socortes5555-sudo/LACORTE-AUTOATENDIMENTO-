@@ -2132,3 +2132,71 @@ body.admin-dashboard .report-table-wrap{box-shadow:0 8px 22px #0003}
   body.admin-dashboard .admin-nav{grid-template-columns:1fr}
   body.admin-dashboard .admin-nav-item:last-of-type{grid-column:auto}
 }
+
+/* REFINAMENTO VISUAL ADMINISTRATIVO — navegação, conteúdo e leitura */
+body.admin-dashboard{background:#0b0b0b;color:#f3f3f3}
+body.admin-dashboard .shell{width:min(100% - 48px,1600px);padding-top:30px}
+body.admin-dashboard .admin-nav{border:1px solid #303030;box-shadow:0 18px 42px #0005}
+body.admin-dashboard .admin-nav-item{font-size:12px;min-height:46px}
+body.admin-dashboard .admin-nav-item span:last-child{font-size:12px}
+body.admin-dashboard .admin-workspace{display:flex;flex-direction:column;gap:17px}
+body.admin-dashboard .admin-section-heading{margin:0 0 2px;padding:2px 2px 14px;border-bottom:1px solid #2b2b2b}
+body.admin-dashboard .admin-section-heading .eyebrow{color:#ff9855;font-size:10px;font-weight:800;letter-spacing:1.7px}
+body.admin-dashboard .admin-section-heading h2{margin:7px 0 5px;font-size:clamp(23px,2.2vw,30px);line-height:1.15}
+body.admin-dashboard .admin-section-heading .muted{max-width:760px;font-size:12px;line-height:1.65}
+body.admin-dashboard .summary{border:1px solid #303030;border-radius:14px;background:#171717;box-shadow:0 8px 24px #0002}
+body.admin-dashboard .summary h3{margin:0 0 12px;color:#f4f4f4;font-size:13px;letter-spacing:.45px}
+body.admin-dashboard .admin-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+body.admin-dashboard .admin-form label{align-self:end;color:#aaa;font-size:11px}
+body.admin-dashboard .admin-form input{min-width:0;width:100%}
+body.admin-dashboard .admin-form button,body.admin-dashboard .admin-form p{grid-column:1/-1}
+body.admin-dashboard .manage-panel[hidden],body.admin-dashboard .manage-tabs[hidden]{display:none!important}
+body.admin-dashboard .manage-panel>.summary{margin:0}
+body.admin-dashboard .admin-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px 13px;padding:15px}
+body.admin-dashboard .admin-item label{align-self:end}
+body.admin-dashboard .admin-item input:not([type=checkbox]){width:100%;min-width:0}
+body.admin-dashboard .admin-item .admin-check,body.admin-dashboard .admin-item button{grid-column:1/-1}
+body.admin-dashboard .admin-item button{width:fit-content;min-width:190px}
+body.admin-dashboard .history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+body.admin-dashboard .history-summary article{min-width:0;padding:17px;border:1px solid #303030;border-radius:13px;background:linear-gradient(145deg,#202020,#151515)}
+body.admin-dashboard .history-summary article span{display:block;color:#aaa;font-size:10px;font-weight:700;letter-spacing:.5px}
+body.admin-dashboard .history-summary article strong{display:block;margin-top:10px;color:#ff9a55;font-size:25px;overflow-wrap:anywhere}
+body.admin-dashboard .history-table-section{min-width:0}
+body.admin-dashboard .history-table-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}
+body.admin-dashboard .history-table-heading h3{margin:0}
+body.admin-dashboard .history-table-heading>span{padding:7px 10px;border:1px solid #49301f;border-radius:99px;color:#ffb27c;font-size:10px}
+body.admin-dashboard .history-table td small{display:block;margin-top:4px;color:#888;font-size:10px}
+body.admin-dashboard .history-status{display:inline-flex;padding:5px 8px;border-radius:99px;background:#282828;color:#ddd;font-size:10px;white-space:nowrap}
+body.admin-dashboard .history-status.status-completed{background:#173323;color:#8dd5a8}
+body.admin-dashboard .history-status.status-waiting{background:#382719;color:#ffbd83}
+body.admin-dashboard .history-status.status-in_progress{background:#332b18;color:#f0d17c}
+body.admin-dashboard .history-status.status-cancelled{background:#3b2020;color:#f0a0a0}
+body.admin-dashboard .history-empty{padding:34px 16px;text-align:center}
+body.admin-dashboard .history-empty strong{font-size:14px}
+body.admin-dashboard .history-empty p{color:#999;font-size:12px}
+body.admin-dashboard .report-filter{display:grid;grid-template-columns:1fr minmax(0,2fr) auto;align-items:end}
+body.admin-dashboard .report-filter>label:first-child{align-self:center;color:#aaa;font-size:10px;font-weight:800;letter-spacing:.7px}
+body.admin-dashboard .report-date-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body.admin-dashboard .report-date-fields label{display:grid;gap:6px;color:#aaa;font-size:10px}
+body.admin-dashboard .report-date-fields input{width:100%;min-width:0}
+body.admin-dashboard .report-table th{color:#ffb27c;font-size:10px;letter-spacing:.35px}
+body.admin-dashboard .report-table td{font-size:11px;vertical-align:middle}
+body.admin-dashboard .admin-reveal-button,body.admin-dashboard .admin-list-toggle{width:100%;margin:7px 0}
+body.admin-dashboard .admin-reveal-content[hidden]{display:none!important}
+body.admin-dashboard input,body.admin-dashboard select,body.admin-dashboard textarea{min-height:42px;border:1px solid #383838;border-radius:9px;background:#101010;color:#f4f4f4}
+body.admin-dashboard input:focus,body.admin-dashboard select:focus,body.admin-dashboard textarea:focus{outline:2px solid #ff791f55;border-color:#ff791f}
+body.admin-dashboard .btn{min-height:42px;border-radius:9px;font-weight:800;letter-spacing:.2px}
+@media(max-width:1100px){body.admin-dashboard .shell{width:calc(100% - 30px)}body.admin-dashboard .report-filter{grid-template-columns:1fr}}
+@media(max-width:760px){
+ body.admin-dashboard .shell{width:calc(100% - 22px);padding-top:15px}
+ body.admin-dashboard .history-summary{grid-template-columns:1fr}
+ body.admin-dashboard .history-summary article{padding:13px}
+ body.admin-dashboard .history-summary article strong{font-size:22px;margin-top:6px}
+ body.admin-dashboard .admin-form,body.admin-dashboard .admin-item{grid-template-columns:1fr}
+ body.admin-dashboard .admin-form button,body.admin-dashboard .admin-form p,body.admin-dashboard .admin-item .admin-check,body.admin-dashboard .admin-item button{grid-column:auto}
+ body.admin-dashboard .admin-item button{width:100%}
+ body.admin-dashboard .report-filter{padding:13px}
+ body.admin-dashboard .report-date-fields{grid-template-columns:1fr}
+ body.admin-dashboard .history-table-heading{align-items:flex-start;flex-direction:column}
+ body.admin-dashboard .report-table{min-width:850px}
+}
