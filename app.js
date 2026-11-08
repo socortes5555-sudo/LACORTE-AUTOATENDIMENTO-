@@ -511,6 +511,7 @@ function renderQueueDashboard(){
   setAppMode(true);
   updateProgress();
   const admin = state.role === "admin";
+  if(admin) adminView = "queue";
   const assignedBarber = barbers.find(function(item){ return item.id === state.barberId; });
   const professionalName = assignedBarber ? assignedBarber.name : "Área profissional";
 
@@ -585,8 +586,7 @@ function renderQueueDashboard(){
         return safe(item.service_name) + " (" + money(Number(item.unit_price)) + ")";
       }).join(", ") || "—";
       const className = row.status === "in_progress" ? "progress" : "waiting";
-      const canStart = row.status === "waiting" &&
-        (!row.barber_id || row.barber_id === state.barberId);
+      const canStart = row.status === "waiting" && !row.barber_id;
       const canFinish = row.status === "in_progress" &&
         row.barber_id === state.barberId;
 
@@ -1178,7 +1178,7 @@ async function renderAdminReports(view="reports"){
       const serviceText=(itemsByQueue[row.id] || []).map(function(item){
         return safe(item.service_name)+" ("+money(Number(item.unit_price || 0))+")";
       }).join(", ") || "—";
-      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id || 'Aguardando atribuição')+'</td><td>'+serviceText+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(row.payment_method || '—')+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
+      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id || 'Aguardando atribuição')+'</td><td>'+serviceText+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"})[row.payment_method] || row.payment_method || '—')+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
     });
 
     const periodOptions = '<option value="today" '+(adminReportFilters.period==="today"?"selected":"")+'>Hoje</option>'+
@@ -1387,7 +1387,7 @@ async function renderAdminManagement(){
       '</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
       tabsMarkup + '</nav>';
     html += '<div class="manage-panel ' + (servicesOnly ? "" : "active") + '" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><span class="manage-card-icon">⌑</span><div><h3>ACESSO PROFISSIONAL</h3><p class="muted">Conta vinculada ao Barbeiro 2</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><small>O acesso do administrador permanece separado.</small></div><span class="manage-status">VINCULADO</span></section></div>';
-    html += '<div class="manage-panel ' + (servicesOnly ? "" : "") + '" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Profissionais cadastrados na barbearia</p></div><span class="manage-count">' + barberRows.length + '</span></div><div class="manage-overview-list">';
+    html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Profissionais cadastrados na barbearia</p></div><span class="manage-count">' + barberRows.length + '</span></div><div class="manage-overview-list">';
     barberRows.forEach(function(b){ html += '<article class="manage-overview-row"><div><strong>' + safe(b.name) + '</strong><small>' + Number(b.commission_percent || 0) + '% de comissão</small></div><span class="manage-status ' + (b.active ? 'is-active' : 'is-inactive') + '">' + (b.active ? 'ATIVO' : 'INATIVO') + '</span></article>'; });
     if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
     html += '</div></section></div>';
