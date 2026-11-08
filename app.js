@@ -1304,6 +1304,7 @@ function bindAdminNavigation(){
       else if(adminView === "history") renderAdminReports("history");
       else if(adminView === "customers") renderAdminCustomers();
       else if(adminView === "services") renderAdminManagement();
+      else if(adminView === "plans") renderAdminPlans();
       else if(adminView === "reports") renderAdminReports();
       else renderQueueDashboard();
     });
