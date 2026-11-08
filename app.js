@@ -481,8 +481,21 @@ async function loadQueueRows(){
 let professionalView = "queue";
 function professionalNavigation(view){
   professionalView = view || professionalView;
-  const item = (key,label,icon) => '<button type="button" class="professional-nav-item '+(professionalView===key?'active':'')+'" data-professional-view="'+key+'"><span class="professional-nav-icon" aria-hidden="true">'+icon+'</span><span>'+label+'</span></button>';
-  return '<nav class="professional-nav" aria-label="Navegação profissional"><div class="professional-nav-brand"><span class="professional-brand-mark">LC</span><span><strong>LA CORTE</strong><small>ÁREA PROFISSIONAL</small></span></div><div class="professional-nav-items">'+item("queue","Fila compartilhada","▦")+item("reports","Meus relatórios","▤")+'</div></nav>';
+  const barber = barbers.find(function(item){ return item.id === state.barberId; });
+  const barberName = barber ? barber.name.toUpperCase() : "PROFISSIONAL";
+  const item = function(key,label,icon){
+    return '<button type="button" class="professional-nav-item ' +
+      (professionalView === key ? "active" : "") +
+      '" data-professional-view="' + key + '"><span class="professional-nav-icon" aria-hidden="true">' +
+      icon + '</span><span>' + label + '</span></button>';
+  };
+  return '<nav class="professional-nav" aria-label="Navegação profissional">' +
+    '<div class="professional-nav-brand"><span class="professional-brand-mark">LC</span>' +
+    '<span><strong>LA CORTE</strong><small>' + safe(barberName) + '</small></span></div>' +
+    '<div class="professional-nav-items">' +
+    item("queue","Fila compartilhada","▦") +
+    item("reports","Meus relatórios","▤") +
+    '</div></nav>';
 }
 function bindProfessionalNavigation(){
   content.querySelectorAll("[data-professional-view]").forEach(function(button){
@@ -495,24 +508,163 @@ function bindProfessionalNavigation(){
 }
 
 function renderQueueDashboard(){
- setAppMode(true);updateProgress();const admin=state.role==='admin';
- setHeader(admin?'ADMINISTRAÇÃO LACORTE':'PAINEL DO PROFISSIONAL',admin?'Painel central':'Fila compartilhada',admin?'Visão geral dos atendimentos de hoje.':'Escolha qualquer cliente aguardando para iniciar o atendimento.');
- notice.textContent='Fila presencial • Sem pagamento online.';content.innerHTML='<p class="muted">Carregando fila compartilhada...</p>';dashboardActions();
- loadQueueRows().then(rows=>{if(!content.isConnected)return;const waiting=rows.filter(r=>r.status==='waiting').length,progress=rows.filter(r=>r.status==='in_progress').length,completed=rows.filter(r=>r.status==='completed').length;let html=admin?adminNavigation():(professionalNavigation('queue')+'<main class="professional-main">');
- html+='<div class="professional-page-tools"><span class="professional-page-eyebrow">OPERAÇÃO EM TEMPO REAL</span><button type="button" class="professional-refresh" data-refresh-queue aria-label="Atualizar fila"><span aria-hidden="true">↻</span> ATUALIZAR FILA</button></div><div class="admin-kpis"><article><span>AGUARDANDO</span><strong>'+waiting+'</strong><small>Fila compartilhada</small></article><article><span>EM ATENDIMENTO</span><strong>'+progress+'</strong><small>Com os profissionais</small></article><article><span>CONCLUÍDOS HOJE</span><strong>'+completed+'</strong><small>Finalizados</small></article><article><span>TOTAL DO DIA</span><strong>'+rows.length+'</strong><small>Todos os registros</small></article></div><div class="admin-agenda-heading"><div><small>FILA ÚNICA</small><h3>Clientes por ordem de chegada</h3></div><span>'+waiting+' aguardando</span></div>';
- if(!rows.length)html+='<div class="summary"><p class="muted">Ainda não há clientes na fila hoje.</p></div>';
- rows.forEach(row=>{const c=row.customer||{},name=(c.first_name||'Cliente')+' '+(c.last_name||''),barber=barbers.find(b=>b.id===row.barber_id),serviceText=row.items.map(i=>safe(i.service_name)+' ('+money(Number(i.unit_price))+')').join(', ')||'—',cls=row.status==='completed'?'done':row.status==='in_progress'?'progress':row.status==='cancelled'?'cancelled':'waiting';
- html+='<article class="summary admin-queue-card '+(admin?'':'professional-customer-card ') +cls+'"><div class="summary-row"><span>Senha #'+row.queue_number+' • '+formatDateTime(row.created_at)+'</span><strong>'+money(Number(row.total_amount))+'</strong></div><div class="summary-row"><span>Cliente</span><strong>'+safe(name.trim())+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(c.phone||'—')+'</strong></div><div class="summary-row"><span>Serviços</span><strong>'+serviceText+'</strong></div><div class="summary-row"><span>Status</span><strong>'+statusLabel(row.status)+'</strong></div>'+(row.barber_id?'<div class="summary-row"><span>Responsável</span><strong>'+safe(barber?barber.name:row.barber_id)+'</strong></div>':'')+'<div class="actions">';
- if(row.status==='waiting')html+='<button class="btn btn-primary" data-start="'+safe(row.id)+'">CHAMAR CLIENTE</button>';
- if(row.status==='in_progress'&&(admin||row.barber_id===state.barberId))html+='<button class="btn btn-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>';
- if(admin&&row.status==='waiting')html+='<button class="btn btn-secondary" data-cancel="'+safe(row.id)+'">CANCELAR</button>';html+='</div></article>';});
- if(!admin)html+='</main>';
- content.innerHTML=html;if(admin)bindAdminNavigation();else bindProfessionalNavigation();
- const refreshQueue=content.querySelector('[data-refresh-queue]');if(refreshQueue)refreshQueue.addEventListener('click',renderQueueDashboard);
- content.querySelectorAll('[data-start]').forEach(button=>button.addEventListener('click',()=>openQueueCallDialog(button.dataset.start)));
- content.querySelectorAll('[data-finish]').forEach(button=>button.addEventListener('click',()=>openPaymentMethodDialog(button.dataset.finish)));
- content.querySelectorAll('[data-cancel]').forEach(button=>button.addEventListener('click',async()=>{if(!confirm('Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.'))return;button.disabled=true;const r=await db.rpc('lacorte_cancel_queue_entry',{p_queue_id:button.dataset.cancel});if(r.error){alert('Não foi possível cancelar: '+r.error.message);button.disabled=false;}else renderQueueDashboard();}));
- }).catch(error=>{content.innerHTML=(admin?adminNavigation():professionalNavigation('queue'))+'<div class="summary"><p class="muted">'+safe(error.message)+'</p></div>';if(admin)bindAdminNavigation();else bindProfessionalNavigation();});
+  setAppMode(true);
+  updateProgress();
+  const admin = state.role === "admin";
+  const assignedBarber = barbers.find(function(item){ return item.id === state.barberId; });
+  const professionalName = assignedBarber ? assignedBarber.name : "Área profissional";
+
+  setHeader(
+    admin ? "ADMINISTRAÇÃO LACORTE" : professionalName.toUpperCase(),
+    admin ? "Painel Geral" : "Fila compartilhada",
+    admin
+      ? "Resumo da operação e atendimentos em andamento."
+      : "Fila compartilhada para receber o próximo cliente e acompanhar seus próprios atendimentos."
+  );
+  notice.textContent = "Fila presencial • Sem pagamento online.";
+  content.innerHTML = '<p class="muted">Carregando fila compartilhada...</p>';
+  dashboardActions();
+
+  loadQueueRows().then(function(rows){
+    if(!content.isConnected) return;
+
+    const waitingRows = rows.filter(function(row){ return row.status === "waiting"; });
+    const allProgressRows = rows.filter(function(row){ return row.status === "in_progress"; });
+    const ownProgressRows = allProgressRows.filter(function(row){ return row.barber_id === state.barberId; });
+    const allCompletedRows = rows.filter(function(row){ return row.status === "completed"; });
+    const ownCompletedRows = allCompletedRows.filter(function(row){ return row.barber_id === state.barberId; });
+    const visibleRows = admin
+      ? rows.filter(function(row){ return row.status === "waiting" || row.status === "in_progress"; })
+      : rows.filter(function(row){
+          return row.status === "waiting" ||
+            (row.status === "in_progress" && row.barber_id === state.barberId);
+        });
+
+    const progressCount = admin ? allProgressRows.length : ownProgressRows.length;
+    const completedCount = admin ? allCompletedRows.length : ownCompletedRows.length;
+    const totalCount = admin
+      ? rows.length
+      : waitingRows.length + ownProgressRows.length + ownCompletedRows.length;
+
+    let panelHtml = admin
+      ? adminNavigation()
+      : professionalNavigation("queue") + '<main class="professional-main">';
+
+    panelHtml += '<div class="professional-page-tools">' +
+      '<span class="professional-page-eyebrow">OPERAÇÃO EM TEMPO REAL</span>' +
+      '<button type="button" class="professional-refresh" data-refresh-queue aria-label="Atualizar fila">' +
+      '<span aria-hidden="true">↻</span> ATUALIZAR FILA</button></div>';
+
+    panelHtml += '<div class="admin-kpis">' +
+      '<article><span>' + (admin ? "AGUARDANDO" : "FILA AGUARDANDO") + '</span><strong>' + waitingRows.length + '</strong><small>Fila compartilhada</small></article>' +
+      '<article><span>' + (admin ? "EM ATENDIMENTO" : "MEUS ATENDIMENTOS") + '</span><strong>' + progressCount + '</strong><small>' + (admin ? "Todos os profissionais" : "Somente os seus") + '</small></article>' +
+      '<article><span>CONCLUÍDOS HOJE</span><strong>' + completedCount + '</strong><small>' + (admin ? "Toda a barbearia" : "Seus atendimentos") + '</small></article>' +
+      '<article><span>' + (admin ? "TOTAL DO DIA" : "MINHA MOVIMENTAÇÃO") + '</span><strong>' + totalCount + '</strong><small>' + (admin ? "Todos os registros" : "Fila + seus atendimentos") + '</small></article>' +
+      '</div>';
+
+    panelHtml += '<div class="admin-agenda-heading"><div><small>' +
+      (admin ? "VISÃO GERAL" : "PRÓXIMOS ATENDIMENTOS") +
+      '</small><h3>' + (admin ? "Operação em andamento" : "Fila e meus atendimentos") +
+      '</h3></div><span>' + waitingRows.length + ' aguardando</span></div>';
+
+    if(!visibleRows.length){
+      panelHtml += '<section class="summary professional-empty-state"><strong>' +
+        (admin ? "Operação tranquila neste momento" : "Nenhum atendimento pendente para você") +
+        '</strong><p class="muted">' +
+        (admin
+          ? "Não há clientes aguardando ou atendimentos em andamento agora."
+          : "Os clientes aguardando aparecem aqui. Atendimentos em andamento de outros profissionais ficam separados.") +
+        '</p></section>';
+    }
+
+    visibleRows.forEach(function(row){
+      const customer = row.customer || {};
+      const name = (customer.first_name || "Cliente") + " " + (customer.last_name || "");
+      const barber = barbers.find(function(item){ return item.id === row.barber_id; });
+      const serviceText = row.items.map(function(item){
+        return safe(item.service_name) + " (" + money(Number(item.unit_price)) + ")";
+      }).join(", ") || "—";
+      const className = row.status === "in_progress" ? "progress" : "waiting";
+      const canStart = row.status === "waiting" &&
+        (!row.barber_id || row.barber_id === state.barberId);
+      const canFinish = row.status === "in_progress" &&
+        row.barber_id === state.barberId;
+
+      panelHtml += '<article class="summary admin-queue-card ' +
+        (admin ? "" : "professional-customer-card ") + className + '">' +
+        '<div class="summary-row"><span>Senha #' + safe(row.queue_number) + ' • ' +
+        formatDateTime(row.created_at) + '</span><strong>' +
+        money(Number(row.total_amount)) + '</strong></div>' +
+        '<div class="summary-row"><span>Cliente</span><strong>' +
+        safe(name.trim()) + '</strong></div>' +
+        '<div class="summary-row"><span>Telefone</span><strong>' +
+        safe(customer.phone || "—") + '</strong></div>' +
+        '<div class="summary-row"><span>Serviços</span><strong>' +
+        serviceText + '</strong></div>' +
+        '<div class="summary-row"><span>Status</span><strong>' +
+        statusLabel(row.status) + '</strong></div>' +
+        (row.barber_id
+          ? '<div class="summary-row"><span>Responsável</span><strong>' +
+            safe(barber ? barber.name : row.barber_id) + '</strong></div>'
+          : '') +
+        '<div class="actions">';
+
+      if(canStart){
+        panelHtml += '<button class="btn btn-primary" data-start="' +
+          safe(row.id) + '">CHAMAR CLIENTE</button>';
+      }
+      if(canFinish){
+        panelHtml += '<button class="btn btn-primary" data-finish="' +
+          safe(row.id) + '">FINALIZAR ATENDIMENTO</button>';
+      }
+      if(admin && row.status === "waiting"){
+        panelHtml += '<button class="btn btn-secondary" data-cancel="' +
+          safe(row.id) + '">CANCELAR</button>';
+      }
+      if(row.status === "waiting" && row.barber_id && row.barber_id !== state.barberId && !admin){
+        panelHtml += '<span class="professional-assigned-note">Aguardando o profissional responsável</span>';
+      }
+      panelHtml += '</div></article>';
+    });
+
+    if(!admin) panelHtml += '</main>';
+    content.innerHTML = panelHtml;
+
+    if(admin) bindAdminNavigation();
+    else bindProfessionalNavigation();
+
+    const refreshQueue = content.querySelector("[data-refresh-queue]");
+    if(refreshQueue) refreshQueue.addEventListener("click", renderQueueDashboard);
+
+    content.querySelectorAll("[data-start]").forEach(function(button){
+      button.addEventListener("click", function(){
+        openQueueCallDialog(button.dataset.start);
+      });
+    });
+    content.querySelectorAll("[data-finish]").forEach(function(button){
+      button.addEventListener("click", function(){
+        openPaymentMethodDialog(button.dataset.finish);
+      });
+    });
+    content.querySelectorAll("[data-cancel]").forEach(function(button){
+      button.addEventListener("click", async function(){
+        if(!confirm("Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.")) return;
+        button.disabled = true;
+        const result = await db.rpc("lacorte_cancel_queue_entry", {p_queue_id:button.dataset.cancel});
+        if(result.error){
+          alert("Não foi possível cancelar: " + result.error.message);
+          button.disabled = false;
+        } else {
+          renderQueueDashboard();
+        }
+      });
+    });
+  }).catch(function(error){
+    content.innerHTML = (admin ? adminNavigation() : professionalNavigation("queue")) +
+      '<section class="summary"><p class="muted">' + safe(error.message) + '</p></section>';
+    if(admin) bindAdminNavigation();
+    else bindProfessionalNavigation();
+  });
 }
 
 function openQueueCallDialog(queueId){
@@ -1035,29 +1187,36 @@ async function renderAdminReports(view="reports"){
       '<option value="month" '+(adminReportFilters.period==="month"?"selected":"")+'>Este mês</option>'+
       '<option value="custom" '+(adminReportFilters.period==="custom"?"selected":"")+'>Personalizado</option>';
     let html = adminNavigation();
-    html += '<form id="report-filter" class="summary report-filter"><label for="report-period">PERÍODO DO RELATÓRIO</label><select id="report-period" name="period">'+periodOptions+'</select>'+
+    const filterLabel = view === "history" ? "PERÍODO DO HISTÓRICO" : "PERÍODO DO RELATÓRIO";
+    html += '<form id="report-filter" class="summary report-filter"><label for="report-period">' + filterLabel + '</label><select id="report-period" name="period">'+periodOptions+'</select>'+
       '<div class="report-date-fields"><label>Data inicial<input type="date" id="report-start" name="start" value="'+safe(adminReportFilters.start || range.start)+'"></label>'+
       '<label>Data final<input type="date" id="report-end" name="end" value="'+safe(adminReportFilters.end || range.end)+'"></label></div>'+
       '<button class="btn btn-primary" type="submit">APLICAR PERÍODO</button></form>';
-    html += '<div class="report-kpis">'+
-      '<article class="summary"><span class="muted">Faturamento</span><strong>'+money(revenue)+'</strong></article>'+
-      '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
-      '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
-      '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
-    html += '<section class="summary"><h3>FORMAS DE PAGAMENTO</h3>'+Object.keys(paymentTotals).map(function(method){return '<div class="summary-row"><span>'+({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"}[method])+'</span><strong>'+money(paymentTotals[method])+'</strong></div>';}).join("")+'</section>';
-    html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportPieChart(dailyItems,money,"Sem faturamento concluído neste período.")+'</section>';
-    html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportPieChart(commissionItems,money)+'</section>'+
-      '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportPieChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
-    const statusItems=[
-      {label:"Aguardando",value:counts.waiting},
-      {label:"Em atendimento",value:counts.in_progress},
-      {label:"Concluídos",value:counts.completed},
-      {label:"Cancelados",value:counts.cancelled}
-    ];
-    html += '<section class="summary report-chart"><h3>STATUS DOS ATENDIMENTOS</h3>'+reportPieChart(statusItems,function(value){return String(value)+" atend.";})+'</section>';
-    html += '<section class="summary"><h3>HISTÓRICO DO PERÍODO</h3><p class="muted">'+rows.length+' registro(s) encontrado(s).</p>'+
-      (rows.length ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>' : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
-      '</section>';
+
+    if(view === "history"){
+      html += '<section class="summary admin-history-panel"><div class="admin-history-heading"><div><h3>REGISTROS DO PERÍODO</h3><p class="muted">Todos os atendimentos da barbearia, com status e responsável.</p></div><strong>'+rows.length+' registro(s)</strong></div>'+
+        (rows.length
+          ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>'
+          : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
+        '</section>';
+    } else {
+      html += '<div class="report-kpis">'+
+        '<article class="summary"><span class="muted">Faturamento</span><strong>'+money(revenue)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
+      html += '<section class="summary"><h3>FORMAS DE PAGAMENTO</h3>'+Object.keys(paymentTotals).map(function(method){return '<div class="summary-row"><span>'+({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"}[method])+'</span><strong>'+money(paymentTotals[method])+'</strong></div>';}).join("")+'</section>';
+      html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportPieChart(dailyItems,money,"Sem faturamento concluído neste período.")+'</section>';
+      html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportPieChart(commissionItems,money)+'</section>'+
+        '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportPieChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
+      const statusItems=[
+        {label:"Aguardando",value:counts.waiting},
+        {label:"Em atendimento",value:counts.in_progress},
+        {label:"Concluídos",value:counts.completed},
+        {label:"Cancelados",value:counts.cancelled}
+      ];
+      html += '<section class="summary report-chart"><h3>STATUS DOS ATENDIMENTOS</h3>'+reportPieChart(statusItems,function(value){return String(value)+" atend.";})+'</section>';
+    }
 
     if(state.role !== "admin" || adminView !== view) return;
     content.innerHTML = html;
@@ -1089,7 +1248,6 @@ async function renderAdminReports(view="reports"){
 
 // ===== GERENCIAMENTO ADMINISTRATIVO LACORTE =====
 let adminView = "queue";
-let adminManageInitialTab = "access";
 
 function adminNavigation(){
   if(state.role !== "admin") return "";
@@ -1114,7 +1272,7 @@ function bindAdminNavigation(){
       if(adminView === "manage") renderAdminManagement();
       else if(adminView === "history") renderAdminReports("history");
       else if(adminView === "customers") renderAdminCustomers();
-      else if(adminView === "services") { adminManageInitialTab = "services"; renderAdminManagement(); }
+      else if(adminView === "services") renderAdminManagement();
       else if(adminView === "reports") renderAdminReports();
       else renderQueueDashboard();
     });
@@ -1158,8 +1316,8 @@ async function renderAdminCustomers(){
       const spent=completed.reduce(function(sum,row){return sum+Number(row.total_amount||0);},0);
       const lastVisit=rows.length?rows[0].created_at:null;
       const searchText=(fullName+" "+(customer.phone||"")+" "+(customer.email||"")).toLocaleLowerCase("pt-BR");
-      html += '<details class="summary admin-customer-card" data-customer-card data-search="'+safe(searchText)+'"><summary><strong>'+safe(fullName.trim()||"Cliente sem nome")+'</strong><span class="muted">'+rows.length+' visita(s) • '+money(spent)+'</span></summary>';
-      html += '<div class="summary-row"><span>Telefone</span><strong>'+safe(customer.phone||"—")+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(customer.email||"—")+'</strong></div><div class="summary-row"><span>Aniversário</span><strong>'+safe(customer.birth_date||"—")+'</strong></div><div class="summary-row"><span>Cadastro</span><strong>'+formatDateTime(customer.created_at)+'</strong></div><div class="summary-row"><span>Última entrada</span><strong>'+formatDateTime(lastVisit)+'</strong></div><h4>HISTÓRICO DE ATENDIMENTOS</h4>';
+      html += '<details class="summary admin-customer-card" data-customer-card data-search="'+safe(searchText)+'"><summary><strong>'+safe(fullName.trim()||"Cliente sem nome")+'</strong><span class="admin-customer-chevron" aria-hidden="true">⌄</span></summary>';
+      html += '<div class="admin-customer-details"><div class="admin-customer-stats"><div><span>VISITAS</span><strong>'+rows.length+'</strong></div><div><span>VALOR CONCLUÍDO</span><strong>'+money(spent)+'</strong></div></div><div class="summary-row"><span>Telefone</span><strong>'+safe(customer.phone||"—")+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(customer.email||"—")+'</strong></div><div class="summary-row"><span>Aniversário</span><strong>'+safe(customer.birth_date||"—")+'</strong></div><div class="summary-row"><span>Cadastro</span><strong>'+formatDateTime(customer.created_at)+'</strong></div><div class="summary-row"><span>Última entrada</span><strong>'+formatDateTime(lastVisit)+'</strong></div><h4>HISTÓRICO DE ATENDIMENTOS</h4>';
       if(!rows.length) html += '<p class="muted">Nenhuma entrada na fila registrada.</p>';
       else {
         html += '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Data</th><th>Senha</th><th>Status</th><th>Barbeiro</th><th>Valor</th></tr></thead><tbody>';
@@ -1169,7 +1327,7 @@ async function renderAdminCustomers(){
         html += '</tbody></table></div>';
         if(rows.length>30) html += '<p class="muted">Mostrando as 30 visitas mais recentes de '+rows.length+'.</p>';
       }
-      html += '</details>';
+      html += '</div></details>';
     });
     content.innerHTML=html;
     bindAdminNavigation();
@@ -1189,7 +1347,14 @@ async function renderAdminCustomers(){
 async function renderAdminManagement(){
   if(state.role !== "admin") return renderQueueDashboard();
   setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE", "Gerenciar a barbearia", "Altere serviços, preços, barbeiros e comissões. As permissões também são verificadas pelo banco de dados.");
+  const servicesOnly = adminView === "services";
+  setHeader(
+    "ADMINISTRAÇÃO LACORTE",
+    servicesOnly ? "Serviços e preços" : "Gestão da barbearia",
+    servicesOnly
+      ? "Consulte o catálogo ativo e os valores praticados."
+      : "Acessos, equipe e comissões da operação."
+  );
   notice.textContent = "Área exclusiva do administrador. As alterações são salvas diretamente no Supabase.";
   dashboardActions();
   content.innerHTML = adminNavigation() + '<p class="muted">Carregando cadastros...</p>';
@@ -1208,16 +1373,25 @@ async function renderAdminManagement(){
     if(accessLoad.error) accessLoadMessage = "Não foi possível carregar o e-mail atual: " + accessLoad.error.message;
     else accessEmail = accessLoad.data.current_email || "";
     let html = adminNavigation();
-    html += '<div class="admin-workspace"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>Gestão da barbearia</h2><p class="muted">Visão geral das configurações da LaCorte.</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
-      '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos</button>' +
-      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe</button>' +
-      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="services">Serviços</button></nav>';
-    html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><span class="manage-card-icon">⌑</span><div><h3>ACESSO PROFISSIONAL</h3><p class="muted">Conta vinculada ao Barbeiro 2</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><small>O acesso do administrador permanece separado.</small></div><span class="manage-status">VINCULADO</span></section></div>';
-    html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Profissionais cadastrados na barbearia</p></div><span class="manage-count">' + barberRows.length + '</span></div><div class="manage-overview-list">';
+    const workspaceClass = servicesOnly ? "admin-workspace is-services" : "admin-workspace is-management";
+    const workspaceTitle = servicesOnly ? "Catálogo de serviços" : "Gestão da barbearia";
+    const workspaceDescription = servicesOnly
+      ? "Serviços disponíveis e seus preços atuais."
+      : "Acessos profissionais, equipe e comissões.";
+    const tabsMarkup = servicesOnly
+      ? '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="services">Catálogo</button>'
+      : '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos</button>' +
+        '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe</button>';
+    html += '<div class="' + workspaceClass + '"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>' +
+      workspaceTitle + '</h2><p class="muted">' + workspaceDescription +
+      '</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
+      tabsMarkup + '</nav>';
+    html += '<div class="manage-panel ' + (servicesOnly ? "" : "active") + '" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><span class="manage-card-icon">⌑</span><div><h3>ACESSO PROFISSIONAL</h3><p class="muted">Conta vinculada ao Barbeiro 2</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><small>O acesso do administrador permanece separado.</small></div><span class="manage-status">VINCULADO</span></section></div>';
+    html += '<div class="manage-panel ' + (servicesOnly ? "" : "") + '" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Profissionais cadastrados na barbearia</p></div><span class="manage-count">' + barberRows.length + '</span></div><div class="manage-overview-list">';
     barberRows.forEach(function(b){ html += '<article class="manage-overview-row"><div><strong>' + safe(b.name) + '</strong><small>' + Number(b.commission_percent || 0) + '% de comissão</small></div><span class="manage-status ' + (b.active ? 'is-active' : 'is-inactive') + '">' + (b.active ? 'ATIVO' : 'INATIVO') + '</span></article>'; });
     if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
     html += '</div></section></div>';
-    html += '<div class="manage-panel" role="tabpanel" data-manage-panel="services"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>SERVIÇOS E PREÇOS</h3><p class="muted">Catálogo disponível na LaCorte</p></div><span class="manage-count">' + serviceRows.length + '</span></div><div class="manage-overview-list">';
+    html += '<div class="manage-panel ' + (servicesOnly ? "active" : "") + '" role="tabpanel" data-manage-panel="services"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>SERVIÇOS E PREÇOS</h3><p class="muted">Catálogo disponível na LaCorte</p></div><span class="manage-count">' + serviceRows.length + '</span></div><div class="manage-overview-list">';
     serviceRows.forEach(function(s){ html += '<article class="manage-overview-row"><div><strong>' + safe(s.name) + '</strong><small>' + safe(s.detail || 'Serviço') + '</small></div><div class="manage-service-value"><strong>' + money(Number(s.price || 0)) + '</strong><span class="manage-status ' + (s.active ? 'is-active' : 'is-inactive') + '">' + (s.active ? 'ATIVO' : 'INATIVO') + '</span></div></article>'; });
     if(!serviceRows.length) html += '<p class="muted">Nenhum serviço cadastrado.</p>';
     html += '</div></section></div></div>';
@@ -1241,17 +1415,6 @@ async function renderAdminManagement(){
       });
     });
     bindAdminNavigation();
-    if(adminManageInitialTab === "services"){
-      content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
-        const active = tab.dataset.manageTab === "services";
-        tab.classList.toggle("active",active);
-        tab.setAttribute("aria-selected",active ? "true" : "false");
-      });
-      content.querySelectorAll("[data-manage-panel]").forEach(function(panel){
-        panel.classList.toggle("active",panel.dataset.managePanel === "services");
-      });
-      adminManageInitialTab = "access";
-    }
     content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
       tab.addEventListener("click", function(){
         const selected = tab.dataset.manageTab;
