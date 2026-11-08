@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101010">
+<title>LaCorte | Prévia do Painel Administrativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#101010;--panel:#191919;--panel2:#151515;--line:#2b2b2b;--orange:#f97316;--text:#f4f4f5;--muted:#888}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.preview{display:grid;grid-template-columns:248px minmax(0,1fr);max-width:1600px;min-height:100vh;margin:auto}
+.sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:27px 18px 18px;background:#141414;border-right:1px solid #292929}
+.brand{display:flex;align-items:center;gap:12px;padding:3px 8px 26px;border-bottom:1px solid #292929}.brand-mark{display:grid;place-items:center;width:43px;height:43px;border-radius:11px;background:var(--orange);color:#111;font:900 16px Oswald}.brand strong{display:block;font:700 22px Oswald;letter-spacing:.4px}.brand small{display:block;margin-top:2px;color:#fb923c;font-size:9px;font-weight:800;letter-spacing:2px}
+.nav-caption{margin:27px 10px 12px;color:#777;font-size:9px;font-weight:800;letter-spacing:1.6px}.nav{display:grid;gap:6px}.nav a,.bottom a{display:flex;align-items:center;gap:12px;min-height:43px;padding:0 12px;border-radius:8px;color:#999;text-decoration:none;font-size:12px;font-weight:600}.nav a svg,.bottom a svg{width:17px;height:17px;flex:none}.nav a.active{background:var(--orange);color:#111;font-weight:800}.nav a:not(.active):hover,.bottom a:hover{background:#242424;color:#fff}.sidebar-bottom{display:grid;gap:4px;margin-top:auto}.system{display:flex;align-items:center;gap:9px;padding:12px;color:#777;font-size:10px}.system i{width:7px;height:7px;border-radius:50%;background:#22c55e}.bottom a{min-height:37px;font-size:11px}.user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:13px 8px 0;border-top:1px solid #2b2b2b}.avatar{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#352116;color:#fb923c;font-size:11px;font-weight:800}.user strong,.user small{display:block}.user strong{font-size:11px}.user small{margin-top:3px;color:#777;font-size:9px}.user i{width:7px;height:7px;margin-left:auto;border-radius:50%;background:#22c55e}
+.main{min-width:0;padding:29px 34px 20px}.header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:19px;border-bottom:1px solid #292929}.crumb{color:#777;font-size:10px}.crumb b{padding:0 7px;color:var(--orange)}h1{margin:6px 0 0;font:700 25px Oswald;letter-spacing:.3px}.tools{display:flex;align-items:center;gap:9px}.search{display:flex;align-items:center;gap:8px;width:220px;height:39px;padding:0 11px;border:1px solid #303030;border-radius:9px;background:#191919;color:#888}.search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#eee;font:11px 'DM Sans'}.icon-btn{position:relative;display:grid;place-items:center;width:39px;height:39px;border:1px solid #303030;border-radius:9px;background:#191919;color:#aaa}.icon-btn i{position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--orange)}.date{padding:12px;border:1px solid #303030;border-radius:9px;background:#191919;color:#bbb;font-size:10px;white-space:nowrap}
+.welcome{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:25px 0 19px}.welcome span:first-child{color:#fb923c;font-size:9px;font-weight:800;letter-spacing:1.7px}.welcome h2{margin:7px 0 4px;font:700 27px Oswald}.welcome p{margin:0;color:#888;font-size:11px}.role{padding:8px 12px;border:1px solid #f9731644;border-radius:30px;background:#f9731612;color:#fb923c;font-size:9px;font-weight:800;letter-spacing:1px;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.metric,.card{min-width:0;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#1b1b1b,#151515);box-shadow:0 7px 22px #0002}.metric{padding:17px}.metric-top{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#999;font-size:9px;font-weight:800;letter-spacing:.8px}.metric-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#f9731618;color:#fb923c}.metric strong{display:block;margin:13px 0 5px;font:600 26px Oswald}.metric small{color:#777;font-size:10px}
+.middle,.bottom-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;margin-top:15px}.bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}.card{padding:17px;overflow:hidden}.card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.card h3{margin:0;font:600 17px Oswald}.card p{margin:5px 0 0;color:#777;font-size:10px}.revenue{color:var(--orange);font:600 19px Oswald;white-space:nowrap}.chart{width:100%;height:175px;margin-top:10px}.chart-labels{display:flex;justify-content:space-between;color:#777;font-size:9px}.queue{display:grid;gap:0;margin-top:14px}.queue-row{display:grid;grid-template-columns:43px minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #292929}.queue-row:last-child{border-bottom:0}.time{color:#aaa;font-size:10px}.client strong{display:block;font-size:11px}.client small{display:block;margin-top:4px;color:#777;font-size:9px}.status{padding:5px 8px;border-radius:20px;background:#f9731618;color:#fb923c;font-size:9px;white-space:nowrap}.status.progress{background:#2563eb20;color:#93c5fd}.action{color:#fb923c;font-size:10px;text-decoration:none}.team{display:grid;gap:17px;margin-top:19px}.team-meta{display:flex;justify-content:space-between;gap:10px;font-size:11px}.team-meta span{color:#888}.track{height:7px;margin-top:8px;border-radius:20px;background:#303030;overflow:hidden}.track i{display:block;height:100%;border-radius:20px;background:var(--orange)}.quick{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}.quick a{display:flex;align-items:center;gap:10px;min-height:62px;padding:10px;border:1px solid #303030;border-radius:9px;background:#191919;color:#eee;text-decoration:none}.quick a:hover{border-color:#a95825}.quick-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#f9731618;color:#fb923c}.quick strong,.quick small{display:block}.quick strong{font-size:10px}.quick small{margin-top:4px;color:#777;font-size:9px}.footer{display:flex;justify-content:space-between;gap:12px;margin-top:8px;padding:14px 0 4px;border-top:1px solid #292929;color:#626262;font-size:9px}
+@media(max-width:1100px){.preview{grid-template-columns:215px minmax(0,1fr)}.sidebar{padding:22px 12px 15px}.main{padding:23px 20px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.middle{grid-template-columns:1fr}}
+@media(max-width:720px){.preview{display:flex;flex-direction:column}.sidebar{position:relative;width:100%;height:auto;padding:14px;border-right:0;border-bottom:1px solid #303030}.brand{padding:0 2px 10px;border:0}.brand-mark{width:36px;height:36px}.brand strong{font-size:18px}.nav-caption,.sidebar-bottom{display:none}.nav{display:flex;overflow-x:auto;gap:5px;padding:8px 0 2px}.nav a{flex:none;min-height:36px;padding:0 10px;font-size:10px}.main{padding:17px 14px}.header{align-items:flex-start;flex-direction:column}.tools{width:100%;flex-wrap:wrap}.search{flex:1 1 150px;width:auto}.date{font-size:9px}.welcome{padding:18px 0 14px}.welcome h2{font-size:23px}.bottom-grid{grid-template-columns:1fr}.card{padding:13px}}
+@media(max-width:420px){.metrics{gap:8px}.metric{padding:12px}.metric strong{font-size:22px}.metric-top{font-size:8px}.metric small{font-size:9px}.quick{grid-template-columns:1fr}.queue-row{grid-template-columns:36px minmax(0,1fr);}.status{grid-column:2;justify-self:start}.footer{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="preview">
+<aside class="sidebar">
+  <div class="brand"><span class="brand-mark">LC</span><span><strong>LaCorte</strong><small>BARBEARIA</small></span></div>
+  <div class="nav-caption">MENU PRINCIPAL</div>
+  <nav class="nav" aria-label="Menu administrativo">
+    <a class="active" href="#overview">▦ <span>Visão geral</span></a>
+    <a href="#queue">☷ <span>Fila de atendimento</span></a>
+    <a href="#history">◷ <span>Histórico</span></a>
+    <a href="#customers">♙ <span>Clientes</span></a>
+    <a href="#services">✂ <span>Serviços</span></a>
+    <a href="#team">♟ <span>Equipe</span></a>
+    <a href="#reports">▤ <span>Relatórios</span></a>
+    <a href="#settings">⚙ <span>Configurações</span></a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="system"><i></i> Prévia visual do painel</div>
+    <div class="bottom"><a href="#support">ⓘ <span>Suporte</span></a><a href="#logout">↪ <span>Sair</span></a></div>
+    <div class="user"><span class="avatar">B1</span><span><strong>Barbeiro 1</strong><small>Administrador</small></span><i></i></div>
+  </div>
+</aside>
+<main class="main" id="overview">
+  <header class="header">
+    <div><div class="crumb">Administração <b>›</b> Painel Geral</div><h1>Painel Geral</h1></div>
+    <div class="tools"><label class="search">⌕ <input type="search" placeholder="Buscar cliente..." aria-label="Buscar cliente"></label><button class="icon-btn" aria-label="Notificações">♧<i></i></button><span class="date">◷ Domingo, 08 nov 2026</span></div>
+  </header>
+  <section class="welcome"><div><span>VISÃO GERAL DA BARBEARIA</span><h2>Olá, Barbeiro 1!</h2><p>Acompanhe o movimento e os resultados da LaCorte.</p></div><span class="role">ADMINISTRADOR</span></section>
+  <section class="metrics" aria-label="Indicadores">
+    <article class="metric"><div class="metric-top"><span>FATURAMENTO HOJE</span><b class="metric-icon">R$</b></div><strong>R$ 0,00</strong><small>Atendimentos concluídos hoje</small></article>
+    <article class="metric"><div class="metric-top"><span>ATENDIMENTOS HOJE</span><b class="metric-icon">▣</b></div><strong>0</strong><small>0 aguardando na fila</small></article>
+    <article class="metric"><div class="metric-top"><span>NOVOS CLIENTES</span><b class="metric-icon">♙</b></div><strong>0</strong><small>Cadastros realizados hoje</small></article>
+    <article class="metric"><div class="metric-top"><span>FILA DE ESPERA</span><b class="metric-icon">◷</b></div><strong>0 pessoas</strong><small>Clientes aguardando agora</small></article>
+  </section>
+  <section class="middle">
+    <article class="card"><div class="card-heading"><div><h3>Faturamento do mês</h3><p>Receita de atendimentos concluídos</p></div><strong class="revenue">R$ 0,00</strong></div>
+      <svg class="chart" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Área reservada ao gráfico de faturamento mensal"><defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f97316" stop-opacity=".3"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></linearGradient></defs><path d="M18 15H582 M18 65H582 M18 115H582 M18 165H582" stroke="#ffffff12" stroke-dasharray="4 5"/><path d="M18 165 L100 165 L180 165 L260 165 L340 165 L420 165 L500 165 L582 165 L582 170 L18 170Z" fill="url(#fill)"/><path d="M18 165 L100 165 L180 165 L260 165 L340 165 L420 165 L500 165 L582 165" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="chart-labels"><span>01/11</span><span>15/11</span><span>30/11</span></div></article>
+    <article class="card" id="queue"><div class="card-heading"><div><h3>Fila em tempo real</h3><p>Clientes aguardando e em atendimento</p></div><a class="action" href="#queue">Atualizar</a></div>
+      <div class="queue"><div class="queue-row"><span class="time">--:--</span><div class="client"><strong>Nenhum cliente na fila</strong><small>Os novos atendimentos aparecerão aqui.</small></div><span class="status">Livre</span></div></div>
+      <a class="action" href="#history">Ver histórico completo →</a></article>
+  </section>
+  <section class="bottom-grid">
+    <article class="card" id="team"><div class="card-heading"><div><h3>Equipe &amp; Desempenho</h3><p>Atendimentos concluídos hoje</p></div></div>
+      <div class="team"><div><div class="team-meta"><strong>Barbeiro 1</strong><span>0 atendimentos</span></div><div class="track"><i style="width:0%"></i></div></div><div><div class="team-meta"><strong>Barbeiro 2</strong><span>0 atendimentos</span></div><div class="track"><i style="width:0%"></i></div></div></div></article>
+    <article class="card"><div class="card-heading"><div><h3>Acesso rápido</h3><p>Atalhos administrativos</p></div></div>
+      <div class="quick"><a href="#queue"><span class="quick-icon">☷</span><span><strong>Fila atual</strong><small>Acompanhar atendimentos</small></span></a><a href="#customers"><span class="quick-icon">♙</span><span><strong>Clientes cadastrados</strong><small>Gerenciar clientela</small></span></a><a href="#reports"><span class="quick-icon">▤</span><span><strong>Relatórios do caixa</strong><small>Conferir valores</small></span></a><a href="#settings"><span class="quick-icon">⚙</span><span><strong>Configurações</strong><small>Equipe e serviços</small></span></a></div></article>
+  </section>
+  <footer class="footer"><span>© LaCorte Barbearia · Todos os direitos reservados.</span><span>Prévia visual — dados ilustrativos, sem conexão operacional</span></footer>
+</main>
+</div>
+</body>
+</html>
