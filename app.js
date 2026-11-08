@@ -1208,36 +1208,18 @@ async function renderAdminManagement(){
     if(accessLoad.error) accessLoadMessage = "Não foi possível carregar o e-mail atual: " + accessLoad.error.message;
     else accessEmail = accessLoad.data.current_email || "";
     let html = adminNavigation();
-    html += '<div class="admin-workspace"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>Gestão da barbearia</h2><p class="muted">Escolha uma área. Cada tela mostra somente as ferramentas daquela seção.</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
-      '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos profissionais</button>' +
-      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe e comissões</button>' +
-      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="services">Serviços e preços</button></nav>';
-    html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary"><h3>ACESSOS PROFISSIONAIS</h3><p class="muted">Gerencie o e-mail de acesso do Barbeiro 2. Seu acesso de administrador permanece separado e não pode ser alterado por esta tela.</p>' +
-      '<form id="barber-access-form" class="admin-form"><label>E-mail atualmente vinculado ao Barbeiro 2</label><input type="email" value="' + safe(accessEmail) + '" readonly>' +
-      '<label>Novo e-mail profissional</label><input name="email" type="email" maxlength="254" autocomplete="off" placeholder="Digite o e-mail definitivo do barbeiro" required>' +
-      '<p id="barber-access-message" class="muted" role="status">' + safe(accessLoadMessage || "Após a troca, o barbeiro usará PRIMEIRO ACESSO para receber um código neste endereço e criar a própria senha.") + '</p>' +
-      '<button class="btn btn-primary" type="submit">SOLICITAR TROCA DE E-MAIL</button></form></section>';
-    html += '</div><div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary"><h3>BARBEIROS</h3><p class="muted">Edite nome, comissão e disponibilidade. Desativar preserva o histórico.</p>';
-    html += '<button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><h4>Novo barbeiro</h4><label>Nome</label><input name="name" maxlength="80" required placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div>';
-    html += '<button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden>';
-    barberRows.forEach(function(b){
-      html += '<form class="summary admin-item" data-barber-form="' + safe(b.id) + '">' +
-        '<label>Nome</label><input name="name" maxlength="80" required value="' + safe(b.name) + '">' +
-        '<label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" required value="' + Number(b.commission_percent || 0) + '">' +
-        '<label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? "checked" : "") + '> Ativo e disponível no totem</label>' +
-        '<button class="btn btn-primary" type="submit">SALVAR ' + safe(b.name).toUpperCase() + '</button></form>';
-    });
-    html += '</div></section></div><div class="manage-panel" role="tabpanel" data-manage-panel="services"><section class="summary"><h3>SERVIÇOS E COMBOS</h3><p class="muted">Cadastre ou consulte os serviços quando precisar.</p>';
-    html += '<button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-service-form">+ ADICIONAR CORTE / SERVIÇO</button><div id="new-service-form-wrap" class="admin-reveal-content" hidden><form id="new-service-form" class="admin-form"><h4>Novo corte ou serviço</h4><label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: Corte infantil"><label>Descrição</label><input name="detail" maxlength="180" placeholder="Descrição opcional"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required><button class="btn btn-primary" type="submit">SALVAR SERVIÇO</button></form></div>';
-    html += '<button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="service-list">VER SERVIÇOS CADASTRADOS</button><div id="service-list" class="admin-reveal-content" hidden>';
-    serviceRows.forEach(function(s){
-      html += '<form class="summary admin-item" data-service-form="' + safe(s.id) + '">' +
-        '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(s.name) + '">' +
-        '<label>Descrição</label><input name="detail" maxlength="180" value="' + safe(s.detail || "") + '">' +
-        '<label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required value="' + Number(s.price) + '">' +
-        '<label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? "checked" : "") + '> Ativo no totem</label>' +
-        '<button class="btn btn-primary" type="submit">SALVAR ' + safe(s.name).toUpperCase() + '</button></form>';
-    });
+    html += '<div class="admin-workspace"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>Gestão da barbearia</h2><p class="muted">Visão geral das configurações da LaCorte.</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
+      '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos</button>' +
+      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe</button>' +
+      '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="services">Serviços</button></nav>';
+    html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><span class="manage-card-icon">⌑</span><div><h3>ACESSO PROFISSIONAL</h3><p class="muted">Conta vinculada ao Barbeiro 2</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><small>O acesso do administrador permanece separado.</small></div><span class="manage-status">VINCULADO</span></section></div>';
+    html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Profissionais cadastrados na barbearia</p></div><span class="manage-count">' + barberRows.length + '</span></div><div class="manage-overview-list">';
+    barberRows.forEach(function(b){ html += '<article class="manage-overview-row"><div><strong>' + safe(b.name) + '</strong><small>' + Number(b.commission_percent || 0) + '% de comissão</small></div><span class="manage-status ' + (b.active ? 'is-active' : 'is-inactive') + '">' + (b.active ? 'ATIVO' : 'INATIVO') + '</span></article>'; });
+    if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
+    html += '</div></section></div>';
+    html += '<div class="manage-panel" role="tabpanel" data-manage-panel="services"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>SERVIÇOS E PREÇOS</h3><p class="muted">Catálogo disponível na LaCorte</p></div><span class="manage-count">' + serviceRows.length + '</span></div><div class="manage-overview-list">';
+    serviceRows.forEach(function(s){ html += '<article class="manage-overview-row"><div><strong>' + safe(s.name) + '</strong><small>' + safe(s.detail || 'Serviço') + '</small></div><div class="manage-service-value"><strong>' + money(Number(s.price || 0)) + '</strong><span class="manage-status ' + (s.active ? 'is-active' : 'is-inactive') + '">' + (s.active ? 'ATIVO' : 'INATIVO') + '</span></div></article>'; });
+    if(!serviceRows.length) html += '<p class="muted">Nenhum serviço cadastrado.</p>';
     html += '</div></section></div></div>';
     content.innerHTML = html;
     content.querySelectorAll('[data-reveal]').forEach(function(button){
