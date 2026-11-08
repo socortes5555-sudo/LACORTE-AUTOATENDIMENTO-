@@ -1738,17 +1738,177 @@ function slugId(value){
     .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,45);
 }
 
+
+function lcAdminIcon(name){
+  const paths={
+    overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+    management:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 0-6l1.4-1.1-1.4-2.4-1.7.6a8 8 0 0 0-5.7-1.5L11.7 3H9l-.3 1.8a8 8 0 0 0-1.7 1l-1.7-.6-1.4 2.4L5.3 9a8 8 0 0 0 0 6l-1.4 1.1 1.4 2.4 1.7-.6a8 8 0 0 0 5.7 1.5l.3 1.8h2.7l.3-1.8a8 8 0 0 0 1.7-1l1.7.6 1.4-2.4z"/>',
+    clients:'<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>',
+    services:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m20 4-12 12m0-8 12 12"/>',
+    reports:'<path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 6-7"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+    support:'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 0-6l1.4-1.1-1.4-2.4-1.7.6a8 8 0 0 0-5.7-1.5L11.7 3H9l-.3 1.8a8 8 0 0 0-1.7 1l-1.7-.6-1.4 2.4L5.3 9a8 8 0 0 0 0 6l-1.4 1.1 1.4 2.4 1.7-.6a8 8 0 0 0 5.7 1.5l.3 1.8h2.7l.3-1.8a8 8 0 0 0 1.7-1l1.7.6 1.4-2.4z"/>'
+  };
+  return '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.overview)+'</svg>';
+}
+
+function lcAdminSidebar(){
+  const item=function(view,label,icon){
+    return '<button type="button" class="lc-admin-nav-item '+(adminView===view?'active':'')+'" data-admin-view="'+view+'">'+lcAdminIcon(icon)+'<span>'+label+'</span></button>';
+  };
+  return '<aside class="lc-admin-sidebar">'+
+    '<div class="lc-admin-brand"><span class="lc-admin-brand-mark">LC</span><span><strong>LaCorte</strong><small>BARBEARIA</small></span></div>'+
+    '<div class="lc-admin-nav-caption">MENU PRINCIPAL</div><nav class="lc-admin-nav" aria-label="Menu administrativo">'+
+    item("queue","Painel Geral","overview")+item("history","Histórico","history")+item("manage","Gestão","management")+
+    item("customers","Clientes","clients")+item("services","Serviços","services")+item("reports","Relatórios","reports")+
+    '</nav><div class="lc-admin-sidebar-bottom"><div class="lc-admin-system"><i></i><span>Sistema operacional</span></div>'+
+    '<button type="button" class="lc-admin-bottom-link" data-admin-support>'+lcAdminIcon("support")+'<span>Suporte</span></button>'+
+    '<button type="button" class="lc-admin-bottom-link" data-admin-logout>'+lcAdminIcon("logout")+'<span>Sair</span></button>'+
+    '<div class="lc-admin-user"><span class="lc-admin-avatar">B1</span><span><strong>Barbeiro 1</strong><small>Administrador</small></span><i></i></div></div></aside>';
+}
+
+function lcAdminDateLabel(){
+  return new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"short",timeZone:"America/Sao_Paulo"}).format(new Date());
+}
+
+function lcAdminRevenueChart(values){
+  const max=Math.max(1,...values.map(Number));
+  const pts=values.map(function(v,i){
+    const x=18+(i*(564/Math.max(1,values.length-1)));
+    const y=166-(Number(v)/max)*132;
+    return x.toFixed(1)+","+y.toFixed(1);
+  }).join(" ");
+  const area="18,170 "+pts+" 582,170";
+  return '<svg class="lc-revenue-svg" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Faturamento diário do mês">'+
+    '<defs><linearGradient id="lcRevenueFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#f97316" stop-opacity=".32"/><stop offset="100%" stop-color="#f97316" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="M18 15H582 M18 65H582 M18 115H582 M18 165H582" stroke="#ffffff12" stroke-dasharray="4 5"/>'+
+    '<polygon points="'+area+'" fill="url(#lcRevenueFill)"/><polyline points="'+pts+'" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+async function renderAdminOverview(){
+  if(state.role!=="admin") return renderQueueDashboard();
+  adminView="queue";
+  setAppMode(true);
+  updateProgress();
+  setHeader("ADMINISTRAÇÃO LACORTE","Painel Geral","Resumo da operação, faturamento e atendimentos.");
+  notice.textContent="Visão administrativa • Dados carregados do Supabase.";
+  dashboardActions();
+  content.innerHTML='<div class="lc-admin-loading">Carregando painel administrativo...</div>';
+  try{
+    const today=localQueueDate();
+    const monthStart=today.slice(0,7)+"-01";
+    const nextDay=reportShiftDate(today,1);
+    const startIso=today+"T00:00:00-03:00";
+    const nextIso=nextDay+"T00:00:00-03:00";
+    const results=await Promise.all([
+      loadQueueRows(),
+      db.from("lacorte_queue").select("id,barber_id,status,total_amount,queue_date").gte("queue_date",monthStart).lte("queue_date",today).order("queue_date",{ascending:true}),
+      db.from("customers").select("id,created_at").gte("created_at",startIso).lt("created_at",nextIso),
+      db.from("barbers").select("id,name,active").order("name")
+    ]);
+    const rows=results[0]||[];
+    if(results[1].error) throw new Error("Faturamento: "+results[1].error.message);
+    if(results[2].error) throw new Error("Novos clientes: "+results[2].error.message);
+    if(results[3].error) throw new Error("Equipe: "+results[3].error.message);
+    const monthRows=results[1].data||[];
+    const completedToday=rows.filter(r=>r.status==="completed");
+    const revenueToday=completedToday.reduce((sum,r)=>sum+Number(r.total_amount||0),0);
+    const waiting=rows.filter(r=>r.status==="waiting");
+    const daily={};
+    for(let d=monthStart;d<=today;d=reportShiftDate(d,1)) daily[d]=0;
+    monthRows.filter(r=>r.status==="completed").forEach(function(r){daily[r.queue_date]=(daily[r.queue_date]||0)+Number(r.total_amount||0);});
+    const chartValues=Object.keys(daily).sort().map(k=>daily[k]);
+    const monthRevenue=monthRows.filter(r=>r.status==="completed").reduce((sum,r)=>sum+Number(r.total_amount||0),0);
+    const barbers=results[3].data||[];
+    const performance=barbers.map(function(b){
+      const count=completedToday.filter(r=>r.barber_id===b.id).length;
+      return {id:b.id,name:b.name,count:count};
+    });
+    const maxPerformance=Math.max(1,...performance.map(x=>x.count));
+    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress").slice(0,5);
+    const queueHtml=visible.length?visible.map(function(row){
+      const customer=row.customer||{};
+      const name=((customer.first_name||"Cliente")+" "+(customer.last_name||"")).trim();
+      const barber=barbers.find(b=>b.id===row.barber_id);
+      const service=(row.items||[]).map(i=>safe(i.service_name)).join(" & ")||"Serviço não informado";
+      const status=row.status==="in_progress"?"Em Atendimento":"Aguardando";
+      const time=new Date(row.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"});
+      const canStart=row.status==="waiting"&&!row.barber_id;
+      const canFinish=row.status==="in_progress"&&row.barber_id===state.barberId;
+      return '<article class="lc-queue-row"><div class="lc-queue-time">'+time+'</div><div class="lc-queue-client"><strong>'+safe(name)+'</strong><small>'+service+' · '+safe(barber?barber.name:"Fila compartilhada")+'</small></div><span class="lc-queue-status '+(row.status==="in_progress"?"is-progress":"is-waiting")+'">'+status+'</span><div class="lc-queue-actions">'+(canStart?'<button type="button" data-start="'+safe(row.id)+'">Chamar</button>':'')+(canFinish?'<button type="button" data-finish="'+safe(row.id)+'">Finalizar</button>':'')+(row.status==="waiting"?'<button type="button" data-cancel="'+safe(row.id)+'" aria-label="Cancelar atendimento">×</button>':'')+'</div></article>';
+    }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
+    const teamHtml=performance.map(function(person){
+      const pct=Math.round((person.count/maxPerformance)*100);
+      return '<div class="lc-team-row"><div class="lc-team-meta"><strong>'+safe(person.name)+'</strong><span>'+person.count+' atendimento(s)</span></div><div class="lc-team-track"><i style="width:'+pct+'%"></i></div></div>';
+    }).join("");
+    const monthLabels=Object.keys(daily).sort();
+    const labels=monthLabels.length?'<div class="lc-chart-labels"><span>'+monthLabels[0].slice(8,10)+'/'+monthLabels[0].slice(5,7)+'</span><span>'+monthLabels[Math.floor((monthLabels.length-1)/2)].slice(8,10)+'/'+monthLabels[Math.floor((monthLabels.length-1)/2)].slice(5,7)+'</span><span>'+monthLabels[monthLabels.length-1].slice(8,10)+'/'+monthLabels[monthLabels.length-1].slice(5,7)+'</span></div>':'';
+    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<div class="lc-admin-main">'+
+      '<header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração <b>›</b> Painel Geral</span><h1>Painel Geral</h1></div>'+
+      '<div class="lc-admin-header-tools"><label class="lc-admin-search">'+lcAdminIcon("search")+'<input type="search" id="lc-queue-search" placeholder="Buscar cliente..."></label>'+
+      '<button class="lc-admin-icon-btn" type="button" aria-label="Notificações">'+lcAdminIcon("bell")+'<i></i></button><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span></div></header>'+
+      '<div class="lc-admin-welcome"><div><span>VISÃO GERAL DA BARBEARIA</span><h2>Olá, Barbeiro 1!</h2><p>Acompanhe o movimento e os resultados da LaCorte.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></div>'+
+      '<section class="lc-metric-grid">'+
+      '<article class="lc-metric-card"><div><span>FATURAMENTO HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+money(revenueToday)+'</strong><small>Atendimentos concluídos hoje</small></article>'+
+      '<article class="lc-metric-card"><div><span>ATENDIMENTOS HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("calendar")+'</b></div><strong>'+rows.length+'</strong><small>'+waiting.length+' aguardando na fila</small></article>'+
+      '<article class="lc-metric-card"><div><span>NOVOS CLIENTES</span><b class="lc-metric-icon">'+lcAdminIcon("clients")+'</b></div><strong>'+results[2].data.length+'</strong><small>Cadastros realizados hoje</small></article>'+
+      '<article class="lc-metric-card"><div><span>FILA DE ESPERA</span><b class="lc-metric-icon">'+lcAdminIcon("history")+'</b></div><strong>'+waiting.length+' pessoa(s)</strong><small>Clientes aguardando agora</small></article></section>'+
+      '<section class="lc-admin-middle"><article class="lc-admin-card lc-revenue-card"><div class="lc-card-heading"><div><h3>Faturamento do mês</h3><p>Receita de atendimentos concluídos</p></div><strong>'+money(monthRevenue)+'</strong></div><div class="lc-chart-wrap">'+lcAdminRevenueChart(chartValues)+'</div>'+labels+'</article>'+
+      '<article class="lc-admin-card lc-queue-card"><div class="lc-card-heading"><div><h3>Fila em tempo real</h3><p>Clientes aguardando e em atendimento</p></div><button type="button" class="lc-text-action" data-refresh-admin>Atualizar</button></div><div class="lc-queue-list">'+queueHtml+'</div><button type="button" class="lc-view-all" data-admin-view="history">Ver histórico completo <span>→</span></button></article></section>'+
+      '<section class="lc-admin-bottom"><article class="lc-admin-card"><div class="lc-card-heading"><div><h3>Equipe & Desempenho</h3><p>Atendimentos concluídos hoje</p></div></div><div class="lc-team-list">'+(teamHtml||'<p class="lc-empty-queue">Nenhum barbeiro cadastrado.</p>')+'</div></article>'+
+      '<article class="lc-admin-card"><div class="lc-card-heading"><div><h3>Acesso rápido</h3><p>Atalhos administrativos</p></div></div><div class="lc-quick-grid">'+
+      '<button type="button" class="lc-quick-primary" data-admin-view="customers">'+lcAdminIcon("plus")+'<span><strong>Clientes</strong><small>Consultar cadastros</small></span></button>'+
+      '<button type="button" data-admin-view="customers">'+lcAdminIcon("clients")+'<span><strong>Clientes cadastrados</strong><small>Gerenciar clientela</small></span></button>'+
+      '<button type="button" data-admin-view="reports">'+lcAdminIcon("reports")+'<span><strong>Relatórios do caixa</strong><small>Conferir valores</small></span></button>'+
+      '<button type="button" data-admin-view="manage">'+lcAdminIcon("settings")+'<span><strong>Configurações</strong><small>Equipe e serviços</small></span></button></div></article></section>'+
+      '<footer class="lc-admin-footer"><span>© LaCorte Barbearia · Todos os direitos reservados.</span><span>Painel administrativo</span></footer></div></div>';
+    bindAdminNavigation();
+    const search=content.querySelector("#lc-queue-search");
+    if(search) search.addEventListener("input",function(){
+      const term=search.value.trim().toLocaleLowerCase("pt-BR");
+      content.querySelectorAll(".lc-queue-row").forEach(function(row){row.hidden=!row.textContent.toLocaleLowerCase("pt-BR").includes(term);});
+    });
+    const refresh=content.querySelector("[data-refresh-admin]");
+    if(refresh) refresh.addEventListener("click",renderAdminOverview);
+    content.querySelectorAll("[data-start]").forEach(b=>b.addEventListener("click",()=>openQueueCallDialog(b.dataset.start)));
+    content.querySelectorAll("[data-finish]").forEach(b=>b.addEventListener("click",()=>openPaymentMethodDialog(b.dataset.finish)));
+    content.querySelectorAll("[data-cancel]").forEach(function(button){
+      button.addEventListener("click",async function(){
+        if(!confirm("Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.")) return;
+        button.disabled=true;
+        const result=await db.rpc("lacorte_cancel_queue_entry",{p_queue_id:button.dataset.cancel});
+        if(result.error){alert("Não foi possível cancelar: "+result.error.message);button.disabled=false;}
+        else renderAdminOverview();
+      });
+    });
+    const logout=content.querySelector("[data-admin-logout]");
+    if(logout) logout.addEventListener("click",async function(){await db.auth.signOut();});
+    const support=content.querySelector("[data-admin-support]");
+    if(support) support.addEventListener("click",function(){alert("Para suporte, entre em contato com a equipe LaCorte.");});
+  }catch(error){
+    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<div class="lc-admin-main"><section class="lc-admin-card"><h3>Não foi possível carregar o painel</h3><p>'+safe(error.message)+'</p><button type="button" data-refresh-admin class="lc-text-action">Tentar novamente</button></section></div></div>';
+    bindAdminNavigation();
+    const retry=content.querySelector("[data-refresh-admin]");
+    if(retry) retry.addEventListener("click",renderAdminOverview);
+  }
+}
+
 const originalRenderQueueDashboard = renderQueueDashboard;
 renderQueueDashboard = function(){
   if(state.role === "admin" && adminView === "manage") return renderAdminManagement();
   if(state.role === "admin" && adminView === "plans") return renderAdminPlans();
   if(state.role === "admin" && adminView === "reports") return renderAdminReports();
+  if(state.role === "admin" && adminView === "history") return renderAdminReports("history");
+  if(state.role === "admin" && adminView === "customers") return renderAdminCustomers();
+  if(state.role === "admin" && adminView === "services") return renderAdminManagement();
+  if(state.role === "admin") return renderAdminOverview();
   originalRenderQueueDashboard();
-  if(state.role === "admin"){
-    const previous = content.innerHTML;
-    content.innerHTML = adminNavigation() + previous;
-    bindAdminNavigation();
-  }
 };
 
 initLaCorte();
