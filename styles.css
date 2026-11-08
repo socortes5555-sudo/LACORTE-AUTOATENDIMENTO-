@@ -2103,3 +2103,32 @@ body.admin-dashboard .report-table-wrap{box-shadow:0 8px 22px #0003}
   body.admin-dashboard .admin-agenda-board{grid-template-columns:1fr}
   body.admin-dashboard .admin-calendar-panel{padding:15px}
 }
+
+
+/* Ajuste da navegação administrativa mobile: os botões são filhos diretos do aside. */
+@media(max-width:760px){
+  body.admin-dashboard .admin-nav{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:stretch;
+    gap:7px;
+  }
+  body.admin-dashboard .admin-brand{
+    grid-column:1/-1;
+    min-width:0;
+  }
+  body.admin-dashboard .admin-nav-caption,
+  body.admin-dashboard .admin-nav-footer{display:none}
+  body.admin-dashboard .admin-nav-item{
+    min-width:0;width:100%;min-height:42px;
+    justify-content:flex-start;white-space:normal;
+    overflow-wrap:anywhere;font-size:10px;
+  }
+  body.admin-dashboard .admin-nav-item:last-of-type{
+    grid-column:1/-1;
+  }
+}
+@media(max-width:390px){
+  body.admin-dashboard .admin-nav{grid-template-columns:1fr}
+  body.admin-dashboard .admin-nav-item:last-of-type{grid-column:auto}
+}
