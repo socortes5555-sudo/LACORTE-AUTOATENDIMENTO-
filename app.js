@@ -143,10 +143,10 @@ function render(){
 
 function renderLogin(){
   setHeader('ACESSO AO AUTOATENDIMENTO','Bem-vindo à LaCorte','Escolha uma opção para continuar.');
-  content.innerHTML='<div class="entry-choice" id="entry-choice"><button class="btn btn-primary" id="start-registration" type="button">CADASTRAR</button><button class="btn btn-secondary" id="start-returning" type="button">JÁ TENHO CADASTRO</button></div><form id="login-form" hidden><label for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" value="'+safe(state.pendingEmail||'')+'" required><button class="btn btn-secondary" id="send-code-button" type="button">ENVIAR CÓDIGO DO PRIMEIRO ACESSO</button><label for="email-code">Código recebido por e-mail</label><input id="email-code" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><p class="muted">O código é solicitado somente no primeiro cadastro.</p><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="verify-code-button" type="submit">CONFIRMAR CADASTRO</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
+  content.innerHTML='<div class="entry-choice" id="entry-choice-options"><button class="btn btn-primary" id="start-registration" type="button">CADASTRAR</button><button class="btn btn-secondary" id="start-returning" type="button">JÁ TENHO CADASTRO</button></div><form id="login-form" hidden><label for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" value="'+safe(state.pendingEmail||'')+'" required><button class="btn btn-secondary" id="send-code-button" type="button">ENVIAR CÓDIGO DO PRIMEIRO ACESSO</button><label for="email-code">Código recebido por e-mail</label><input id="email-code" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><p class="muted">O código é solicitado somente no primeiro cadastro.</p><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="verify-code-button" type="submit">CONFIRMAR CADASTRO</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
   actions.replaceChildren();
   document.querySelector('#start-registration').addEventListener('click',function(){
-    document.querySelector('#entry-choice').hidden=true;
+    document.querySelector('#entry-choice-options').hidden=true;
     document.querySelector('#login-form').hidden=false;
     setHeader('PRIMEIRO ACESSO','Faça seu cadastro','Informe seu e-mail para receber o código de confirmação.');
     document.querySelector('#email').focus();
@@ -154,7 +154,7 @@ function renderLogin(){
   document.querySelector('#start-returning').addEventListener('click',renderReturningCustomerLookup);
   document.querySelector('#back-entry-choice').addEventListener('click',function(){
     document.querySelector('#login-form').hidden=true;
-    document.querySelector('#entry-choice').hidden=false;
+    document.querySelector('#entry-choice-options').hidden=false;
     setHeader('ACESSO AO AUTOATENDIMENTO','Bem-vindo à LaCorte','Escolha uma opção para continuar.');
   });
   document.querySelector('#send-code-button').addEventListener('click',async function(){
