@@ -1791,7 +1791,7 @@ function lcAdminRevenueChart(values){
     '<polygon points="'+area+'" fill="url(#lcRevenueFill)"/><polyline points="'+pts+'" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
 }
 
-async async function renderAdminOverview(){
+async function renderAdminOverview(){
   if(state.role!=="admin") return renderQueueDashboard();
   adminView="queue";
   setAppMode(true);
