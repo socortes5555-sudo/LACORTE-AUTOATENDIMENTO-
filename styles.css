@@ -3853,3 +3853,14 @@ body:has(#entry-choice) footer{width:100%!important}
 }
 @media(max-width:390px){body:has(#entry-choice) .showcase-side{grid-template-columns:1fr 1.1fr!important;gap:7px!important}body:has(#entry-choice) .contact-strip strong{overflow-wrap:anywhere!important}}
 @media(prefers-reduced-motion:reduce){body:has(#entry-choice) .hero-slide{animation:none!important}body:has(#entry-choice) .hero-slide:not(.slide-a){display:none!important}body:has(#entry-choice) .hero-slide.slide-a{opacity:1!important}}
+
+
+/* Final polish: remove login-only footer from authenticated dashboards */
+body.admin-dashboard footer,
+body.professional-dashboard footer{display:none!important}
+body.admin-dashboard .admin-customer-card>summary:focus-visible,
+body.admin-dashboard .admin-nav-item:focus-visible,
+body.professional-dashboard .professional-nav-item:focus-visible{
+  outline:2px solid #ff8128;
+  outline-offset:2px;
+}
