@@ -1260,8 +1260,14 @@ async function renderAdminManagement(){
     });
     bindAdminNavigation();
     if(adminManageInitialTab === "services"){
-      const servicesTab = content.querySelector('[data-manage-tab="services"]');
-      if(servicesTab) servicesTab.click();
+      content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
+        const active = tab.dataset.manageTab === "services";
+        tab.classList.toggle("active",active);
+        tab.setAttribute("aria-selected",active ? "true" : "false");
+      });
+      content.querySelectorAll("[data-manage-panel]").forEach(function(panel){
+        panel.classList.toggle("active",panel.dataset.managePanel === "services");
+      });
       adminManageInitialTab = "access";
     }
     content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
