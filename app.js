@@ -936,11 +936,11 @@ async function renderBarberReports(){
  content.querySelector('#barber-report-period').addEventListener('change',function(){adminReportFilters.period=this.value;renderBarberReports();});
  }catch(error){content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();}
 }
-async function renderAdminReports(){
+async function renderAdminReports(view="reports"){
   if(state.role !== "admin") return renderQueueDashboard();
-  adminView = "reports";
+  adminView = view;
   setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE","Relatórios e faturamento","Acompanhe resultados, serviços e comissões por período.");
+  setHeader("ADMINISTRAÇÃO LACORTE",view === "history" ? "Histórico de atendimentos" : "Relatórios e faturamento",view === "history" ? "Consulte os registros de todos os atendimentos da barbearia." : "Acompanhe resultados, serviços e comissões por período.");
   notice.textContent = "Relatórios exclusivos do administrador • Valores financeiros consideram somente atendimentos concluídos.";
   dashboardActions();
   content.innerHTML = adminNavigation() + '<p class="muted">Carregando relatórios...</p>';
@@ -1059,7 +1059,7 @@ async function renderAdminReports(){
       (rows.length ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>' : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
       '</section>';
 
-    if(state.role !== "admin" || adminView !== "reports") return;
+    if(state.role !== "admin" || adminView !== view) return;
     content.innerHTML = html;
     bindAdminNavigation();
     const filter = content.querySelector("#report-filter");
@@ -1077,10 +1077,10 @@ async function renderAdminReports(){
       adminReportFilters.period=String(fd.get("period") || "month");
       adminReportFilters.start=String(fd.get("start") || "");
       adminReportFilters.end=String(fd.get("end") || "");
-      renderAdminReports();
+      renderAdminReports(view);
     });
   } catch(error) {
-    if(state.role !== "admin" || adminView !== "reports") return;
+    if(state.role !== "admin" || adminView !== view) return;
     content.innerHTML = adminNavigation() + '<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';
     bindAdminNavigation();
   }
@@ -1089,6 +1089,7 @@ async function renderAdminReports(){
 
 // ===== GERENCIAMENTO ADMINISTRATIVO LACORTE =====
 let adminView = "queue";
+let adminManageInitialTab = "access";
 
 function adminNavigation(){
   if(state.role !== "admin") return "";
@@ -1097,10 +1098,11 @@ function adminNavigation(){
   };
   return '<aside class="admin-nav"><div class="admin-brand"><span class="admin-brand-mark">LC</span><span><strong>LA CORTE</strong><small>PAINEL ADMINISTRATIVO</small></span></div>'+
     '<div class="admin-nav-caption">GESTÃO DA BARBEARIA</div>'+
-    navItem("queue","Painel geral","▦")+
-    navItem("customers","Clientes cadastrados","♧")+
-    navItem("manage","Serviços e equipe","♙")+
-    navItem("plans","Planos e assinaturas","◇")+
+    navItem("queue","Painel Geral","▦")+
+    navItem("history","Histórico","◷")+
+    navItem("manage","Gestão","♙")+
+    navItem("customers","Clientes","♧")+
+    navItem("services","Serviços","✂")+
     navItem("reports","Relatórios","▥")+
     '<div class="admin-nav-footer"><span class="admin-online-dot"></span> Sistema operacional</div></aside>';
 }
@@ -1110,8 +1112,9 @@ function bindAdminNavigation(){
     button.addEventListener("click", function(){
       adminView = button.dataset.adminView;
       if(adminView === "manage") renderAdminManagement();
+      else if(adminView === "history") renderAdminReports("history");
       else if(adminView === "customers") renderAdminCustomers();
-      else if(adminView === "plans") renderAdminPlans();
+      else if(adminView === "services") { adminManageInitialTab = "services"; renderAdminManagement(); }
       else if(adminView === "reports") renderAdminReports();
       else renderQueueDashboard();
     });
@@ -1256,6 +1259,11 @@ async function renderAdminManagement(){
       });
     });
     bindAdminNavigation();
+    if(adminManageInitialTab === "services"){
+      const servicesTab = content.querySelector('[data-manage-tab="services"]');
+      if(servicesTab) servicesTab.click();
+      adminManageInitialTab = "access";
+    }
     content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
       tab.addEventListener("click", function(){
         const selected = tab.dataset.manageTab;
