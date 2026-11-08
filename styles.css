@@ -4016,3 +4016,88 @@ body:has(#step-content) .contact-strip b{font-size:11px;color:#aaa}
   body:has(#step-content) .brand-word{font-size:23px!important}
   body:has(#step-content) .top-label{font-size:7px;padding:6px 7px}
 }
+
+
+/* Finalização visual exclusiva da página pública LaCorte */
+body:has(#entry-choice){background:#090909!important;color:#f7f3ef!important}
+body:has(#entry-choice) .topbar{
+  position:relative!important;z-index:5!important;height:78px!important;min-height:78px!important;
+  padding:0 max(24px,calc((100vw - 1180px)/2))!important;
+  background:linear-gradient(90deg,#090909 0%,#17100c 52%,#090909 100%)!important;
+  border-bottom:1px solid #ff81282b!important
+}
+body:has(#entry-choice) .brand{display:flex!important;align-items:center!important;gap:10px!important}
+body:has(#entry-choice) .brand-croc{width:50px!important;height:34px!important;color:#ff8128!important;filter:drop-shadow(0 0 10px #ff812833)}
+body:has(#entry-choice) .brand-word{font:700 31px/1 Oswald,sans-serif!important;letter-spacing:.3px!important;color:#fff!important}
+body:has(#entry-choice) .brand small{display:none!important}
+body:has(#entry-choice) .top-label{
+  color:#ff9a55!important;font-size:9px!important;font-weight:700!important;letter-spacing:2px!important;
+  padding:9px 13px!important;border:1px solid #ff812844!important;border-radius:999px!important;background:#ff812810!important
+}
+body:has(#entry-choice) .shell{
+  width:min(1180px,calc(100% - 48px))!important;max-width:1180px!important;
+  padding:28px 0 34px!important
+}
+body:has(#entry-choice) .hero.hero-home{min-height:350px!important;gap:30px!important;margin-bottom:16px!important}
+body:has(#entry-choice) .hero-copy .eyebrow{font-size:10px!important;letter-spacing:2.4px!important;color:#ff9148!important}
+body:has(#entry-choice) .hero-pretitle{font-size:clamp(20px,2.4vw,30px)!important;color:#eee5dd!important}
+body:has(#entry-choice) .hero-home h1{font-size:clamp(52px,6vw,78px)!important;line-height:.96!important;letter-spacing:-1.5px!important}
+body:has(#entry-choice) .hero-home h1 em{color:#ff8128!important}
+body:has(#entry-choice) .hero-values{gap:12px!important;color:#eee!important;font-size:11px!important}
+body:has(#entry-choice) .hero-values i{width:1px!important;height:18px!important;background:#ff8128!important}
+body:has(#entry-choice) .hero-home .intro{max-width:330px!important;color:#c5bdb6!important;font-size:12px!important}
+body:has(#entry-choice) .hero-motion{
+  height:330px!important;border:1px solid #ffffff20!important;border-radius:18px 5px 18px 5px!important;
+  box-shadow:0 24px 60px #0009!important;mask-image:linear-gradient(90deg,transparent 0%,#000 8%,#000 100%)!important
+}
+body:has(#entry-choice) .hero-slide{object-position:center 38%!important}
+body:has(#entry-choice) .panel{
+  padding:24px clamp(20px,3vw,34px)!important;border:1px solid #ffffff22!important;
+  border-radius:17px!important;background:linear-gradient(120deg,#1c1713f2,#131313f5)!important;
+  box-shadow:0 18px 50px #0008!important
+}
+body:has(#entry-choice) .panel-heading h2{font-size:clamp(25px,3vw,32px)!important;color:#fff!important}
+body:has(#entry-choice) .panel-heading .muted{color:#b9b0a8!important}
+body:has(#entry-choice) .entry-choice{max-width:620px!important;gap:12px!important;margin:18px 0 5px!important}
+body:has(#entry-choice) .entry-choice .btn{
+  min-height:62px!important;border-radius:11px!important;font-size:12px!important;
+  font-weight:800!important;letter-spacing:.7px!important
+}
+body:has(#entry-choice) .entry-choice .btn-primary{background:linear-gradient(110deg,#ff984f,#f47721)!important;color:#17100b!important}
+body:has(#entry-choice) .entry-choice .btn-secondary{background:#ffffff08!important;border:1px solid #ffffff30!important;color:#fff!important}
+body:has(#entry-choice) .entry-choice .btn:focus-visible,
+body:has(#entry-choice) #login-form button:focus-visible{outline:2px solid #ffb078!important;outline-offset:3px!important}
+body:has(#entry-choice) #login-form:not([hidden]){display:grid!important;gap:10px!important;max-width:560px!important}
+body:has(#entry-choice) #login-form label{color:#eee3da!important;font-size:12px!important;font-weight:700!important}
+body:has(#entry-choice) #login-form input{min-height:50px!important;padding:13px 15px!important;border-radius:10px!important;background:#0b0b0b!important;border:1px solid #ffffff2c!important;color:#fff!important}
+body:has(#entry-choice) #login-form input:focus{outline:0!important;border-color:#ff8128!important;box-shadow:0 0 0 3px #ff812822!important}
+body:has(#entry-choice) .experience-showcase{gap:14px!important}
+body:has(#entry-choice) .connection-card,
+body:has(#entry-choice) .membership-highlight,
+body:has(#entry-choice) .contact-strip>div,
+body:has(#entry-choice) .contact-strip>a{border:1px solid #ffffff1c!important;border-radius:14px!important;background:linear-gradient(145deg,#1d1b19,#121212)!important}
+body:has(#entry-choice) .membership-highlight{background:linear-gradient(145deg,#2b1b11,#171411)!important;border-color:#ff81283d!important}
+body:has(#entry-choice) .site-footer{border:1px solid #ffffff18!important;background:linear-gradient(110deg,#191919,#101010)!important}
+@media(max-width:760px){
+  body:has(#entry-choice) .topbar{height:66px!important;min-height:66px!important;padding:0 16px!important}
+  body:has(#entry-choice) .brand-croc{width:38px!important;height:27px!important}
+  body:has(#entry-choice) .brand-word{font-size:26px!important}
+  body:has(#entry-choice) .top-label{font-size:8px!important;letter-spacing:1px!important;padding:7px 9px!important}
+  body:has(#entry-choice) .shell{width:calc(100% - 28px)!important;padding:12px 0 24px!important}
+  body:has(#entry-choice) .hero.hero-home{min-height:0!important;margin:0 0 12px!important;gap:12px!important}
+  body:has(#entry-choice) .hero-motion{height:210px!important;border-radius:13px!important;mask-image:none!important}
+  body:has(#entry-choice) .hero-home h1{font-size:clamp(44px,11vw,60px)!important}
+  body:has(#entry-choice) .panel{padding:17px 15px!important}
+  body:has(#entry-choice) .entry-choice{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  body:has(#entry-choice) .entry-choice .btn{min-height:54px!important;padding:9px 7px!important;font-size:10px!important}
+  body:has(#entry-choice) .showcase-side{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)!important;gap:8px!important}
+  body:has(#entry-choice) .contact-strip>div,
+  body:has(#entry-choice) .contact-strip>a{padding:9px!important}
+}
+@media(max-width:420px){
+  body:has(#entry-choice) .brand{gap:6px!important}
+  body:has(#entry-choice) .brand-croc{width:32px!important}
+  body:has(#entry-choice) .brand-word{font-size:23px!important}
+  body:has(#entry-choice) .top-label{font-size:7px!important;padding:6px 7px!important}
+  body:has(#entry-choice) .showcase-side{grid-template-columns:1fr!important}
+}
