@@ -43,7 +43,7 @@
         try { await load("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"); }
         catch(firstError) { await load("https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"); }
         if(!window.supabase||!window.supabase.createClient) throw new Error("Biblioteca Supabase indisponível.");
-        await load("app.js?v=20261108-admin-customer-edit1");
+        await load("app.js?v=20261108-realtime1");
         if(!window.__LACORTE_APP_STARTED__) {
           // app.js executa initLaCorte no carregamento; se houve erro global, o alerta abaixo informa.
           setTimeout(()=>{
