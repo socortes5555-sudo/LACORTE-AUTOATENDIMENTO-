@@ -38,10 +38,22 @@
     function load(src){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error("Falha ao carregar "+src));document.head.appendChild(s);});}
     window.addEventListener("error",function(e){if(e.message)fail("Erro ao iniciar o painel: "+e.message);});
     window.addEventListener("unhandledrejection",function(e){const reason=e.reason;fail("Falha de conexão ou inicialização: "+(reason&&reason.message?reason.message:String(reason||"erro desconhecido")));});
-    load("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js")
-      .catch(()=>load("https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"))
-      .then(()=>{if(!window.supabase||!window.supabase.createClient)throw new Error("A biblioteca segura do Supabase não ficou disponível.");return load("app.js?v=20261108-admin-loaderfix");})
-      .catch(err=>fail("Não foi possível iniciar o painel LaCorte. "+err.message+" Verifique a conexão com a internet e tente novamente."));
+    async function start(){
+      try {
+        try { await load("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"); }
+        catch(firstError) { await load("https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"); }
+        if(!window.supabase||!window.supabase.createClient) throw new Error("Biblioteca Supabase indisponível.");
+        await load("app.js?v=20261108-admin-initfix2");
+        if(!window.__LACORTE_APP_STARTED__) {
+          // app.js executa initLaCorte no carregamento; se houve erro global, o alerta abaixo informa.
+          setTimeout(()=>{
+            const text=content.textContent||"";
+            if(text.includes("Carregando os componentes")) fail("O app.js foi carregado, mas não iniciou a interface. Verifique o console do navegador.");
+          },2500);
+        }
+      } catch(err) { fail("Não foi possível iniciar o painel LaCorte. "+err.message+" Verifique a conexão com a internet e tente novamente."); }
+    }
+    start();
   })();
   </script>
 </body>
