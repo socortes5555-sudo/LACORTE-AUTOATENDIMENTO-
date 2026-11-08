@@ -1,6 +1,6 @@
 # LaCorte — Autoatendimento e Fila de Atendimento
 
-Aplicação web da LaCorte para autoatendimento de clientes, organização da fila presencial por barbeiro e administração da operação.
+Aplicação web da LaCorte para autoatendimento de clientes, organização de uma fila compartilhada e administração da operação.
 
 O sistema é orientado a **fila de atendimento por ordem de entrada**. Não é um sistema de agendamento de horários.
 
@@ -36,11 +36,10 @@ A aplicação utiliza a chave pública/publicável do Supabase no navegador. Cha
 2. Na primeira visita, completa o perfil com nome, sobrenome, telefone e aniversário.
 3. Nas próximas visitas, os dados já cadastrados podem ser reutilizados.
 4. Escolhe os serviços desejados.
-5. Escolhe o barbeiro.
-6. Confere os dados e confirma a entrada.
-7. Recebe sua senha e acompanha o status do atendimento.
+5. Confere os dados e confirma a entrada.
+6. Recebe sua senha e acompanha o status do atendimento.
 
-A entrada é registrada na fila do barbeiro escolhido. Não há seleção de data ou horário de agendamento.
+O cliente não escolhe barbeiro. A entrada é registrada na fila compartilhada, e o profissional assume o próximo atendimento disponível. Não há seleção de data ou horário de agendamento.
 
 ## Painel do profissional
 
@@ -104,9 +103,9 @@ Após alterações nos arquivos, aguarde a atualização do GitHub Pages e valid
 
 - [ ] Acesso por e-mail e recuperação da sessão.
 - [ ] Cadastro e reutilização dos dados do cliente.
-- [ ] Seleção de serviços e barbeiro.
-- [ ] Geração de senha e entrada na fila correta.
-- [ ] Isolamento da fila de cada barbeiro.
+- [ ] Seleção de serviços sem escolha de barbeiro pelo cliente.
+- [ ] Geração de senha e entrada na fila compartilhada.
+- [ ] Atribuição do atendimento ao profissional que o iniciar.
 - [ ] Acesso exclusivo do proprietário às funções administrativas.
 - [ ] Início, conclusão e cancelamento de atendimentos.
 - [ ] Cálculo de valores e comissões.
