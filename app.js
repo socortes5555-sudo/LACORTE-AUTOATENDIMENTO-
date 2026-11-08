@@ -159,7 +159,7 @@ function renderLogin(){
   });
   document.querySelector('#send-code-button').addEventListener('click',async function(){
     const email=document.querySelector('#email').value.trim();if(!email){showMessage('Informe seu e-mail primeiro.');return;}
-    this.disabled=true;showMessage('Verificando se já existe cadastro...');const existing=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:email});if(existing.error){this.disabled=false;showMessage('Não foi possível verificar o cadastro: '+existing.error.message);return;}if(existing.data&&existing.data.length){this.disabled=false;showMessage('Este e-mail já possui cadastro. Use a opção JÁ TENHO CADASTRO para entrar sem novo código.');return;}showMessage('Enviando código...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
+    this.disabled=true;showMessage('Enviando código de confirmação...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
     if(result.error){showMessage('Erro ao enviar código: '+result.error.message);return;}state.pendingEmail=email;showMessage('Código enviado. Digite os 6 números acima.');document.querySelector('#email-code').focus();
   });
   document.querySelector('#login-form').addEventListener('submit',async function(e){
@@ -176,15 +176,46 @@ function renderLogin(){
 }
 
 function renderReturningCustomerLookup(){
-  setHeader('CLIENTE CADASTRADO','Identifique-se','Informe parte do nome, sobrenome, telefone ou e-mail. Não será enviado novo código.');
-  content.innerHTML='<form id="returning-form"><label for="customer-identifier">Nome, sobrenome, telefone ou e-mail</label><input id="customer-identifier" autocomplete="off" placeholder="Ex.: João, Silva, (48) 99999-9999 ou email" required><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">LOCALIZAR MEU CADASTRO</button><button class="btn btn-secondary" id="back-first-access" type="button">PRIMEIRO ACESSO / CADASTRAR</button></form>';
-  actions.replaceChildren();document.querySelector('#back-first-access').addEventListener('click',renderLogin);
-  document.querySelector('#returning-form').addEventListener('submit',async function(e){
-    e.preventDefault();const identifier=document.querySelector('#customer-identifier').value.trim(),button=this.querySelector('[type="submit"]');button.disabled=true;showMessage('Localizando cadastro...');
-    const result=await db.rpc('lacorte_find_customer_for_kiosk',{p_identifier:identifier});button.disabled=false;
-    if(result.error){showMessage('Não foi possível localizar: '+result.error.message);return;}
-    const customer=Array.isArray(result.data)?result.data[0]:result.data;if(!customer){showMessage('Cadastro não encontrado. Confira os dados ou faça o primeiro cadastro.');return;}
-    state.user=null;state.customer=customer;state.customerPlan=customer.customer_plan||null;state.customerPlanBenefits=state.customerPlan&&Array.isArray(state.customerPlan.benefits)?state.customerPlan.benefits:[];state.selectedServices=[];state.queueTicket=null;state.role='customer';state.message='';setAppMode(false);state.step=3;render();
+  setHeader('CLIENTE CADASTRADO','Confirme seu e-mail','Para proteger seu cadastro, enviaremos um código de verificação ao e-mail registrado.');
+  content.innerHTML='<form id="returning-form"><label for="customer-email">E-mail cadastrado</label><input id="customer-email" type="email" autocomplete="email" placeholder="seuemail@exemplo.com" required><div id="returning-code-wrap" hidden><label for="returning-code">Código de 6 dígitos</label><input id="returning-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="returning-submit" type="submit">ENVIAR CÓDIGO</button><button class="btn btn-secondary" id="back-first-access" type="button">VOLTAR</button></form>';
+  actions.replaceChildren();
+  const form=document.querySelector('#returning-form');
+  const emailInput=document.querySelector('#customer-email');
+  const codeWrap=document.querySelector('#returning-code-wrap');
+  const submit=document.querySelector('#returning-submit');
+  let codeSent=false;
+  document.querySelector('#back-first-access').addEventListener('click',renderLogin);
+  form.addEventListener('submit',async function(e){
+    e.preventDefault();
+    const email=emailInput.value.trim().toLowerCase();
+    submit.disabled=true;
+    if(!codeSent){
+      showMessage('Enviando código de segurança...');
+      const sent=await db.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+      submit.disabled=false;
+      if(sent.error){showMessage('Não foi possível enviar o código. Confira o e-mail cadastrado ou procure a equipe da LaCorte.');return;}
+      codeSent=true;
+      emailInput.readOnly=true;
+      codeWrap.hidden=false;
+      document.querySelector('#returning-code').required=true;
+      submit.textContent='CONFIRMAR CÓDIGO';
+      showMessage('Código enviado. Verifique sua caixa de entrada e o spam.');
+      document.querySelector('#returning-code').focus();
+      return;
+    }
+    const token=document.querySelector('#returning-code').value.trim();
+    if(!/^[0-9]{6}$/.test(token)){submit.disabled=false;showMessage('Digite os 6 números recebidos por e-mail.');return;}
+    showMessage('Validando código e abrindo seu cadastro...');
+    const verified=await db.auth.verifyOtp({email,token,type:'email'});
+    if(verified.error){submit.disabled=false;showMessage('Código inválido ou expirado. Solicite um novo código e tente novamente.');return;}
+    if(verified.data&&verified.data.session){
+      const saved=await db.auth.setSession({access_token:verified.data.session.access_token,refresh_token:verified.data.session.refresh_token});
+      if(saved.error){submit.disabled=false;showMessage('Não foi possível iniciar sua sessão. Tente novamente.');return;}
+    }
+    const session=await db.auth.getSession();
+    const user=(session.data&&session.data.session&&session.data.session.user)||(verified.data&&verified.data.user);
+    if(!user){submit.disabled=false;showMessage('Não foi possível confirmar sua sessão. Tente novamente.');return;}
+    await routeAuthenticatedUser(user);
   });
 }
 
