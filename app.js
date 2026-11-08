@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
 const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false, flowType: "implicit" } }) : null;
-const STAFF_PORTAL = /\/barbeiros(?:\.html)?\/?$/i.test(window.location.pathname);
+const STAFF_PORTAL = /\/(?:barbeiros|painel-admin-preview)(?:\.html)?\/?$/i.test(window.location.pathname);
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -1797,7 +1797,7 @@ function lcAdminSidebar(){
     '<div class="lc-admin-brand"><span class="lc-admin-brand-mark">LC</span><span><strong>LaCorte</strong><small>BARBEARIA</small></span></div>'+
     '<div class="lc-admin-nav-caption">MENU PRINCIPAL</div><nav class="lc-admin-nav" aria-label="Menu administrativo">'+
     item("queue","Painel Geral","overview")+item("history","Histórico","history")+item("manage","Gestão","management")+
-    item("customers","Clientes","clients")+item("services","Serviços","services")+item("reports","Relatórios","reports")+
+    item("customers","Clientes","clients")+item("services","Serviços","services")+item("plans","Planos","plans")+item("reports","Relatórios","reports")+
     '</nav><div class="lc-admin-sidebar-bottom"><div class="lc-admin-system"><i></i><span>Sistema operacional</span></div>'+
     '<button type="button" class="lc-admin-bottom-link" data-admin-support>'+lcAdminIcon("support")+'<span>Suporte</span></button>'+
     '<button type="button" class="lc-admin-bottom-link" data-admin-logout>'+lcAdminIcon("logout")+'<span>Sair</span></button>'+
