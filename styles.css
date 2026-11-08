@@ -4356,3 +4356,58 @@ body.admin-dashboard:has(.lc-admin-app) .site-footer{display:none!important}
 @media(max-width:760px){
   body.admin-dashboard:has(.lc-admin-app) .lc-admin-search{width:100%;height:38px}
 }
+
+
+/* Painel LaCorte: proporção de dashboard, sem esticar em monitores largos */
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-app{
+  width:100%!important;
+  max-width:1480px!important;
+  margin:0 auto!important;
+  grid-template-columns:238px minmax(0,1fr)!important;
+  min-height:100vh;
+  overflow:visible!important;
+  align-items:start!important;
+}
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-sidebar{
+  width:238px;max-width:238px;min-width:238px;
+  min-height:100vh;height:100vh;
+  padding:22px 14px 16px;
+}
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-main{
+  width:100%;max-width:none;min-width:0;
+  margin:0;padding:24px 28px 18px;
+}
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-welcome{padding:20px 0 16px}
+body.admin-dashboard:has(.lc-admin-app) .lc-metric-grid{gap:11px}
+body.admin-dashboard:has(.lc-admin-app) .lc-metric-card{padding:15px 14px}
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-middle,
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-bottom{
+  gap:12px;margin-top:13px;align-items:start;
+}
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-card{padding:16px}
+body.admin-dashboard:has(.lc-admin-app) .lc-chart-wrap{height:165px}
+body.admin-dashboard:has(.lc-admin-app) .lc-queue-row{gap:8px;padding:10px 0}
+body.admin-dashboard:has(.lc-admin-app) .lc-quick-grid{gap:8px}
+body.admin-dashboard:has(.lc-admin-app) .lc-quick-grid button{min-height:60px;padding:9px}
+body.admin-dashboard:has(.lc-admin-app) .lc-admin-footer{padding-top:12px}
+@media(max-width:1100px){
+  body.admin-dashboard:has(.lc-admin-app) .lc-admin-app{
+    grid-template-columns:215px minmax(0,1fr)!important;
+  }
+  body.admin-dashboard:has(.lc-admin-app) .lc-admin-sidebar{
+    width:215px;max-width:215px;min-width:215px;
+  }
+  body.admin-dashboard:has(.lc-admin-app) .lc-admin-main{padding:20px 18px 16px}
+}
+@media(max-width:760px){
+  body.admin-dashboard:has(.lc-admin-app) .lc-admin-app{
+    display:flex!important;flex-direction:column!important;
+    width:100%!important;max-width:none!important;margin:0!important;
+  }
+  body.admin-dashboard:has(.lc-admin-app) .lc-admin-sidebar{
+    width:100%;max-width:none;min-width:0;height:auto;min-height:0;
+  }
+  body.admin-dashboard:has(.lc-admin-app) .lc-admin-main{
+    width:100%;max-width:none;margin:0;padding:15px 14px 18px;
+  }
+}
