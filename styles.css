@@ -2290,3 +2290,72 @@ body.admin-dashboard #step-actions{padding-top:4px}
  body.admin-dashboard .admin-agenda-heading h3{font-size:18px}
  body.admin-dashboard .admin-nav-item{font-size:10px}
 }
+
+
+/* CORREÇÃO RESPONSIVA DEFINITIVA — painel administrativo em telas pequenas */
+@media (max-width: 760px) {
+  body.admin-dashboard #step-content:has(> .admin-nav) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  body.admin-dashboard #step-content > .admin-nav {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    position: relative !important;
+    inset: auto !important;
+    float: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    overflow: visible !important;
+  }
+  body.admin-dashboard #step-content > .admin-nav .admin-brand,
+  body.admin-dashboard #step-content > .admin-nav .admin-nav-caption,
+  body.admin-dashboard #step-content > .admin-nav .admin-nav-footer {
+    grid-column: 1 / -1 !important;
+    min-width: 0 !important;
+  }
+  body.admin-dashboard #step-content > .admin-nav .admin-nav-caption,
+  body.admin-dashboard #step-content > .admin-nav .admin-nav-footer {
+    display: none !important;
+  }
+  body.admin-dashboard #step-content > .admin-nav .admin-nav-item {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    justify-content: flex-start !important;
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+  }
+  body.admin-dashboard #step-content > .admin-nav ~ * {
+    display: block;
+    grid-column: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex: 0 0 auto !important;
+    box-sizing: border-box !important;
+  }
+}
+@media (max-width: 390px) {
+  body.admin-dashboard #step-content > .admin-nav {
+    grid-template-columns: 1fr !important;
+  }
+  body.admin-dashboard #step-content > .admin-nav .admin-brand {
+    grid-column: 1 !important;
+  }
+}
