@@ -2930,3 +2930,22 @@ body:has(#entry-choice) footer{display:none!important}
  body:has(#entry-choice) .experience-showcase>.connection-card,
  body:has(#entry-choice) .membership-highlight{min-height:70px!important}
 }
+
+
+/* LaCorte Admin — quatro indicadores em grade 2x2 no celular */
+@media(max-width:650px){
+ body:has(.admin-nav) .report-kpis{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+ }
+ body:has(.admin-nav) .report-kpis>.summary{
+  min-width:0;margin:0;padding:10px!important;gap:5px;
+ }
+ body:has(.admin-nav) .report-kpis>.summary .muted{
+  font-size:12px;line-height:1.25;
+ }
+ body:has(.admin-nav) .report-kpis>.summary strong{
+  font-size:18px;line-height:1.2;overflow-wrap:anywhere;
+ }
+}
