@@ -2773,3 +2773,160 @@ body:has(.admin-nav) .report-table td{padding:6px 5px}
  body.admin-dashboard .report-chart-grid .report-pie-legend-item strong,
  body:has(.admin-nav) .report-chart-grid .report-pie-legend-item strong{font-size:7px}
 }
+
+
+/* LaCorte cliente — wallpaper aprovado, composição única sem rolagem */
+body:has(#entry-choice){
+  height:100svh!important;min-height:100svh!important;max-height:100svh!important;
+  overflow:hidden!important;background:#080808!important;
+}
+body:has(#entry-choice) .topbar{
+  position:relative;z-index:20;height:66px!important;min-height:66px!important;
+  max-width:none!important;width:100%;padding:7px clamp(14px,3vw,38px)!important;
+  background:linear-gradient(90deg,#080808ed,#17100ce0 65%,#080808e8);
+  border-bottom:1px solid #ffffff1a;
+}
+body:has(#entry-choice) .brand-croc{display:none}
+body:has(#entry-choice) .brand{display:flex;gap:0;font-size:0}
+body:has(#entry-choice) .brand-word{font:800 30px/.95 Oswald,sans-serif;letter-spacing:1px;color:#fff}
+body:has(#entry-choice) .brand-word b{color:#ff791f}
+body:has(#entry-choice) .brand small{display:none}
+body:has(#entry-choice) .top-label{font-size:9px;letter-spacing:2px;color:#ff8b3d}
+body:has(#entry-choice) .shell{
+  position:relative;width:100%!important;max-width:none!important;
+  height:calc(100svh - 66px)!important;min-height:0!important;max-height:calc(100svh - 66px)!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;display:block!important;
+}
+body:has(#entry-choice) .hero.hero-home{
+  position:absolute!important;inset:0!important;z-index:0;
+  display:block!important;width:100%;height:100%!important;min-height:0!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  overflow:hidden!important;background:#080808!important;
+}
+body:has(#entry-choice) .hero-motion{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  border-radius:0!important;mask-image:none!important;
+}
+body:has(#entry-choice) .hero-slide{object-fit:cover!important;object-position:center 42%!important}
+body:has(#entry-choice) .hero-image-shade{
+  background:linear-gradient(90deg,#080808e8 0%,#080808a8 34%,#08080820 100%),
+  linear-gradient(0deg,#080808ef 0%,#08080828 48%,#08080865 100%)!important;
+}
+body:has(#entry-choice) .hero-copy{
+  position:absolute!important;left:clamp(18px,5vw,70px)!important;top:clamp(24px,7vh,74px)!important;
+  z-index:3;width:min(48%,560px)!important;max-width:560px!important;padding:0!important;
+}
+body:has(#entry-choice) .hero-pretitle{font-size:clamp(17px,2.2vw,27px)!important;white-space:normal}
+body:has(#entry-choice) .hero-home h1{font-size:clamp(44px,6.3vw,78px)!important;line-height:.92!important;margin:8px 0 12px!important}
+body:has(#entry-choice) .hero-values{gap:10px!important;margin:12px 0!important;font-size:11px!important;flex-wrap:wrap}
+body:has(#entry-choice) .hero-values i{height:17px!important}
+body:has(#entry-choice) .hero-home .intro{font-size:11px!important;line-height:1.35!important;max-width:290px!important;margin:8px 0!important}
+body:has(#entry-choice) .progress{display:none!important}
+body:has(#entry-choice) .panel{
+  position:absolute!important;z-index:8;left:clamp(16px,4vw,54px)!important;bottom:clamp(18px,4vh,42px)!important;
+  width:min(43%,500px)!important;max-width:500px!important;min-height:0!important;height:auto!important;
+  margin:0!important;padding:15px 18px!important;overflow:visible!important;
+  border:1px solid #ffffff30!important;border-radius:14px!important;
+  background:linear-gradient(115deg,rgba(16,15,14,.94),rgba(25,20,17,.88))!important;
+  box-shadow:0 14px 42px #0009!important;backdrop-filter:blur(12px);
+}
+body:has(#entry-choice) .panel-heading{margin:0 0 4px!important}
+body:has(#entry-choice) .panel-heading .eyebrow{font-size:8px!important;letter-spacing:1.8px}
+body:has(#entry-choice) .panel-heading h2{font-size:clamp(20px,2.3vw,27px)!important;margin:3px 0!important}
+body:has(#entry-choice) .panel-heading .muted{font-size:10px!important;margin:3px 0!important}
+body:has(#entry-choice) .entry-choice{grid-template-columns:1fr 1fr!important;gap:8px!important;margin:9px 0 0!important}
+body:has(#entry-choice) .entry-choice .btn{min-height:46px!important;padding:8px 6px!important;font-size:10px!important;letter-spacing:.2px!important;border-radius:8px!important}
+body:has(#entry-choice) .panel:has(.entry-choice) .notice{margin:5px 0 0!important;padding:0!important;font-size:8px!important;line-height:1.25!important}
+body:has(#entry-choice) .experience-showcase{
+  position:absolute!important;z-index:7;right:clamp(16px,4vw,54px)!important;bottom:clamp(18px,4vh,42px)!important;
+  width:min(49%,590px)!important;height:auto!important;min-height:0!important;max-height:none!important;
+  display:grid!important;grid-template-columns:.78fr 1.22fr!important;gap:9px!important;
+  margin:0!important;padding:0!important;overflow:visible!important;
+}
+body:has(#entry-choice) .experience-showcase>.connection-card{
+  position:relative!important;inset:auto!important;width:auto!important;height:auto!important;min-height:94px!important;
+  display:flex!important;align-items:center!important;gap:8px!important;padding:8px!important;
+  border:1px solid #ffffff30!important;border-radius:10px!important;
+  background:linear-gradient(120deg,rgba(16,16,16,.9),rgba(37,26,18,.86))!important;
+}
+body:has(#entry-choice) .wifi-qr-frame{width:58px!important;height:58px!important;flex:0 0 58px!important;padding:3px!important}
+body:has(#entry-choice) #wifi-qr{width:52px!important;height:52px!important}
+body:has(#entry-choice) #wifi-qr canvas,body:has(#entry-choice) #wifi-qr img{width:52px!important;height:52px!important;max-width:none!important;max-height:none!important}
+body:has(#entry-choice) .connection-copy{gap:2px!important}
+body:has(#entry-choice) .connection-kicker{font-size:6px!important;letter-spacing:.8px!important}
+body:has(#entry-choice) .connection-copy>strong{font-size:13px!important;line-height:1.1!important}
+body:has(#entry-choice) .connection-copy>small{font-size:7px!important;line-height:1.2!important}
+body:has(#entry-choice) .showcase-side{
+  position:relative!important;inset:auto!important;display:grid!important;
+  grid-template-columns:.85fr 1.15fr!important;gap:7px!important;pointer-events:auto!important;
+}
+body:has(#entry-choice) .membership-highlight{
+  position:relative!important;inset:auto!important;width:auto!important;min-height:94px!important;
+  padding:9px!important;border:1px solid #ffffff30!important;border-radius:10px!important;
+  background:linear-gradient(135deg,rgba(42,30,22,.94),rgba(18,17,16,.9))!important;
+}
+body:has(#entry-choice) .membership-kicker{font-size:6px!important;letter-spacing:.7px!important}
+body:has(#entry-choice) .membership-highlight h2{font-size:clamp(13px,1.5vw,18px)!important;line-height:1!important;margin:5px 0 3px!important;white-space:nowrap}
+body:has(#entry-choice) .membership-highlight p{font-size:7px!important;margin:0!important;white-space:nowrap}
+body:has(#entry-choice) .membership-highlight p strong{font-size:13px!important}
+body:has(#entry-choice) .contact-strip{display:grid!important;align-content:center!important;gap:5px!important;padding:4px!important}
+body:has(#entry-choice) .contact-strip>div,body:has(#entry-choice) .contact-strip>a{display:grid!important;gap:2px!important;padding:0!important;text-decoration:none!important;color:#f4eee8!important}
+body:has(#entry-choice) .contact-strip span{font-size:6px!important;letter-spacing:.5px!important;color:#ff9b5a!important}
+body:has(#entry-choice) .contact-strip strong{font-size:8px!important;overflow-wrap:anywhere}
+body:has(#entry-choice) .contact-strip b{font-size:11px!important}
+body:has(#entry-choice) footer{display:none!important}
+@media(max-width:760px){
+ body:has(#entry-choice) .topbar{height:58px!important;min-height:58px!important;padding:6px 14px!important}
+ body:has(#entry-choice) .brand-word{font-size:25px!important}
+ body:has(#entry-choice) .top-label{font-size:7px!important;letter-spacing:1px!important}
+ body:has(#entry-choice) .shell{height:calc(100svh - 58px)!important;max-height:calc(100svh - 58px)!important}
+ body:has(#entry-choice) .hero-copy{left:16px!important;top:18px!important;width:76%!important}
+ body:has(#entry-choice) .hero-pretitle{font-size:16px!important}
+ body:has(#entry-choice) .hero-home h1{font-size:clamp(38px,10vw,54px)!important;margin:5px 0 8px!important}
+ body:has(#entry-choice) .hero-values{font-size:8px!important;gap:6px!important;margin:8px 0!important}
+ body:has(#entry-choice) .hero-values i{height:13px!important}
+ body:has(#entry-choice) .hero-home .intro{font-size:9px!important;max-width:220px!important}
+ body:has(#entry-choice) .panel{
+  left:12px!important;right:12px!important;bottom:clamp(126px,19vh,158px)!important;
+  width:auto!important;max-width:none!important;padding:10px 11px!important;border-radius:10px!important;
+ }
+ body:has(#entry-choice) .panel-heading h2{font-size:20px!important}
+ body:has(#entry-choice) .panel-heading .muted{font-size:9px!important}
+ body:has(#entry-choice) .entry-choice{gap:6px!important;margin-top:7px!important}
+ body:has(#entry-choice) .entry-choice .btn{min-height:38px!important;font-size:9px!important;padding:6px 4px!important}
+ body:has(#entry-choice) .panel:has(.entry-choice) .notice{font-size:7px!important}
+ body:has(#entry-choice) .experience-showcase{
+  left:12px!important;right:12px!important;bottom:8px!important;width:auto!important;
+  grid-template-columns:.78fr 1.22fr!important;gap:6px!important;
+ }
+ body:has(#entry-choice) .experience-showcase>.connection-card,
+ body:has(#entry-choice) .membership-highlight{min-height:86px!important}
+ body:has(#entry-choice) .experience-showcase>.connection-card{padding:6px!important;gap:5px!important}
+ body:has(#entry-choice) .wifi-qr-frame{width:44px!important;height:44px!important;flex-basis:44px!important;padding:2px!important}
+ body:has(#entry-choice) #wifi-qr,body:has(#entry-choice) #wifi-qr canvas,body:has(#entry-choice) #wifi-qr img{width:40px!important;height:40px!important}
+ body:has(#entry-choice) .connection-copy>strong{font-size:10px!important}
+ body:has(#entry-choice) .connection-copy>small{font-size:6px!important}
+ body:has(#entry-choice) .membership-highlight{padding:7px!important}
+ body:has(#entry-choice) .membership-highlight h2{font-size:13px!important}
+ body:has(#entry-choice) .membership-highlight p strong{font-size:11px!important}
+ body:has(#entry-choice) .showcase-side{grid-template-columns:.86fr 1.14fr!important;gap:5px!important}
+ body:has(#entry-choice) .contact-strip{gap:4px!important;padding:2px!important}
+ body:has(#entry-choice) .contact-strip span{font-size:5px!important}
+ body:has(#entry-choice) .contact-strip strong{font-size:7px!important}
+ body:has(#entry-choice) .contact-strip b{font-size:9px!important}
+}
+@media(max-width:390px){
+ body:has(#entry-choice) .panel{bottom:clamp(120px,18vh,145px)!important}
+ body:has(#entry-choice) .experience-showcase>.connection-card,
+ body:has(#entry-choice) .membership-highlight{min-height:80px!important}
+ body:has(#entry-choice) .wifi-qr-frame{width:40px!important;height:40px!important;flex-basis:40px!important}
+ body:has(#entry-choice) #wifi-qr,body:has(#entry-choice) #wifi-qr canvas,body:has(#entry-choice) #wifi-qr img{width:36px!important;height:36px!important}
+}
+@media(max-height:720px) and (max-width:760px){
+ body:has(#entry-choice) .hero-copy{top:10px!important}
+ body:has(#entry-choice) .hero-home h1{font-size:38px!important}
+ body:has(#entry-choice) .panel{bottom:112px!important;padding:8px 10px!important}
+ body:has(#entry-choice) .experience-showcase{bottom:6px!important}
+ body:has(#entry-choice) .experience-showcase>.connection-card,
+ body:has(#entry-choice) .membership-highlight{min-height:70px!important}
+}
