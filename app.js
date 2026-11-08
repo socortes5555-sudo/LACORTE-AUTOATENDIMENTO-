@@ -1350,7 +1350,7 @@ async function renderAdminCustomers(){
       const lastVisit=rows.length?rows[0].created_at:null;
       const searchText=(fullName+" "+(customer.phone||"")+" "+(customer.email||"")).toLocaleLowerCase("pt-BR");
       html += '<details class="summary admin-customer-card" data-customer-card data-search="'+safe(searchText)+'"><summary><strong>'+safe(fullName.trim()||"Cliente sem nome")+'</strong><span class="admin-customer-chevron" aria-hidden="true">⌄</span></summary>';
-      html += '<div class="admin-customer-details"><div class="admin-customer-stats"><div><span>VISITAS</span><strong>'+rows.length+'</strong></div><div><span>VALOR CONCLUÍDO</span><strong>'+money(spent)+'</strong></div></div><div class="summary-row"><span>Telefone</span><strong>'+safe(customer.phone||"—")+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(customer.email||"—")+'</strong></div><div class="summary-row"><span>Aniversário</span><strong>'+safe(customer.birth_date||"—")+'</strong></div><div class="summary-row"><span>Cadastro</span><strong>'+formatDateTime(customer.created_at)+'</strong></div><div class="summary-row"><span>Última entrada</span><strong>'+formatDateTime(lastVisit)+'</strong></div><h4>HISTÓRICO DE ATENDIMENTOS</h4>';
+      html += '<div class="admin-customer-details"><div class="admin-customer-stats"><div><span>VISITAS</span><strong>'+rows.length+'</strong></div><div><span>VALOR CONCLUÍDO</span><strong>'+money(spent)+'</strong></div></div><div class="summary-row"><span>Telefone</span><strong>'+safe(customer.phone||"—")+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(customer.email||"—")+'</strong></div><div class="summary-row"><span>Aniversário</span><strong>'+safe(customer.birth_date||"—")+'</strong></div><div class="summary-row"><span>Cadastro</span><strong>'+formatDateTime(customer.created_at)+'</strong></div><div class="summary-row"><span>Última entrada</span><strong>'+formatDateTime(lastVisit)+'</strong></div><form class="admin-form customer-edit-form" data-customer-form="' + safe(customer.id) + '"><h4>EDITAR CADASTRO</h4><label>Nome</label><input name="first_name" required maxlength="80" value="' + safe(customer.first_name||"") + '"><label>Sobrenome</label><input name="last_name" required maxlength="100" value="' + safe(customer.last_name||"") + '"><label>Telefone</label><input name="phone" type="tel" required maxlength="20" value="' + safe(customer.phone||"") + '"><label>E-mail</label><input name="email" type="email" value="' + safe(customer.email||"") + '"><label>Aniversário</label><input name="birth_date" type="date" value="' + safe(customer.birth_date||"") + '"><button class="btn btn-secondary" type="submit">SALVAR CADASTRO</button><p class="muted" data-customer-save-status role="status"></p></form><h4>HISTÓRICO DE ATENDIMENTOS</h4>';
       if(!rows.length) html += '<p class="muted">Nenhuma entrada na fila registrada.</p>';
       else {
         html += '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Data</th><th>Senha</th><th>Status</th><th>Barbeiro</th><th>Valor</th></tr></thead><tbody>';
@@ -1369,6 +1369,33 @@ async function renderAdminCustomers(){
       const term=search.value.trim().toLocaleLowerCase("pt-BR");
       content.querySelectorAll("[data-customer-card]").forEach(function(card){
         card.hidden=!card.dataset.search.includes(term);
+      });
+    });
+    content.querySelectorAll("[data-customer-form]").forEach(function(form){
+      form.addEventListener("submit",async function(event){
+        event.preventDefault();
+        const fd=new FormData(form);
+        const phone=String(fd.get("phone")||"").replace(/\\D/g,"");
+        const status=form.querySelector("[data-customer-save-status]");
+        const button=form.querySelector('button[type="submit"]');
+        if(phone.length<10){status.textContent="Informe um telefone válido com DDD.";return;}
+        button.disabled=true;
+        status.textContent="Salvando cadastro...";
+        const result=await db.from("customers").update({
+          first_name:String(fd.get("first_name")||"").trim(),
+          last_name:String(fd.get("last_name")||"").trim(),
+          phone:phone,
+          email:String(fd.get("email")||"").trim().toLowerCase()||null,
+          birth_date:String(fd.get("birth_date")||"")||null,
+          updated_at:new Date().toISOString()
+        }).eq("id",form.dataset.customerForm);
+        if(result.error){
+          button.disabled=false;
+          status.textContent="Não foi possível salvar: "+result.error.message;
+          return;
+        }
+        status.textContent="Cadastro atualizado.";
+        renderAdminCustomers();
       });
     });
   } catch(error) {
