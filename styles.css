@@ -2733,3 +2733,43 @@ body:has(.admin-nav) .report-table td{padding:6px 5px}
  body.admin-dashboard .report-pie-hole,body:has(.admin-nav) .report-pie-hole{width:54px;height:54px}
  body.admin-dashboard .admin-queue-card .actions,body:has(.admin-nav) .admin-queue-card .actions{flex-wrap:wrap}
 }
+
+/* LaCorte Admin — dois gráficos compactos lado a lado também em celular */
+@media(max-width:480px){
+ body.admin-dashboard .report-chart-grid,
+ body:has(.admin-nav) .report-chart-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+ }
+ body.admin-dashboard .report-chart-grid>.summary,
+ body:has(.admin-nav) .report-chart-grid>.summary{
+  min-width:0;padding:8px!important;overflow:hidden;
+ }
+ body.admin-dashboard .report-chart-grid .report-pie-layout,
+ body:has(.admin-nav) .report-chart-grid .report-pie-layout{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  flex-wrap:nowrap;gap:5px;padding:4px 0;
+ }
+ body.admin-dashboard .report-chart-grid .report-pie,
+ body:has(.admin-nav) .report-chart-grid .report-pie{
+  width:62px;height:62px;flex:0 0 62px;
+ }
+ body.admin-dashboard .report-chart-grid .report-pie-hole,
+ body:has(.admin-nav) .report-chart-grid .report-pie-hole{
+  width:38px;height:38px;padding:2px;gap:1px;
+ }
+ body.admin-dashboard .report-chart-grid .report-pie-hole strong,
+ body:has(.admin-nav) .report-chart-grid .report-pie-hole strong{font-size:8px}
+ body.admin-dashboard .report-chart-grid .report-pie-hole span,
+ body:has(.admin-nav) .report-chart-grid .report-pie-hole span{font-size:6px}
+ body.admin-dashboard .report-chart-grid .report-pie-legend,
+ body:has(.admin-nav) .report-chart-grid .report-pie-legend{
+  width:100%;min-width:0;max-width:none;display:grid;gap:3px;
+ }
+ body.admin-dashboard .report-chart-grid .report-pie-legend-item,
+ body:has(.admin-nav) .report-chart-grid .report-pie-legend-item{
+  grid-template-columns:6px minmax(0,1fr) auto;gap:3px;font-size:7px;
+ }
+ body.admin-dashboard .report-chart-grid .report-pie-legend-item strong,
+ body:has(.admin-nav) .report-chart-grid .report-pie-legend-item strong{font-size:7px}
+}
