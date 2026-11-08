@@ -1267,7 +1267,7 @@ async function renderAdminManagement(){
     });
 
     const accessForm = content.querySelector("#barber-access-form");
-    accessForm.addEventListener("submit", async function(e){
+    if(accessForm) accessForm.addEventListener("submit", async function(e){
       e.preventDefault();
       const email = String(new FormData(accessForm).get("email") || "").trim().toLowerCase();
       const button = accessForm.querySelector('button[type="submit"]');
@@ -1286,7 +1286,7 @@ async function renderAdminManagement(){
     });
 
     const newBarber = content.querySelector("#new-barber-form");
-    newBarber.addEventListener("submit", async function(e){
+    if(newBarber) newBarber.addEventListener("submit", async function(e){
       e.preventDefault();
       const fd = new FormData(newBarber);
       const name = String(fd.get("name") || "").trim();
@@ -1317,7 +1317,7 @@ async function renderAdminManagement(){
     });
 
     const newService = content.querySelector("#new-service-form");
-    newService.addEventListener("submit", async function(e){
+    if(newService) newService.addEventListener("submit", async function(e){
       e.preventDefault();
       const fd = new FormData(newService);
       const name = String(fd.get("name") || "").trim();
