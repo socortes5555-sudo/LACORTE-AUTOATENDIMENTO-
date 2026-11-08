@@ -3864,3 +3864,28 @@ body.professional-dashboard .professional-nav-item:focus-visible{
   outline:2px solid #ff8128;
   outline-offset:2px;
 }
+
+
+/* Dashboard palette lock: orange, black and graphite only */
+body.admin-dashboard .admin-online-dot{
+  background:#ff8128!important;
+  box-shadow:0 0 7px #ff812855!important;
+}
+body.admin-dashboard .manage-status.is-active{
+  background:#2b1c13!important;
+  color:#ff9a55!important;
+}
+body.admin-dashboard .manage-status.is-inactive{
+  background:#292c2e!important;
+  color:#a7adb1!important;
+}
+body.admin-dashboard .admin-status.progress,
+body.admin-dashboard .admin-status.done{
+  background:#2b1c13!important;
+  color:#ff9a55!important;
+}
+body.admin-dashboard .admin-appointment.progress,
+body.admin-dashboard .admin-appointment.done,
+body.admin-dashboard .admin-queue-card.progress{
+  border-left-color:#ff8128!important;
+}
