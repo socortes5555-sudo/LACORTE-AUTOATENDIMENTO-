@@ -1112,7 +1112,7 @@ function bindAdminNavigation(){
     button.addEventListener("click", function(){
       adminView = button.dataset.adminView;
       if(adminView === "manage") renderAdminManagement();
-      else if(adminView === "history") renderAdminHistory();
+      else if(adminView === "history") renderAdminReports("history");
       else if(adminView === "customers") renderAdminCustomers();
       else if(adminView === "services") { adminManageInitialTab = "services"; renderAdminManagement(); }
       else if(adminView === "reports") renderAdminReports();
@@ -1121,59 +1121,6 @@ function bindAdminNavigation(){
   });
 }
 
-
-async function renderAdminHistory(){
-  if(state.role !== "admin") return renderQueueDashboard();
-  adminView = "history";
-  setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE","Histórico de atendimentos","Consulte individualmente os atendimentos registrados na barbearia.");
-  notice.textContent = "Histórico completo da fila • Os registros são apresentados sem alterar os dados originais.";
-  dashboardActions();
-  content.innerHTML = adminNavigation() + '<p class="muted">Carregando histórico...</p>';
-  try {
-    const range = reportDateRange();
-    const result = await db.from("lacorte_queue").select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,payment_method,created_at,completed_at").gte("queue_date",range.start).lte("queue_date",range.end).order("created_at",{ascending:false});
-    if(result.error) throw new Error("Não foi possível consultar o histórico: "+result.error.message);
-    const rows = result.data || [];
-    const customerIds = Array.from(new Set(rows.map(function(row){return row.customer_id;}).filter(Boolean)));
-    const barberIds = Array.from(new Set(rows.map(function(row){return row.barber_id;}).filter(Boolean)));
-    const queueIds = rows.map(function(row){return row.id;});
-    const lookups = await Promise.all([
-      customerIds.length ? db.from("customers").select("id,first_name,last_name,phone").in("id",customerIds) : Promise.resolve({data:[],error:null}),
-      barberIds.length ? db.from("barbers").select("id,name").in("id",barberIds) : Promise.resolve({data:[],error:null}),
-      queueIds.length ? db.from("lacorte_queue_items").select("queue_id,service_name").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
-    ]);
-    lookups.forEach(function(item){if(item.error) throw new Error("Não foi possível completar os dados do histórico: "+item.error.message);});
-    const customers={},barbers={},items={};
-    (lookups[0].data||[]).forEach(function(c){customers[c.id]=c;});
-    (lookups[1].data||[]).forEach(function(b){barbers[b.id]=b.name;});
-    (lookups[2].data||[]).forEach(function(item){(items[item.queue_id]||(items[item.queue_id]=[])).push(item.service_name);});
-    const completed=rows.filter(function(row){return row.status==="completed";}).length;
-    const total=rows.reduce(function(sum,row){return sum+Number(row.total_amount||0);},0);
-    let body="";
-    rows.forEach(function(row){
-      const customer=customers[row.customer_id]||{};
-      const name=((customer.first_name||"Cliente")+" "+(customer.last_name||"")).trim();
-      const services=(items[row.id]||[]).map(safe).join(", ")||"—";
-      body+='<tr><td><strong>#'+Number(row.queue_number)+'</strong></td><td><strong>'+safe(name)+'</strong><small>'+safe(customer.phone||"")+'</small></td><td>'+safe(services)+'</td><td>'+safe(barbers[row.barber_id]||row.barber_id||"Não atribuído")+'</td><td>'+money(Number(row.total_amount||0))+'</td><td>'+safe(row.payment_method||"—")+'</td><td><span class="history-status status-'+safe(row.status)+'">'+safe(statusLabel(row.status))+'</span></td><td>'+formatDateTime(row.completed_at||row.created_at)+'</td></tr>';
-    });
-    const html=adminNavigation()+'<section class="admin-workspace admin-history-page"><div class="admin-section-heading"><span class="eyebrow">REGISTROS</span><h2>Histórico de atendimentos</h2><p class="muted">Todos os registros do período selecionado, incluindo atendimentos em andamento e cancelados.</p></div><div class="history-summary"><article><span>Registros encontrados</span><strong>'+rows.length+'</strong></article><article><span>Concluídos</span><strong>'+completed+'</strong></article><article><span>Valor registrado</span><strong>'+money(total)+'</strong></article></div><form id="history-filter" class="summary report-filter"><label>PERÍODO DO HISTÓRICO</label><div class="report-date-fields"><label>Data inicial<input type="date" name="start" value="'+safe(adminReportFilters.start||range.start)+'"></label><label>Data final<input type="date" name="end" value="'+safe(adminReportFilters.end||range.end)+'"></label></div><button class="btn btn-primary" type="submit">APLICAR FILTROS</button></form><section class="summary history-table-section"><div class="history-table-heading"><div><h3>REGISTROS DO PERÍODO</h3><p class="muted">'+safe(range.start)+' até '+safe(range.end)+'</p></div><span>'+rows.length+' registro(s)</span></div>'+(rows.length?'<div class="report-table-wrap"><table class="report-table history-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Serviços</th><th>Barbeiro</th><th>Valor</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+body+'</tbody></table></div>':'<div class="history-empty"><strong>Nenhum atendimento encontrado</strong><p>Não há registros para o período selecionado.</p></div>')+'</section></section>';
-    if(state.role!=="admin"||adminView!=="history") return;
-    content.innerHTML=html;
-    bindAdminNavigation();
-    content.querySelector("#history-filter").addEventListener("submit",function(event){
-      event.preventDefault();
-      const fd=new FormData(this),start=String(fd.get("start")||""),end=String(fd.get("end")||"");
-      if(!start||!end||start>end){alert("Confira as datas do período.");return;}
-      adminReportFilters.period="custom";adminReportFilters.start=start;adminReportFilters.end=end;
-      renderAdminHistory();
-    });
-  }catch(error){
-    if(state.role!=="admin"||adminView!=="history") return;
-    content.innerHTML=adminNavigation()+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';
-    bindAdminNavigation();
-  }
-}
 
 async function renderAdminCustomers(){
   if(state.role !== "admin") return renderQueueDashboard();
@@ -1293,17 +1240,6 @@ async function renderAdminManagement(){
     });
     html += '</div></section></div></div>';
     content.innerHTML = html;
-    if(adminView === "services"){
-      const tabs=content.querySelector(".manage-tabs");
-      if(tabs) tabs.hidden=true;
-      content.querySelectorAll("[data-manage-panel]").forEach(function(panel){panel.hidden=panel.dataset.managePanel!=="services";});
-      const heading=content.querySelector(".admin-section-heading");
-      if(heading){
-        heading.querySelector(".eyebrow").textContent="CATÁLOGO";
-        heading.querySelector("h2").textContent="Serviços e preços";
-        heading.querySelector(".muted").textContent="Cadastre serviços, atualize valores e controle o que aparece no autoatendimento.";
-      }
-    }
     content.querySelectorAll('[data-reveal]').forEach(function(button){
       button.addEventListener('click',function(){
         const wrap = content.querySelector('#'+button.dataset.reveal+'-wrap');
