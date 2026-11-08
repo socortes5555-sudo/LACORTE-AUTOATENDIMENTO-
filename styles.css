@@ -2500,3 +2500,236 @@ body.admin-dashboard #step-actions{padding-top:4px}
  .manage-overview-card {padding:13px !important}
  .manage-overview-row {padding:9px !important}
 }
+
+
+/* LaCorte Admin — compactação visual v2 (somente painel administrativo) */
+body.admin-dashboard .shell,
+body:has(.admin-nav) .shell{max-width:1600px;padding:12px 18px 20px}
+body.admin-dashboard .panel-heading,
+body:has(.admin-nav) .panel-heading{margin:0 0 10px;padding:0}
+body.admin-dashboard .panel-heading h2,
+body:has(.admin-nav) .panel-heading h2{font-size:23px;line-height:1.15;margin:2px 0}
+body.admin-dashboard .panel-heading .muted,
+body:has(.admin-nav) .panel-heading .muted{font-size:11px;line-height:1.35;margin:3px 0}
+body.admin-dashboard #demo-notice,
+body:has(.admin-nav) #demo-notice{display:none!important}
+body.admin-dashboard #step-actions,
+body:has(.admin-nav) #step-actions{margin:7px 0 0}
+body.admin-dashboard #step-actions .btn,
+body:has(.admin-nav) #step-actions .btn{width:auto;min-width:0;max-width:132px;padding:8px 11px;font-size:10px}
+
+/* Navegação lateral e cabeçalho */
+body.admin-dashboard #step-content:has(.admin-nav),
+body:has(.admin-nav) #step-content:has(.admin-nav){grid-template-columns:184px minmax(0,1fr);gap:13px}
+body.admin-dashboard .admin-nav,
+body:has(.admin-nav) .admin-nav{min-height:0;padding:10px 8px;border-radius:10px;gap:3px;box-shadow:none}
+body.admin-dashboard .admin-brand,
+body:has(.admin-nav) .admin-brand{gap:8px;padding:2px 5px 9px}
+body.admin-dashboard .admin-brand-mark,
+body:has(.admin-nav) .admin-brand-mark{width:29px;height:29px;border-radius:7px;font-size:13px}
+body.admin-dashboard .admin-brand strong,
+body:has(.admin-nav) .admin-brand strong{font-size:12px}
+body.admin-dashboard .admin-brand small,
+body:has(.admin-nav) .admin-brand small{font-size:7px}
+body.admin-dashboard .admin-nav-caption,
+body:has(.admin-nav) .admin-nav-caption{padding:9px 6px 3px;font-size:7px}
+body.admin-dashboard .admin-nav-item,
+body:has(.admin-nav) .admin-nav-item{gap:8px;padding:8px 7px;border-radius:6px;font-size:10px}
+body.admin-dashboard .admin-nav-icon,
+body:has(.admin-nav) .admin-nav-icon{width:16px;font-size:13px}
+body.admin-dashboard .admin-nav-footer,
+body:has(.admin-nav) .admin-nav-footer{padding:8px 6px 2px;font-size:8px}
+
+/* Cartões, indicadores e listas */
+body.admin-dashboard .summary,
+body:has(.admin-nav) .summary{padding:10px;margin:6px 0;border-radius:8px;box-shadow:none}
+body.admin-dashboard .summary h3,
+body:has(.admin-nav) .summary h3{font-size:13px;margin:0 0 6px}
+body.admin-dashboard .summary-row,
+body:has(.admin-nav) .summary-row{gap:8px;padding:5px 0;font-size:11px}
+body.admin-dashboard .admin-kpis,
+body:has(.admin-nav) .admin-kpis{gap:7px;margin:0 0 10px}
+body.admin-dashboard .admin-kpis article,
+body:has(.admin-nav) .admin-kpis article{padding:9px 10px;gap:2px;border-radius:8px;box-shadow:none}
+body.admin-dashboard .admin-kpis article span,
+body:has(.admin-nav) .admin-kpis article span{font-size:8px;letter-spacing:.6px}
+body.admin-dashboard .admin-kpis article strong,
+body:has(.admin-nav) .admin-kpis article strong{font-size:20px;line-height:1.1}
+body.admin-dashboard .admin-kpis article small,
+body:has(.admin-nav) .admin-kpis article small{font-size:8px}
+body.admin-dashboard .admin-agenda-heading,
+body:has(.admin-nav) .admin-agenda-heading{margin:4px 1px 7px}
+body.admin-dashboard .admin-agenda-heading h3,
+body:has(.admin-nav) .admin-agenda-heading h3{font-size:16px;margin:2px 0}
+body.admin-dashboard .admin-agenda-heading small,
+body:has(.admin-nav) .admin-agenda-heading small{font-size:8px}
+body.admin-dashboard .admin-agenda-heading>span,
+body:has(.admin-nav) .admin-agenda-heading>span{font-size:9px}
+body.admin-dashboard .admin-agenda-board,
+body:has(.admin-nav) .admin-agenda-board{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+body.admin-dashboard .admin-agenda-column,
+body:has(.admin-nav) .admin-agenda-column{padding:7px;border-radius:8px}
+body.admin-dashboard .admin-agenda-column>header,
+body:has(.admin-nav) .admin-agenda-column>header{gap:6px;padding:2px 1px 6px;margin-bottom:6px}
+body.admin-dashboard .admin-avatar,
+body:has(.admin-nav) .admin-avatar{width:27px;height:27px;font-size:10px}
+body.admin-dashboard .admin-agenda-column>header strong,
+body:has(.admin-nav) .admin-agenda-column>header strong{font-size:10px}
+body.admin-dashboard .admin-agenda-column>header small,
+body:has(.admin-nav) .admin-agenda-column>header small{font-size:8px}
+body.admin-dashboard .admin-appointment,
+body:has(.admin-nav) .admin-appointment{padding:7px;margin:0 0 6px;border-radius:7px}
+body.admin-dashboard .admin-appointment-top,
+body:has(.admin-nav) .admin-appointment-top{font-size:8px}
+body.admin-dashboard .admin-client-name,
+body:has(.admin-nav) .admin-client-name{font-size:10px;margin-top:5px}
+body.admin-dashboard .admin-appointment p,
+body:has(.admin-nav) .admin-appointment p{font-size:9px;margin:3px 0 6px}
+body.admin-dashboard .admin-status,
+body:has(.admin-nav) .admin-status{font-size:8px;padding:3px 6px}
+body.admin-dashboard .admin-mini-action,
+body:has(.admin-nav) .admin-mini-action{padding:5px 7px;font-size:8px}
+body.admin-dashboard .admin-queue-card .actions,
+body:has(.admin-nav) .admin-queue-card .actions{display:flex;flex-direction:row;gap:5px;margin-top:7px}
+body.admin-dashboard .admin-queue-card .actions .btn,
+body:has(.admin-nav) .admin-queue-card .actions .btn{flex:0 1 auto;width:auto;min-width:0;padding:7px 9px;font-size:9px}
+
+/* Gestão, clientes e serviços sem blocos ou campos gigantes */
+body.admin-dashboard .admin-workspace,
+body:has(.admin-nav) .admin-workspace{min-width:0}
+body.admin-dashboard .admin-section-heading,
+body:has(.admin-nav) .admin-section-heading{margin:0 0 8px}
+body.admin-dashboard .admin-section-heading h2,
+body:has(.admin-nav) .admin-section-heading h2{font-size:17px;margin:2px 0}
+body.admin-dashboard .admin-section-heading p,
+body:has(.admin-nav) .admin-section-heading p{font-size:10px;margin:2px 0}
+body.admin-dashboard .manage-tabs,
+body:has(.admin-nav) .manage-tabs{display:flex;gap:5px;margin:7px 0 9px}
+body.admin-dashboard .manage-tab,
+body:has(.admin-nav) .manage-tab{padding:7px 11px;border-radius:6px;font-size:10px}
+body.admin-dashboard .manage-overview-card,
+body:has(.admin-nav) .manage-overview-card{padding:10px;margin:5px 0}
+body.admin-dashboard .manage-overview-row,
+body:has(.admin-nav) .manage-overview-row{padding:7px 0;gap:8px}
+body.admin-dashboard .manage-overview-row strong,
+body:has(.admin-nav) .manage-overview-row strong{font-size:11px}
+body.admin-dashboard .manage-overview-row small,
+body:has(.admin-nav) .manage-overview-row small{font-size:9px}
+body.admin-dashboard .manage-count,
+body:has(.admin-nav) .manage-count{font-size:11px}
+body.admin-dashboard .admin-customer-card,
+body:has(.admin-nav) .admin-customer-card{padding:9px;margin:5px 0}
+body.admin-dashboard .admin-customer-card>summary,
+body:has(.admin-nav) .admin-customer-card>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+body.admin-dashboard .admin-customer-card>summary .muted,
+body:has(.admin-nav) .admin-customer-card>summary .muted{font-size:9px;text-align:right}
+body.admin-dashboard .admin-customer-card h4,
+body:has(.admin-nav) .admin-customer-card h4{font-size:10px;margin:8px 0 4px}
+
+/* Filtros discretos: sem aparência de formulário grande */
+body.admin-dashboard .report-filter,
+body:has(.admin-nav) .report-filter{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 9px;margin:0 0 8px;border:1px solid #303030;background:#171717;border-radius:7px}
+body.admin-dashboard .report-filter>label,
+body:has(.admin-nav) .report-filter>label{font-size:8px;letter-spacing:.5px;margin-right:3px}
+body.admin-dashboard .report-filter select,
+body:has(.admin-nav) .report-filter select{width:auto;min-width:115px;min-height:29px;padding:5px 7px;font-size:10px}
+body.admin-dashboard .report-date-fields,
+body:has(.admin-nav) .report-date-fields{display:flex;gap:5px}
+body.admin-dashboard .report-date-fields label,
+body:has(.admin-nav) .report-date-fields label{display:flex;align-items:center;gap:4px;font-size:8px}
+body.admin-dashboard .report-date-fields input,
+body:has(.admin-nav) .report-date-fields input{width:118px;min-height:29px;padding:4px 5px;font-size:9px}
+body.admin-dashboard .report-filter .btn,
+body:has(.admin-nav) .report-filter .btn{flex:0 0 auto;width:auto;min-height:29px;padding:5px 9px;font-size:9px}
+
+/* Relatórios: gráficos pequenos, alinhados e sem rodas gigantes */
+body.admin-dashboard .report-kpis,
+body:has(.admin-nav) .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 8px}
+body.admin-dashboard .report-kpis .summary,
+body:has(.admin-nav) .report-kpis .summary{padding:8px;margin:0;gap:4px}
+body.admin-dashboard .report-kpis strong,
+body:has(.admin-nav) .report-kpis strong{font-size:16px;line-height:1.15}
+body.admin-dashboard .report-chart-grid,
+body:has(.admin-nav) .report-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+body.admin-dashboard .report-chart,
+body:has(.admin-nav) .report-chart{min-width:0}
+body.admin-dashboard .report-chart h3,
+body:has(.admin-nav) .report-chart h3{font-size:12px;margin:0 0 5px}
+body.admin-dashboard .report-chart>.muted,
+body:has(.admin-nav) .report-chart>.muted{font-size:9px;margin:3px 0}
+body.admin-dashboard .report-pie-layout,
+body:has(.admin-nav) .report-pie-layout{justify-content:flex-start;align-items:center;gap:10px;flex-wrap:nowrap;padding:5px 0}
+body.admin-dashboard .report-pie,
+body:has(.admin-nav) .report-pie{width:104px;height:104px;flex:0 0 104px}
+body.admin-dashboard .report-pie-hole,
+body:has(.admin-nav) .report-pie-hole{width:62px;height:62px;padding:4px;gap:2px}
+body.admin-dashboard .report-pie-hole strong,
+body:has(.admin-nav) .report-pie-hole strong{font-size:11px}
+body.admin-dashboard .report-pie-hole span,
+body:has(.admin-nav) .report-pie-hole span{font-size:8px}
+body.admin-dashboard .report-pie-legend,
+body:has(.admin-nav) .report-pie-legend{gap:4px;min-width:0;max-width:none;flex:1 1 auto}
+body.admin-dashboard .report-pie-legend-item,
+body:has(.admin-nav) .report-pie-legend-item{grid-template-columns:7px minmax(0,1fr) auto;gap:4px;font-size:8px}
+body.admin-dashboard .report-pie-legend-item small,
+body:has(.admin-nav) .report-pie-legend-item small{display:none}
+body.admin-dashboard .report-pie-dot,
+body:has(.admin-nav) .report-pie-dot{width:7px;height:7px}
+body.admin-dashboard .report-pie-legend-item strong,
+body:has(.admin-nav) .report-pie-legend-item strong{font-size:8px}
+body.admin-dashboard .report-daily-chart,
+body:has(.admin-nav) .report-daily-chart{min-height:105px;gap:4px;padding:7px 2px 2px}
+body.admin-dashboard .report-daily-column,
+body:has(.admin-nav) .report-daily-column{height:100px;min-width:24px;flex-basis:24px;gap:4px}
+body.admin-dashboard .report-daily-track,
+body:has(.admin-nav) .report-daily-track{height:66px;width:20px}
+body.admin-dashboard .report-daily-value,
+body:has(.admin-nav) .report-daily-value,
+body.admin-dashboard .report-daily-label,
+body:has(.admin-nav) .report-daily-label{font-size:8px}
+body.admin-dashboard .report-status-grid,
+body:has(.admin-nav) .report-status-grid{gap:5px}
+body.admin-dashboard .report-status-grid>div,
+body:has(.admin-nav) .report-status-grid>div{padding:7px;border-radius:6px}
+body.admin-dashboard .report-status-grid span,
+body:has(.admin-nav) .report-status-grid span{font-size:9px}
+body.admin-dashboard .report-status-grid strong,
+body:has(.admin-nav) .report-status-grid strong{font-size:16px}
+body.admin-dashboard .report-table,
+body:has(.admin-nav) .report-table{font-size:10px}
+body.admin-dashboard .report-table th,
+body.admin-dashboard .report-table td,
+body:has(.admin-nav) .report-table th,
+body:has(.admin-nav) .report-table td{padding:6px 5px}
+
+/* Ajustes para celular: navegação e gráficos continuam compactos */
+@media(max-width:850px){
+ body.admin-dashboard .shell,body:has(.admin-nav) .shell{padding:9px 10px 16px}
+ body.admin-dashboard #step-content:has(.admin-nav),body:has(.admin-nav) #step-content:has(.admin-nav){grid-template-columns:1fr;gap:8px}
+ body.admin-dashboard .admin-nav,body:has(.admin-nav) .admin-nav{grid-template-columns:repeat(3,minmax(0,1fr));display:grid;gap:4px;padding:8px}
+ body.admin-dashboard .admin-brand,body:has(.admin-nav) .admin-brand{grid-column:1/-1;padding-bottom:7px}
+ body.admin-dashboard .admin-nav-caption,body:has(.admin-nav) .admin-nav-caption{display:none}
+ body.admin-dashboard .admin-nav-item,body:has(.admin-nav) .admin-nav-item{justify-content:center;gap:5px;padding:7px 4px;font-size:9px}
+ body.admin-dashboard .admin-nav-icon,body:has(.admin-nav) .admin-nav-icon{width:auto;font-size:12px}
+ body.admin-dashboard .admin-nav-footer,body:has(.admin-nav) .admin-nav-footer{grid-column:1/-1;padding:5px 4px 0}
+ body.admin-dashboard .report-kpis,body:has(.admin-nav) .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.admin-dashboard .report-chart-grid,body:has(.admin-nav) .report-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.admin-dashboard .report-pie,body:has(.admin-nav) .report-pie{width:84px;height:84px;flex-basis:84px}
+ body.admin-dashboard .report-pie-hole,body:has(.admin-nav) .report-pie-hole{width:51px;height:51px}
+ body.admin-dashboard .report-pie-hole strong,body:has(.admin-nav) .report-pie-hole strong{font-size:9px}
+ body.admin-dashboard .report-pie-layout,body:has(.admin-nav) .report-pie-layout{gap:6px}
+ body.admin-dashboard .report-pie-legend-item,body:has(.admin-nav) .report-pie-legend-item{font-size:7px;gap:3px}
+ body.admin-dashboard .report-date-fields,body:has(.admin-nav) .report-date-fields{flex-wrap:wrap}
+}
+@media(max-width:480px){
+ body.admin-dashboard .admin-nav,body:has(.admin-nav) .admin-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+ body.admin-dashboard .admin-nav-item,body:has(.admin-nav) .admin-nav-item{font-size:8px}
+ body.admin-dashboard .admin-agenda-board,body:has(.admin-nav) .admin-agenda-board{grid-template-columns:1fr}
+ body.admin-dashboard .report-filter,body:has(.admin-nav) .report-filter{gap:5px}
+ body.admin-dashboard .report-date-fields label,body:has(.admin-nav) .report-date-fields label{font-size:7px}
+ body.admin-dashboard .report-date-fields input,body:has(.admin-nav) .report-date-fields input{width:104px}
+ body.admin-dashboard .report-chart-grid,body:has(.admin-nav) .report-chart-grid{grid-template-columns:1fr}
+ body.admin-dashboard .report-pie,body:has(.admin-nav) .report-pie{width:90px;height:90px;flex-basis:90px}
+ body.admin-dashboard .report-pie-hole,body:has(.admin-nav) .report-pie-hole{width:54px;height:54px}
+ body.admin-dashboard .admin-queue-card .actions,body:has(.admin-nav) .admin-queue-card .actions{flex-wrap:wrap}
+}
