@@ -3889,3 +3889,69 @@ body.admin-dashboard .admin-appointment.done,
 body.admin-dashboard .admin-queue-card.progress{
   border-left-color:#ff8128!important;
 }
+
+
+/* Ajustes finais do autoatendimento LaCorte */
+body:has(#entry-choice) .hero-slide{animation-duration:12s!important}
+body:has(#entry-choice) .hero-slide.slide-a{animation-delay:0s!important}
+body:has(#entry-choice) .hero-slide.slide-b{animation-delay:6s!important}
+@keyframes lcHomeLoop{
+  0%,4%{opacity:0;transform:scale(1.025)}
+  8%,42%{opacity:1;transform:scale(1)}
+  50%,100%{opacity:0;transform:scale(1.04)}
+}
+body:has(#entry-choice) .site-footer{
+  grid-column:1/-1!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:8px!important;
+  margin-top:8px!important;
+  padding:22px 24px!important;
+  border:1px solid #ffffff18!important;
+  border-radius:14px!important;
+  background:linear-gradient(110deg,#1b1b1b,#121212)!important;
+}
+body:has(#entry-choice) .footer-brand{
+  color:#fff!important;
+  font:700 22px/1 Oswald,sans-serif!important;
+  letter-spacing:1px!important;
+}
+body:has(#entry-choice) .footer-brand span{
+  display:inline-block!important;
+  margin-left:8px!important;
+  color:#ff791f!important;
+  font:600 9px/1 'DM Sans',sans-serif!important;
+  letter-spacing:2px!important;
+}
+body:has(#entry-choice) .site-footer p{
+  margin:0!important;
+  color:#aaa!important;
+  font:12px/1.5 'DM Sans',sans-serif!important;
+}
+body:has(#entry-choice) .footer-meta{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:10px!important;
+  margin-top:8px!important;
+  padding-top:12px!important;
+  border-top:1px solid #ffffff18!important;
+  color:#777!important;
+  font:10px 'DM Sans',sans-serif!important;
+}
+body:has(#entry-choice) .footer-meta a{
+  color:#ff9a55!important;
+  text-decoration:none!important;
+  font-weight:700!important;
+}
+body:has(#entry-choice) .footer-meta a:hover{text-decoration:underline!important}
+@media(max-width:760px){
+  body:has(#entry-choice) .site-footer{padding:18px!important}
+  body:has(#entry-choice) .footer-meta{align-items:flex-start!important;flex-direction:column!important}
+}
+@media(prefers-reduced-motion:reduce){
+  body:has(#entry-choice) .hero-slide{animation:none!important}
+  body:has(#entry-choice) .hero-slide:not(.slide-a){display:none!important}
+  body:has(#entry-choice) .hero-slide.slide-a{opacity:1!important}
+}
