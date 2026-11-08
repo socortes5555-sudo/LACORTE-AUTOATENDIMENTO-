@@ -1292,6 +1292,7 @@ function adminNavigation(){
     navItem("manage","Gestão","♙")+
     navItem("customers","Clientes","♧")+
     navItem("services","Serviços","✂")+
+    navItem("plans","Planos","▣")+
     navItem("reports","Relatórios","▥")+
     '<div class="admin-nav-footer"><span class="admin-online-dot"></span> Sistema operacional</div></aside>';
 }
