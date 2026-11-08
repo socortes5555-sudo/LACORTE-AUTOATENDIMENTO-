@@ -34,7 +34,8 @@ const state = {
   selectedServices:[],
   message:"",
   customerPlan:null,
-  customerPlanBenefits:[]
+  customerPlanBenefits:[],
+  lookupToken:null
 };
 
 const content = document.querySelector("#step-content");
@@ -133,7 +134,7 @@ function render(){
   updateProgress();
 
   notice.textContent =
-    "Cadastro protegido. Não há pagamento online neste atendimento.";
+    "Seu cadastro fica salvo na LaCorte. Não há pagamento online neste atendimento.";
 
   if(state.step===1) renderLogin();
   if(state.step===2) renderProfile();
@@ -142,166 +143,95 @@ function render(){
 }
 
 function renderLogin(){
-  setHeader('ACESSO AO AUTOATENDIMENTO','Bem-vindo à LaCorte','Escolha uma opção para continuar.');
-  content.innerHTML='<div class="entry-choice" id="entry-choice-options"><button class="btn btn-primary" id="start-registration" type="button">CADASTRAR</button><button class="btn btn-secondary" id="start-returning" type="button">JÁ TENHO CADASTRO</button></div><form id="login-form" hidden><label for="email">Seu e-mail</label><input id="email" name="email" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" value="'+safe(state.pendingEmail||'')+'" required><button class="btn btn-secondary" id="send-code-button" type="button">ENVIAR CÓDIGO DO PRIMEIRO ACESSO</button><label for="email-code">Código recebido por e-mail</label><input id="email-code" name="token" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><p class="muted">O código confirma seu e-mail e protege seu acesso à LaCorte.</p><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="verify-code-button" type="submit">CONFIRMAR CADASTRO</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
+  state.step=1;
+  setHeader("AUTOATENDIMENTO LACORTE","Bem-vindo à LaCorte","Cadastre-se uma única vez ou localize seu cadastro.");
+  content.innerHTML = '<div class="entry-choice" id="entry-choice-options"><button class="btn btn-primary" id="start-registration" type="button">PRIMEIRO CADASTRO</button><button class="btn btn-secondary" id="start-returning" type="button">JÁ TENHO CADASTRO</button></div><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p>';
   actions.replaceChildren();
-  document.querySelector('#start-registration').addEventListener('click',function(){
-    document.querySelector('#entry-choice-options').hidden=true;
-    document.querySelector('#login-form').hidden=false;
-    setHeader('PRIMEIRO ACESSO','Faça seu cadastro','Informe seu e-mail para receber o código de confirmação.');
-    document.querySelector('#email').focus();
-  });
-  document.querySelector('#start-returning').addEventListener('click',renderReturningCustomerLookup);
-  document.querySelector('#back-entry-choice').addEventListener('click',function(){
-    document.querySelector('#login-form').hidden=true;
-    document.querySelector('#entry-choice-options').hidden=false;
-    setHeader('ACESSO AO AUTOATENDIMENTO','Bem-vindo à LaCorte','Escolha uma opção para continuar.');
-  });
-  document.querySelector('#send-code-button').addEventListener('click',async function(){
-    const email=document.querySelector('#email').value.trim();if(!email){showMessage('Informe seu e-mail primeiro.');return;}
-    this.disabled=true;showMessage('Enviando código de confirmação...');const result=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}});this.disabled=false;
-    if(result.error){showMessage('Erro ao enviar código: '+result.error.message);return;}state.pendingEmail=email;showMessage('Código enviado. Digite os 6 números acima.');document.querySelector('#email-code').focus();
-  });
-  document.querySelector('#login-form').addEventListener('submit',async function(e){
-    e.preventDefault();const email=document.querySelector('#email').value.trim(),token=document.querySelector('#email-code').value.trim();
-    if(!/^[0-9]{6}$/.test(token)){showMessage('Digite os 6 números do código recebido.');return;}
-    const button=document.querySelector('#verify-code-button');button.disabled=true;showMessage('Validando primeiro acesso...');
-    const result=await db.auth.verifyOtp({email:email,token:token,type:'email'});
-    if(result.error){button.disabled=false;showMessage('Não foi possível validar: '+result.error.message);return;}
-    state.pendingEmail='';try{if(result.data&&result.data.session){const saved=await db.auth.setSession({access_token:result.data.session.access_token,refresh_token:result.data.session.refresh_token});if(saved.error)throw saved.error;}
-      const session=await db.auth.getSession(),user=(session.data&&session.data.session&&session.data.session.user)||(result.data&&result.data.user);
-      if(user)await routeAuthenticatedUser(user);else showMessage('Código confirmado, mas a sessão não foi salva.');
-    }catch(err){showMessage('Não foi possível abrir o cadastro: '+(err.message||err));}
-  });
+  document.querySelector("#start-registration").addEventListener("click",renderProfile);
+  document.querySelector("#start-returning").addEventListener("click",renderReturningCustomerLookup);
 }
 
 function renderReturningCustomerLookup(){
-  setHeader('CLIENTE CADASTRADO','Confirme seu e-mail','Para proteger seu cadastro, enviaremos um código de verificação ao e-mail registrado.');
-  content.innerHTML='<form id="returning-form"><label for="customer-email">E-mail cadastrado</label><input id="customer-email" type="email" autocomplete="email" placeholder="seuemail@exemplo.com" required><div id="returning-code-wrap" hidden><label for="returning-code">Código de 6 dígitos</label><input id="returning-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div><p id="app-message" class="muted">'+safe(state.message)+'</p><button class="btn btn-primary" id="returning-submit" type="submit">ENVIAR CÓDIGO</button><button class="btn btn-secondary" id="back-first-access" type="button">VOLTAR</button></form>';
+  state.step=1;
+  setHeader("CLIENTE CADASTRADO","Localize seu cadastro","Digite seu nome completo ou seu telefone com DDD.");
+  content.innerHTML = '<form id="returning-form"><label for="customer-identifier">Nome completo ou celular</label><input id="customer-identifier" type="text" maxlength="120" autocomplete="off" placeholder="Seu nome completo ou (48) 99999-9999" required><p class="muted">Se houver nomes iguais, use o número do celular para identificar o cadastro correto.</p><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">LOCALIZAR CADASTRO</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
   actions.replaceChildren();
-  const form=document.querySelector('#returning-form');
-  const emailInput=document.querySelector('#customer-email');
-  const codeWrap=document.querySelector('#returning-code-wrap');
-  const submit=document.querySelector('#returning-submit');
-  let codeSent=false;
-  document.querySelector('#back-first-access').addEventListener('click',renderLogin);
-  form.addEventListener('submit',async function(e){
-    e.preventDefault();
-    const email=emailInput.value.trim().toLowerCase();
-    submit.disabled=true;
-    if(!codeSent){
-      showMessage('Enviando código de segurança...');
-      const sent=await db.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
-      submit.disabled=false;
-      if(sent.error){showMessage('Não foi possível enviar o código. Confira o e-mail cadastrado ou procure a equipe da LaCorte.');return;}
-      codeSent=true;
-      emailInput.readOnly=true;
-      codeWrap.hidden=false;
-      document.querySelector('#returning-code').required=true;
-      submit.textContent='CONFIRMAR CÓDIGO';
-      showMessage('Código enviado. Verifique sua caixa de entrada e o spam.');
-      document.querySelector('#returning-code').focus();
-      return;
+  document.querySelector("#back-entry-choice").addEventListener("click",renderLogin);
+  document.querySelector("#returning-form").addEventListener("submit",async function(event){
+    event.preventDefault();
+    const identifier=document.querySelector("#customer-identifier").value.trim();
+    const button=this.querySelector('button[type="submit"]');
+    button.disabled=true;showMessage("Localizando seu cadastro...");
+    try{
+      const result=await kioskRequest({action:"identify",identifier:identifier});
+      await continueKioskCustomer(result);
+    }catch(error){
+      showMessage(error.message||"Não foi possível localizar o cadastro.");
+      button.disabled=false;
     }
-    const token=document.querySelector('#returning-code').value.trim();
-    if(!/^[0-9]{6}$/.test(token)){submit.disabled=false;showMessage('Digite os 6 números recebidos por e-mail.');return;}
-    showMessage('Validando código e abrindo seu cadastro...');
-    const verified=await db.auth.verifyOtp({email,token,type:'email'});
-    if(verified.error){submit.disabled=false;showMessage('Código inválido ou expirado. Solicite um novo código e tente novamente.');return;}
-    if(verified.data&&verified.data.session){
-      const saved=await db.auth.setSession({access_token:verified.data.session.access_token,refresh_token:verified.data.session.refresh_token});
-      if(saved.error){submit.disabled=false;showMessage('Não foi possível iniciar sua sessão. Tente novamente.');return;}
-    }
-    const session=await db.auth.getSession();
-    const user=(session.data&&session.data.session&&session.data.session.user)||(verified.data&&verified.data.user);
-    if(!user){submit.disabled=false;showMessage('Não foi possível confirmar sua sessão. Tente novamente.');return;}
-    await routeAuthenticatedUser(user);
   });
 }
 
 function renderProfile(){
-  setHeader(
-    "ETAPA 02",
-    state.customer?"Seus dados":"Complete seu cadastro",
-    "Precisamos destas informações para identificar você nas próximas visitas."
-  );
-
-  const c=state.customer||{};
-
-  content.innerHTML=`
-    <form id="profile-form">
-      <label for="first_name">Nome</label>
-      <input id="first_name" required maxlength="80"
-        value="${safe(c.first_name||"")}" placeholder="Seu nome">
-
-      <label for="last_name">Sobrenome</label>
-      <input id="last_name" required maxlength="100"
-        value="${safe(c.last_name||"")}" placeholder="Seu sobrenome">
-
-      <label for="phone">Telefone com DDD</label>
-      <input id="phone" required type="tel" maxlength="20"
-        value="${safe(c.phone||"")}" placeholder="(48) 99999-9999">
-
-      <label for="profile-email">E-mail</label>
-      <input id="profile-email" type="email" readonly
-        value="${safe(state.user.email)}">
-
-      <label for="birth_date">Data de aniversário</label>
-      <input id="birth_date" type="date" required
-        value="${safe(c.birth_date||"")}">
-
-      <p id="app-message" class="muted">${safe(state.message)}</p>
-
-      <button class="btn btn-primary" type="submit">
-        SALVAR E CONTINUAR
-      </button>
-    </form>
-  `;
-
-  setActions(
-    ()=>{state.step=1;render();},
-    null
-  );
-
-  document.querySelector("#profile-form").addEventListener("submit",async e=>{
-    e.preventDefault();
-
-    const customer={
-      user_id:state.user.id,
+  state.step=2;
+  setHeader("PRIMEIRO CADASTRO","Faça seu cadastro","Preencha somente estes quatro dados. Não precisa de e-mail nem confirmação.");
+  content.innerHTML = '<form id="profile-form"><label for="first_name">Nome</label><input id="first_name" name="first_name" required maxlength="80" autocomplete="given-name" placeholder="Seu nome"><label for="last_name">Sobrenome</label><input id="last_name" name="last_name" required maxlength="100" autocomplete="family-name" placeholder="Seu sobrenome"><label for="phone">Telefone com DDD</label><input id="phone" name="phone" type="tel" required maxlength="20" autocomplete="tel" placeholder="(48) 99999-9999"><label for="birth_date">Data de aniversário</label><input id="birth_date" name="birth_date" type="date" required><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">SALVAR CADASTRO E CONTINUAR</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
+  actions.replaceChildren();
+  document.querySelector("#back-entry-choice").addEventListener("click",renderLogin);
+  document.querySelector("#profile-form").addEventListener("submit",async function(event){
+    event.preventDefault();
+    const payload={
+      action:"register",
       first_name:document.querySelector("#first_name").value.trim(),
       last_name:document.querySelector("#last_name").value.trim(),
-      phone:document.querySelector("#phone").value.replace(/\D/g,""),
-      email:state.user.email,
+      phone:document.querySelector("#phone").value.trim(),
       birth_date:document.querySelector("#birth_date").value
     };
-
-    if(customer.phone.length<10){
-      showMessage("Informe um telefone válido com DDD.");
-      return;
+    const button=this.querySelector('button[type="submit"]');
+    button.disabled=true;showMessage("Salvando seu cadastro...");
+    try{
+      const result=await kioskRequest(payload);
+      await continueKioskCustomer(result);
+    }catch(error){
+      showMessage(error.message||"Não foi possível salvar seu cadastro.");
+      button.disabled=false;
     }
-
-    showMessage("Salvando cadastro...");
-
-    const {data,error}=await db
-      .from("customers")
-      .upsert(customer,{onConflict:"user_id"})
-      .select()
-      .single();
-
-    if(error){
-      showMessage(
-        error.code==="23505"
-          ?"Este telefone já está cadastrado. Precisamos verificar esse cadastro."
-          :"Não foi possível salvar: "+error.message
-      );
-      return;
-    }
-
-    state.customer=data;
-    state.message="";
-    state.step=3;
-    render();
   });
+}
+
+async function kioskRequest(payload){
+  if(!db) throw new Error("A conexão com a LaCorte não carregou. Atualize a página.");
+  const result=await db.functions.invoke("lacorte-kiosk",{body:payload});
+  if(result.error){
+    let message=result.error.message||"Falha ao acessar o autoatendimento.";
+    try{
+      const body=await result.error.context.json();
+      if(body&&body.error) message=body.error;
+    }catch(_){}
+    throw new Error(message);
+  }
+  if(!result.data) throw new Error("O autoatendimento não retornou uma resposta válida.");
+  return result.data;
+}
+
+async function continueKioskCustomer(result){
+  if(!result||!result.customer||!result.lookup_token) throw new Error("Não foi possível validar seu cadastro. Tente novamente.");
+  state.customer=result.customer;
+  state.lookupToken=result.lookup_token;
+  state.user=null;
+  state.role="customer";
+  state.message="";
+  state.selectedServices=[];
+  state.customerPlan=null;
+  state.customerPlanBenefits=[];
+  try{
+    const planResult=await kioskRequest({action:"plan",lookup_token:state.lookupToken});
+    state.customerPlan=planResult.plan||null;
+    state.customerPlanBenefits=Array.isArray(planResult.benefits)?planResult.benefits:[];
+  }catch(_){}
+  await loadCatalogs();
+  state.step=3;
+  render();
 }
 
 function renderCustomerPlanCard(){
@@ -337,7 +267,7 @@ function renderServices(){
 function renderConfirmation(){
   setHeader('ETAPA 03','Confira sua solicitação','Confirme seus dados e serviços antes de entrar na fila.');
   const preview=getCustomerPlanPreview(),total=preview?preview.total:state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
-  content.innerHTML='<div class="summary"><div class="summary-row"><span>Cliente</span><strong>'+safe((state.customer.first_name||'')+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(state.customer.phone||'—')+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(state.customer.email||'—')+'</strong></div></div><div class="summary"><strong>Serviços</strong>'+state.selectedServices.map(function(s){return '<div class="summary-row"><span>'+safe(s.name)+'</span><strong>'+money(s.price)+'</strong></div>';}).join('')+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div></div><p class="muted">Você não escolhe barbeiro nem forma de pagamento. Ao confirmar, sua senha entra na fila única da LaCorte.</p><p id="app-message" class="muted">'+safe(state.message)+'</p>';
+  content.innerHTML='<div class="summary"><div class="summary-row"><span>Cliente</span><strong>'+safe((state.customer.first_name||'')+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(state.customer.phone||'—')+'</strong></div></div><div class="summary"><strong>Serviços</strong>'+state.selectedServices.map(function(s){return '<div class="summary-row"><span>'+safe(s.name)+'</span><strong>'+money(s.price)+'</strong></div>';}).join('')+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div></div><p class="muted">Você não escolhe barbeiro nem forma de pagamento. Ao confirmar, sua senha entra na fila única da LaCorte.</p><p id="app-message" class="muted">'+safe(state.message)+'</p>';
   setActions(function(){state.step=3;renderServices();},submitQueueEntry,'ENTRAR NA FILA',state.submitting);
 }
 
@@ -793,18 +723,38 @@ async function routeAuthenticatedUser(user){
 }
 
 async function submitQueueEntry(){
-  if(state.submitting)return;if(!state.customer||!state.selectedServices.length){showMessage('Confira seus dados e selecione ao menos um serviço.');return;}
-  state.submitting=true;showMessage('Registrando sua entrada na fila...');
-  try{if(!state.user)throw new Error('Confirme seu e-mail antes de entrar na fila.');const result=await db.rpc('lacorte_create_queue_entry',{p_customer_id:state.customer.id,p_service_ids:state.selectedServices.map(function(s){return s.id;})});
-    if(result.error)throw result.error;const ticket=Array.isArray(result.data)?result.data[0]:result.data;if(!ticket)throw new Error('O banco não retornou a confirmação da fila.');state.queueTicket=ticket;state.submitting=false;renderQueueSuccess();
-  }catch(error){state.submitting=false;showMessage('Não foi possível entrar na fila: '+(error.message||'Falha de conexão.'));}
+  if(state.submitting) return;
+  if(!state.customer || !state.lookupToken || !state.selectedServices.length){
+    showMessage("Confira seu cadastro e selecione ao menos um serviço.");
+    return;
+  }
+  state.submitting=true;showMessage("Registrando sua entrada na fila...");
+  try{
+    const result=await kioskRequest({
+      action:"queue",
+      lookup_token:state.lookupToken,
+      service_ids:state.selectedServices.map(function(service){return service.id;})
+    });
+    state.queueTicket=result;
+    state.submitting=false;
+    renderQueueSuccess();
+  }catch(error){
+    state.submitting=false;
+    showMessage("Não foi possível entrar na fila: "+(error.message||"Falha de conexão."));
+  }
 }
 
 function renderQueueSuccess(){
-  setAppMode(true);setHeader('ENTRADA CONFIRMADA','Você entrou na fila!','Sua senha está na fila única da LaCorte.');notice.textContent='Aguarde ser chamado por um dos profissionais.';
-  const ticket=state.queueTicket;content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
-  actions.replaceChildren(makeButton('FINALIZAR',logoutCurrentSession,true));clearCustomerAutoLogout();
-  if(state.role==='customer'){notice.textContent='Entrada confirmada. A sessão será encerrada automaticamente em 5 segundos.';customerAutoLogoutTimer=setTimeout(logoutCurrentSession,CUSTOMER_AUTO_LOGOUT_MS);}
+  setAppMode(true);
+  setHeader("ENTRADA CONFIRMADA","Você entrou na fila!","Sua senha está na fila única da LaCorte.");
+  notice.textContent="Aguarde ser chamado por um dos profissionais.";
+  const ticket=state.queueTicket;
+  content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
+  actions.replaceChildren(makeButton("FINALIZAR",function(){
+    clearCustomerAutoLogout();
+    state.customer=null;state.lookupToken=null;state.selectedServices=[];state.customerPlan=null;state.customerPlanBenefits=[];state.queueTicket=null;state.step=1;state.message="";state.submitting=false;
+    setAppMode(false);renderLogin();
+  },true));
 }
 
 // Calcula a prévia do benefício. O banco continua sendo a autoridade final
@@ -1011,14 +961,12 @@ function renderStaffPasswordOnly(message){
 
 async function initLaCorte(){
   setAppMode(false);
-
-  if (!db) {
-    if (STAFF_PORTAL) renderStaffLogin("A conexão segura não carregou. Atualize a página.");
-    else { state.role = null; render(); showMessage("A conexão segura não carregou. Verifique a internet e atualize a página para entrar."); }
+  if(!db){
+    if(STAFF_PORTAL) renderStaffLogin("A conexão segura não carregou. Atualize a página.");
+    else {render();showMessage("A conexão com o autoatendimento não carregou. Verifique a internet e atualize a página.");}
     return;
   }
-
-  if (STAFF_PORTAL) {
+  if(STAFF_PORTAL){
     const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,""));
     if(hashParams.get("type")==="recovery" && hashParams.get("access_token") && hashParams.get("refresh_token")){
       const restored=await db.auth.setSession({access_token:hashParams.get("access_token"),refresh_token:hashParams.get("refresh_token")});
@@ -1026,62 +974,28 @@ async function initLaCorte(){
       if(restored.error){renderStaffLogin("O link de recuperação expirou ou já foi utilizado. Solicite outro.");return;}
       await renderStaffPasswordReset();
     }else{
-      const staffSession = await db.auth.getSession();
-      if (staffSession.error) { renderStaffLogin("Não foi possível verificar a sessão. Entre novamente."); return; }
-      if (staffSession.data && staffSession.data.session) await routeAuthenticatedUser(staffSession.data.session.user);
+      const staffSession=await db.auth.getSession();
+      if(staffSession.error){renderStaffLogin("Não foi possível verificar a sessão. Entre novamente.");return;}
+      if(staffSession.data&&staffSession.data.session) await routeAuthenticatedUser(staffSession.data.session.user);
       else renderStaffLogin();
     }
     db.auth.onAuthStateChange(function(event){
-      if(event === "SIGNED_OUT") { stopQueueRealtime(); renderStaffLogin(); }
+      if(event==="SIGNED_OUT"){stopQueueRealtime();renderStaffLogin();}
     });
     return;
   }
-
-  // O autoatendimento continua usando o fluxo de acesso do cliente.
-  if (!db) {
-    state.role = null;
-    render();
-    showMessage("A conexão segura não carregou. Verifique a internet e atualize a página para entrar.");
-    return;
+  // Totem público: cadastro e identificação não usam conta Auth nem confirmação por e-mail.
+  state.role="customer";
+  state.user=null;
+  try{
+    await loadCatalogs();
+    state.step=1;
+    renderLogin();
+  }catch(error){
+    renderLogin();
+    showMessage(error.message||"Não foi possível carregar o catálogo da LaCorte.");
   }
-
-  // O Supabase processa automaticamente o retorno do link (code ou tokens na URL).
-  const sessionResult = await db.auth.getSession();
-  if (sessionResult.error) {
-    state.message = "Erro ao verificar acesso: " + sessionResult.error.message;
-  }
-
-  if (sessionResult.data && sessionResult.data.session) {
-    await routeAuthenticatedUser(sessionResult.data.session.user);
-  } else {
-    state.role = null;
-    render();
-  }
-
-  db.auth.onAuthStateChange(function(event, session){
-    // O login por código já direciona o usuário no próprio formulário.
-    // Evita executar routeAuthenticatedUser duas vezes durante a confirmação do OTP.
-    if (event === "SIGNED_OUT") {
-      stopQueueRealtime();
-      clearCustomerAutoLogout();
-      state.user = null;
-      state.customer = null;
-      state.role = null;
-      state.barberId = null;
-      state.selectedServices = [];
-      state.queueTicket = null;
-      state.customerPlan = null;
-      state.customerPlanBenefits = [];
-      state.submitting = false;
-      state.step = 1;
-      state.message = "";
-      setAppMode(false);
-      render();
-    }
-  });
 }
-
-
 
 // ===== RELATÓRIOS ADMINISTRATIVOS LACORTE =====
 let adminReportFilters = { period: "month", start: "", end: "" };
