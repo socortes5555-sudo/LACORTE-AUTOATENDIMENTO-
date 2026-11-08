@@ -5,34 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <title>LaCorte | Painel Administrativo</title>
-  <link rel="stylesheet" href="styles.css?v=20261108-admin-functional3">
+  <link rel="stylesheet" href="styles.css?v=20261108-admin-loaderfix">
+  <style>
+    body{margin:0;min-height:100vh;background:#101010;color:#f5f5f5;font-family:Arial,sans-serif}
+    .topbar{height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;background:#151515;border-bottom:1px solid #333}
+    .brand{font-size:25px;font-weight:800;color:#fff;text-decoration:none;letter-spacing:1px}
+    .top-label,.eyebrow{color:#ff791f;font-size:11px;font-weight:700;letter-spacing:1.5px}
+    .shell{max-width:760px;margin:40px auto;padding:0 18px}
+    .panel{background:#191919;border:1px solid #333;border-radius:16px;padding:26px;box-shadow:0 16px 45px #0008}
+    .panel-heading h2{font-size:27px;margin:8px 0}.muted{color:#aaa;line-height:1.55}
+    .notice{margin-top:18px;color:#aaa;font-size:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .staff-login-form{display:grid;gap:10px}.staff-login-form label{font-size:13px;color:#ddd}.staff-login-form input{box-sizing:border-box;width:100%;padding:13px;border:1px solid #444;border-radius:8px;background:#101010;color:#fff}
+    .btn{border:0;border-radius:8px;padding:13px 16px;font-weight:700;cursor:pointer}.btn-primary{background:#ff791f;color:#171717}.btn-secondary{background:#292929;color:#eee;border:1px solid #444}
+    footer{max-width:760px;margin:24px auto;padding:0 18px;color:#aaa;font-size:12px}footer span{color:#ff791f}footer a{color:#ff9b55}
+    #loader-error{display:none;padding:14px;margin-top:14px;border:1px solid #78451f;border-radius:8px;background:#281a12;color:#ffd3b5;white-space:pre-wrap}
+  </style>
 </head>
 <body class="staff-portal">
-  <header class="topbar">
-    <a class="brand" href="painel-admin-preview.html" aria-label="LaCorte painel administrativo">LaCorte</a>
-    <span class="top-label">PAINEL ADMINISTRATIVO</span>
-  </header>
-  <main class="shell staff-shell">
-    <section class="panel">
-      <div class="panel-heading">
-        <div>
-          <p class="eyebrow" id="step-kicker">ACESSO RESTRITO • PROPRIETÁRIO LACORTE</p>
-          <h2 id="step-title">Painel administrativo</h2>
-          <p class="muted" id="step-description">Entre com seu e-mail e senha de administrador.</p>
-        </div>
-      </div>
-      <div id="step-content" aria-live="polite">
-        <p class="muted">Carregando acesso seguro...</p>
-      </div>
-      <div class="notice" id="demo-notice">Acesso exclusivo ao proprietário e à equipe autorizada.</div>
-      <div class="actions" id="step-actions"></div>
-    </section>
-    <footer>LA<span>CORTE</span><small><a href="barbeiros.html">Acesso da equipe</a> · <a href="./">Autoatendimento do cliente</a></small></footer>
-  </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
+  <header class="topbar"><a class="brand" href="painel-admin-preview.html">LaCorte</a><span class="top-label">PAINEL ADMINISTRATIVO</span></header>
+  <main class="shell"><section class="panel">
+    <div class="panel-heading"><p class="eyebrow" id="step-kicker">ACESSO RESTRITO • PROPRIETÁRIO LACORTE</p><h2 id="step-title">Painel administrativo</h2><p class="muted" id="step-description">Preparando o acesso seguro...</p></div>
+    <div id="step-content" aria-live="polite"><p class="muted">Carregando os componentes do sistema LaCorte...</p></div>
+    <div id="loader-error" role="alert"></div>
+    <div class="notice" id="demo-notice">Acesso exclusivo ao proprietário e à equipe autorizada.</div><div class="actions" id="step-actions"></div>
+  </section></main>
+  <footer>LA<span>CORTE</span> · <a href="barbeiros.html">Acesso da equipe</a> · <a href="./">Autoatendimento do cliente</a></footer>
   <script>
-    if (!window.supabase) document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.119.0"><\\/script>');
+  (function(){
+    const content=document.getElementById("step-content");
+    const errorBox=document.getElementById("loader-error");
+    function fail(message){errorBox.style.display="block";errorBox.textContent=message;content.innerHTML="<p>O painel não conseguiu iniciar. Atualize a página em alguns instantes ou entre em contato com o administrador.</p>";}
+    function load(src){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error("Falha ao carregar "+src));document.head.appendChild(s);});}
+    window.addEventListener("error",function(e){if(e.message)fail("Erro ao iniciar o painel: "+e.message);});
+    window.addEventListener("unhandledrejection",function(e){const reason=e.reason;fail("Falha de conexão ou inicialização: "+(reason&&reason.message?reason.message:String(reason||"erro desconhecido")));});
+    load("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js")
+      .catch(()=>load("https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"))
+      .then(()=>{if(!window.supabase||!window.supabase.createClient)throw new Error("A biblioteca segura do Supabase não ficou disponível.");return load("app.js?v=20261108-admin-loaderfix");})
+      .catch(err=>fail("Não foi possível iniciar o painel LaCorte. "+err.message+" Verifique a conexão com a internet e tente novamente."));
+  })();
   </script>
-  <script src="app.js?v=20261108-admin-functional3"></script>
 </body>
 </html>
