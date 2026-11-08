@@ -4262,3 +4262,74 @@ body.admin-dashboard:has(.lc-admin-app){background:#111!important;color:#f4f4f5!
   .lc-quick-grid button{padding:9px;gap:7px}
   .lc-admin-footer{flex-direction:column}
 }
+
+
+/* Correção de proporção e isolamento visual do painel LaCorte */
+body.admin-dashboard:has(.lc-admin-app) #step-content{
+  display:block!important;width:100%!important;max-width:none!important;min-width:0!important;
+  margin:0!important;padding:0!important;overflow:visible!important;
+}
+body.admin-dashboard:has(.lc-admin-app) .shell,
+body.admin-dashboard:has(.lc-admin-app) .panel{
+  display:block!important;width:100%!important;max-width:none!important;min-width:0!important;
+}
+.lc-admin-app,.lc-admin-app *{box-sizing:border-box}
+.lc-admin-app{
+  display:grid!important;
+  grid-template-columns:252px minmax(0,1fr)!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  min-height:100vh;overflow:clip;
+}
+.lc-admin-sidebar{
+  grid-column:1;grid-row:1;align-self:stretch;
+  width:100%;min-width:0;height:100vh;min-height:100vh;
+  position:sticky;top:0;overflow-y:auto;
+}
+.lc-admin-main{
+  grid-column:2;grid-row:1;align-self:start;
+  width:100%;max-width:1480px;min-width:0;
+  margin:0 auto;padding:28px clamp(20px,2.4vw,36px) 22px;
+}
+.lc-admin-header,.lc-admin-welcome,.lc-admin-card,.lc-metric-card,
+.lc-admin-middle,.lc-admin-bottom,.lc-metric-grid{min-width:0;max-width:100%}
+.lc-admin-middle{
+  grid-template-columns:minmax(0,1.25fr) minmax(300px,.95fr);
+  align-items:stretch;
+}
+.lc-admin-bottom{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.lc-admin-card{overflow:hidden}
+.lc-card-heading{min-width:0}
+.lc-card-heading>div{min-width:0}
+.lc-chart-wrap{width:100%;min-width:0}
+.lc-queue-list,.lc-team-list,.lc-quick-grid{width:100%;min-width:0}
+.lc-admin-footer{flex-wrap:wrap}
+@media(max-width:1100px){
+  .lc-admin-app{grid-template-columns:220px minmax(0,1fr)!important}
+  .lc-admin-main{padding:22px 20px}
+  .lc-admin-middle{grid-template-columns:minmax(0,1fr)}
+  .lc-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .lc-admin-app{display:flex!important;flex-direction:column!important;overflow:visible}
+  .lc-admin-sidebar{
+    position:relative;top:auto;width:100%;height:auto;min-height:0;overflow:visible;
+  }
+  .lc-admin-main{width:100%;max-width:none;margin:0;padding:16px 14px 20px}
+  .lc-admin-header{width:100%;min-width:0}
+  .lc-admin-header-tools{min-width:0;flex-wrap:wrap}
+  .lc-admin-date{white-space:nowrap}
+  .lc-admin-welcome{align-items:flex-start}
+  .lc-admin-middle,.lc-admin-bottom{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:480px){
+  .lc-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lc-metric-card{min-width:0;padding:12px}
+  .lc-metric-card>strong{font-size:clamp(16px,5vw,20px);white-space:normal;overflow-wrap:anywhere}
+  .lc-admin-header-tools{display:grid;grid-template-columns:minmax(0,1fr) auto}
+  .lc-admin-search{grid-column:1/-1;width:100%}
+  .lc-admin-date{justify-content:center}
+  .lc-admin-role{white-space:nowrap}
+  .lc-admin-card{padding:14px}
+}
