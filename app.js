@@ -1360,18 +1360,22 @@ async function renderAdminManagement(){
   content.innerHTML = adminNavigation() + '<p class="muted">Carregando cadastros...</p>';
   try {
     const results = await Promise.all([
-      db.from("barbers").select("id,name,active,commission_percent").order("name"),
-      db.from("services").select("id,name,detail,price,active").order("name")
+      servicesOnly
+        ? Promise.resolve({data:[],error:null})
+        : db.from("barbers").select("id,name,active,commission_percent").order("name"),
+      servicesOnly
+        ? db.from("services").select("id,name,detail,price,active").order("name")
+        : Promise.resolve({data:[],error:null})
     ]);
     if(results[0].error) throw new Error("Erro ao carregar barbeiros: " + results[0].error.message);
     if(results[1].error) throw new Error("Erro ao carregar serviços: " + results[1].error.message);
     const barberRows = results[0].data || [];
     const serviceRows = results[1].data || [];
     let accessEmail = "";
-    let accessLoadMessage = "";
-    const accessLoad = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "get" } });
-    if(accessLoad.error) accessLoadMessage = "Não foi possível carregar o e-mail atual: " + accessLoad.error.message;
-    else accessEmail = accessLoad.data.current_email || "";
+    if(!servicesOnly){
+      const accessLoad = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "get" } });
+      if(!accessLoad.error) accessEmail = accessLoad.data.current_email || "";
+    }
     let html = adminNavigation();
     const workspaceClass = servicesOnly ? "admin-workspace is-services" : "admin-workspace is-management";
     const workspaceTitle = servicesOnly ? "Catálogo de serviços" : "Gestão da barbearia";
