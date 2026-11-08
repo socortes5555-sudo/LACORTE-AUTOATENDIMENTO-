@@ -1944,4 +1944,5 @@ renderQueueDashboard = function(){
   originalRenderQueueDashboard();
 };
 
+window.__LACORTE_APP_STARTED__ = true;
 initLaCorte();
