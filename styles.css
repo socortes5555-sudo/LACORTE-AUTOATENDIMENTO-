@@ -2200,3 +2200,93 @@ body.admin-dashboard .btn{min-height:42px;border-radius:9px;font-weight:800;lett
  body.admin-dashboard .history-table-heading{align-items:flex-start;flex-direction:column}
  body.admin-dashboard .report-table{min-width:850px}
 }
+
+/* LA CORTE — ETAPA VISUAL ADMINISTRATIVA (sem alterações de lógica) */
+body.admin-dashboard{background:#0b0c0d;color:#f4f4f4}
+body.admin-dashboard .topbar{height:76px;padding:0 clamp(18px,3vw,48px);background:#0d0e0f;border-bottom:1px solid #242629}
+body.admin-dashboard .brand{font-size:25px;letter-spacing:2px}
+body.admin-dashboard .top-label{font-size:10px;letter-spacing:1.8px;color:#ff8a32}
+body.admin-dashboard .shell{width:100%;max-width:none;padding:28px clamp(14px,2.4vw,38px) 38px}
+body.admin-dashboard .panel{display:block;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+body.admin-dashboard .panel-heading{margin:0 0 22px;padding:0 0 18px;border-bottom:1px solid #26282b}
+body.admin-dashboard .panel-heading .eyebrow{color:#ff913f;font-size:10px;font-weight:800;letter-spacing:2px}
+body.admin-dashboard .panel-heading h2{margin:7px 0 5px;font-size:clamp(25px,2.4vw,34px);line-height:1.15;letter-spacing:-.5px}
+body.admin-dashboard .panel-heading .muted{font-size:12px;color:#92969b;line-height:1.6}
+body.admin-dashboard #step-content:has(>.admin-nav){display:grid;grid-template-columns:248px minmax(0,1fr);gap:28px;align-items:start}
+body.admin-dashboard #step-content>.admin-nav{grid-column:1;grid-row:1 / span 40}
+body.admin-dashboard #step-content>.admin-nav~*{grid-column:2;min-width:0}
+body.admin-dashboard .admin-nav{position:sticky;top:18px;min-height:calc(100vh - 130px);margin:0;padding:20px 13px;display:flex;flex-direction:column;gap:6px;border:1px solid #292c30;border-radius:16px;background:linear-gradient(165deg,#191b1e 0%,#111214 78%);box-shadow:0 18px 42px #0005}
+body.admin-dashboard .admin-brand{padding:3px 7px 22px;border-bottom:1px solid #2b2e32;gap:12px}
+body.admin-dashboard .admin-brand-mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(145deg,#ff9b4a,#f36c16);color:#171717;font-size:18px;box-shadow:0 5px 18px #f477242e}
+body.admin-dashboard .admin-brand strong{font-size:16px;letter-spacing:1.5px}
+body.admin-dashboard .admin-brand small{font-size:8px;letter-spacing:1.1px;color:#8e9298}
+body.admin-dashboard .admin-nav-caption{padding:22px 9px 8px;color:#e58a48;font-size:9px;letter-spacing:1.5px}
+body.admin-dashboard .admin-nav-item{min-height:47px;padding:0 12px;gap:12px;border:1px solid transparent;border-radius:10px;color:#b9bdc2;font-size:12px;font-weight:600;transition:background .18s,border-color .18s,color .18s}
+body.admin-dashboard .admin-nav-item:hover{background:#242629;color:#fff}
+body.admin-dashboard .admin-nav-item.active{background:linear-gradient(90deg,#382417,#28201b);border-color:#5c3823;color:#ffad72}
+body.admin-dashboard .admin-nav-icon{width:22px;color:#f18a42;font-size:17px}
+body.admin-dashboard .admin-nav-footer{margin-top:auto;padding:18px 8px 4px;border-top:1px solid #2b2e32;color:#858a90;font-size:10px}
+body.admin-dashboard .admin-online-dot{background:#63ce91;box-shadow:0 0 9px #63ce9166}
+body.admin-dashboard .admin-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 25px}
+body.admin-dashboard .admin-kpis article{min-height:128px;padding:18px 19px;gap:8px;border:1px solid #2b2e32;border-radius:14px;background:linear-gradient(145deg,#1b1d20,#141517);box-shadow:0 9px 24px #0003}
+body.admin-dashboard .admin-kpis article span{font-size:9px;letter-spacing:1.15px;color:#9da1a7}
+body.admin-dashboard .admin-kpis article strong{font-size:31px;line-height:1.1;color:#ff913f}
+body.admin-dashboard .admin-kpis article small{font-size:10px;color:#858a90}
+body.admin-dashboard .admin-agenda-heading{margin:8px 2px 14px;padding-bottom:12px;border-bottom:1px solid #292c30}
+body.admin-dashboard .admin-agenda-heading small{color:#f39a59;font-size:9px;letter-spacing:1.6px}
+body.admin-dashboard .admin-agenda-heading h3{font-size:21px;color:#f4f4f4;margin:5px 0 0}
+body.admin-dashboard .admin-agenda-heading>span{color:#a1a5aa;font-size:11px}
+body.admin-dashboard .summary{margin:0 0 13px;padding:17px 19px;border:1px solid #2c2f33;border-radius:13px;background:#17191b;color:#f4f4f4;box-shadow:0 7px 20px #0002}
+body.admin-dashboard .summary-row{padding:10px 0;border-bottom:1px solid #26292c;font-size:12px}
+body.admin-dashboard .summary-row:last-child{border-bottom:0}
+body.admin-dashboard .summary-row span:first-child{color:#92979d}
+body.admin-dashboard .summary-row strong{color:#f0f1f2;font-weight:600;text-align:right}
+body.admin-dashboard .muted{color:#969ba1}
+body.admin-dashboard .admin-form,body.admin-dashboard .admin-item{gap:11px}
+body.admin-dashboard .admin-form label,body.admin-dashboard .admin-item label{color:#aeb2b7;font-size:11px}
+body.admin-dashboard input:not([type=checkbox]),body.admin-dashboard select,body.admin-dashboard textarea{min-height:43px;padding:11px 12px;border:1px solid #35393e;border-radius:9px;background:#101214;color:#f5f5f5;font:13px 'DM Sans',sans-serif}
+body.admin-dashboard input:focus,body.admin-dashboard select:focus,body.admin-dashboard textarea:focus{outline:2px solid #ff842f55;border-color:#f58a42}
+body.admin-dashboard .btn{min-height:43px;border-radius:9px;font-size:11px;font-weight:800;letter-spacing:.35px}
+body.admin-dashboard .btn-primary{background:linear-gradient(135deg,#ff9a48,#f47720);color:#171717;box-shadow:0 5px 14px #f4772024}
+body.admin-dashboard .btn-secondary{background:#24272a;border:1px solid #3a3e43;color:#e4e5e6}
+body.admin-dashboard .report-kpis{gap:13px}
+body.admin-dashboard .report-kpis .summary{min-height:112px;padding:17px}
+body.admin-dashboard .report-chart-grid{gap:14px}
+body.admin-dashboard .report-chart-grid .summary{padding:19px}
+body.admin-dashboard .report-table-wrap{border:1px solid #2d3034;border-radius:12px}
+body.admin-dashboard .report-table{min-width:780px}
+body.admin-dashboard .report-table th{background:#202225;color:#ffab70;font-size:10px;letter-spacing:.5px}
+body.admin-dashboard .report-table td{color:#d9dcdf;border-bottom-color:#2b2e32;font-size:11px}
+body.admin-dashboard .report-table tr:hover td{background:#202225}
+body.admin-dashboard .report-filter{padding:18px;border:1px solid #2d3034;border-radius:13px;background:#17191b}
+body.admin-dashboard .report-filter>label,body.admin-dashboard .report-date-fields label{color:#aeb2b7;font-size:10px}
+body.admin-dashboard .admin-calendar-panel{border-color:#47301f;background:linear-gradient(120deg,#1b1d20,#292018)}
+body.admin-dashboard .admin-agenda-column{background:#17191b;border-color:#303338}
+body.admin-dashboard .admin-appointment{background:#202326;border-color:#393d42}
+body.admin-dashboard .admin-appointment-top b{color:#ffad72}
+body.admin-dashboard #step-actions{padding-top:4px}
+@media(max-width:1050px){
+ body.admin-dashboard #step-content:has(>.admin-nav){grid-template-columns:210px minmax(0,1fr);gap:17px}
+ body.admin-dashboard .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ body.admin-dashboard .topbar{height:64px;padding:0 15px}
+ body.admin-dashboard .shell{padding:17px 12px 26px}
+ body.admin-dashboard #step-content:has(>.admin-nav){grid-template-columns:minmax(0,1fr);gap:17px}
+ body.admin-dashboard #step-content>.admin-nav{grid-column:1;grid-row:auto;position:relative;top:auto;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:13px}
+ body.admin-dashboard .admin-brand,body.admin-dashboard .admin-nav-caption,body.admin-dashboard .admin-nav-footer{grid-column:1/-1}
+ body.admin-dashboard .admin-brand{padding-bottom:13px}
+ body.admin-dashboard #step-content>.admin-nav~*{grid-column:1}
+ body.admin-dashboard .admin-nav-item{min-height:42px;padding:0 9px;font-size:11px}
+ body.admin-dashboard .admin-kpis{gap:9px;margin-bottom:20px}
+ body.admin-dashboard .admin-kpis article{min-height:106px;padding:13px}
+ body.admin-dashboard .admin-kpis article strong{font-size:26px}
+ body.admin-dashboard .summary{padding:14px}
+ body.admin-dashboard .report-chart-grid{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+ body.admin-dashboard .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.admin-dashboard .panel-heading h2{font-size:23px}
+ body.admin-dashboard .admin-agenda-heading h3{font-size:18px}
+ body.admin-dashboard .admin-nav-item{font-size:10px}
+}
