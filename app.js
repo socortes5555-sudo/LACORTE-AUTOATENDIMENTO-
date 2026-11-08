@@ -774,7 +774,7 @@ async function routeAuthenticatedUser(user){
 async function submitQueueEntry(){
   if(state.submitting)return;if(!state.customer||!state.selectedServices.length){showMessage('Confira seus dados e selecione ao menos um serviço.');return;}
   state.submitting=true;showMessage('Registrando sua entrada na fila...');
-  try{const rpcName=state.user?'lacorte_create_queue_entry':'lacorte_create_queue_entry_kiosk';const result=await db.rpc(rpcName,{p_customer_id:state.customer.id,p_service_ids:state.selectedServices.map(function(s){return s.id;})});
+  try{if(!state.user)throw new Error('Confirme seu e-mail antes de entrar na fila.');const result=await db.rpc('lacorte_create_queue_entry',{p_customer_id:state.customer.id,p_service_ids:state.selectedServices.map(function(s){return s.id;})});
     if(result.error)throw result.error;const ticket=Array.isArray(result.data)?result.data[0]:result.data;if(!ticket)throw new Error('O banco não retornou a confirmação da fila.');state.queueTicket=ticket;state.submitting=false;renderQueueSuccess();
   }catch(error){state.submitting=false;showMessage('Não foi possível entrar na fila: '+(error.message||'Falha de conexão.'));}
 }
