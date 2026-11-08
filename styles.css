@@ -2998,3 +2998,72 @@ body:has(#entry-choice) footer{display:none!important}
   body:has(.shell .entry-choice) .panel{padding:15px 18px!important}
   body:has(.shell .entry-choice) .entry-choice .btn{min-height:48px!important}
 }
+
+
+/* FIX REAL — cliente desktop: desfaz os posicionamentos absolutos do layout antigo */
+@media (min-width: 761px){
+  body:has(#entry-choice){
+    height:auto!important;min-height:100vh!important;max-height:none!important;
+    overflow-x:hidden!important;overflow-y:auto!important;
+  }
+  body:has(#entry-choice) .topbar{
+    position:relative!important;inset:auto!important;width:100%!important;
+    height:66px!important;min-height:66px!important;
+  }
+  body:has(#entry-choice) .shell{
+    position:relative!important;inset:auto!important;
+    display:grid!important;width:min(1320px,calc(100% - 64px))!important;
+    max-width:1320px!important;height:auto!important;min-height:0!important;
+    max-height:none!important;margin:0 auto!important;
+    padding:28px 0 24px!important;overflow:visible!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    grid-template-rows:auto auto auto!important;gap:22px 28px!important;
+    align-items:stretch!important;
+  }
+  body:has(#entry-choice) .hero.hero-home{
+    position:relative!important;inset:auto!important;grid-column:1/-1!important;
+    grid-row:1!important;display:grid!important;
+    grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)!important;
+    align-items:center!important;gap:30px!important;
+    width:100%!important;height:auto!important;min-height:300px!important;
+    margin:0!important;padding:0!important;overflow:visible!important;
+  }
+  body:has(#entry-choice) .hero-copy{
+    position:relative!important;inset:auto!important;left:auto!important;top:auto!important;
+    width:auto!important;max-width:560px!important;min-width:0!important;
+    padding:12px 0!important;
+  }
+  body:has(#entry-choice) .hero-motion{
+    position:relative!important;inset:auto!important;width:100%!important;
+    height:320px!important;min-height:0!important;border-radius:18px!important;
+    overflow:hidden!important;
+  }
+  body:has(#entry-choice) .hero-slide{object-fit:cover!important}
+  body:has(#entry-choice) .panel{
+    position:relative!important;inset:auto!important;left:auto!important;right:auto!important;
+    bottom:auto!important;grid-column:1!important;grid-row:2!important;
+    width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;
+    margin:0!important;padding:24px!important;align-self:center!important;
+  }
+  body:has(#entry-choice) .experience-showcase{
+    position:relative!important;inset:auto!important;left:auto!important;right:auto!important;
+    bottom:auto!important;grid-column:2!important;grid-row:2!important;
+    display:grid!important;width:100%!important;max-width:none!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    margin:0!important;align-self:center!important;
+    grid-template-columns:.78fr 1.22fr!important;gap:12px!important;
+  }
+  body:has(#entry-choice) .experience-showcase>.connection-card,
+  body:has(#entry-choice) .membership-highlight{
+    position:relative!important;inset:auto!important;width:auto!important;
+    height:auto!important;min-height:150px!important;
+  }
+  body:has(#entry-choice) .showcase-side{
+    position:relative!important;inset:auto!important;display:grid!important;
+    grid-template-columns:.9fr 1.1fr!important;gap:10px!important;
+  }
+  body:has(#entry-choice) footer{
+    position:relative!important;grid-column:1/-1!important;grid-row:3!important;
+    display:block!important;margin:0!important;padding:10px 0 0!important;
+  }
+}
