@@ -185,17 +185,13 @@
   <script src="app.js?v=20261108-adminpanel8"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script>
+    // QR do Wi-Fi ficará reservado até recebermos um código seguro e atualizado.
+    // Não inserir senhas de rede no código-fonte público.
     window.addEventListener("load", function () {
       const target = document.getElementById("wifi-qr");
-      if (!target || !window.QRCode) return;
-      new QRCode(target, {
-        text: "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;",
-        width: 256,
-        height: 256,
-        colorDark: "#111111",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      if (!target) return;
+      target.textContent = "QR indisponível";
+      target.setAttribute("aria-label", "QR Code do Wi-Fi aguardando atualização segura");
     });
   </script>
 </body>
