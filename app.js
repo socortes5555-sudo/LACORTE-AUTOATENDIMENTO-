@@ -507,6 +507,26 @@ async function loadQueueRows(){
  return rows.map(r=>Object.assign({},r,{customer:customers[r.customer_id]||null,items:items[r.id]||[]}));
 }
 
+let queueRealtimeChannel = null;
+function stopQueueRealtime(){
+  if(queueRealtimeChannel && db){
+    db.removeChannel(queueRealtimeChannel);
+    queueRealtimeChannel = null;
+  }
+}
+function subscribeToQueueRealtime(){
+  if(!db || typeof db.channel !== "function") return;
+  stopQueueRealtime();
+  queueRealtimeChannel = db.channel("lacorte-shared-queue-live")
+    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue"},function(){
+      if(state.role==="admin" || state.role==="barber") renderQueueDashboard();
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_items"},function(){
+      if(state.role==="admin" || state.role==="barber") renderQueueDashboard();
+    })
+    .subscribe();
+}
+
 
 // Navegação do profissional: fila e relatórios em telas independentes.
 let professionalView = "queue";
@@ -746,6 +766,7 @@ async function routeAuthenticatedUser(user){
     state.barberId = roleResult.data.barber_id;
     try {
       await loadCatalogs();
+      subscribeToQueueRealtime();
     } catch (error) {
       setAppMode(true);
       setHeader("ERRO", "Não foi possível carregar o painel", "Verifique a conexão com o banco de dados.");
@@ -1011,7 +1032,7 @@ async function initLaCorte(){
       else renderStaffLogin();
     }
     db.auth.onAuthStateChange(function(event){
-      if(event === "SIGNED_OUT") renderStaffLogin();
+      if(event === "SIGNED_OUT") { stopQueueRealtime(); renderStaffLogin(); }
     });
     return;
   }
@@ -1041,6 +1062,7 @@ async function initLaCorte(){
     // O login por código já direciona o usuário no próprio formulário.
     // Evita executar routeAuthenticatedUser duas vezes durante a confirmação do OTP.
     if (event === "SIGNED_OUT") {
+      stopQueueRealtime();
       clearCustomerAutoLogout();
       state.user = null;
       state.customer = null;
