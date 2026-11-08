@@ -1987,3 +1987,119 @@ body.professional-dashboard footer{margin-top:24px;color:#888}
 @media(prefers-reduced-motion:reduce){
   body.admin-dashboard *,body.professional-dashboard *{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
+
+
+/* ETAPA 1 — acabamento exclusivo do painel administrativo LaCorte */
+body.admin-dashboard #step-content:has(>.admin-nav){
+  grid-template-columns:248px minmax(0,1fr);
+  gap:26px;
+  align-items:start;
+}
+body.admin-dashboard .admin-nav{
+  top:78px;
+  min-height:calc(100vh - 100px);
+  padding:19px 13px;
+  border-color:#343434;
+  border-radius:17px;
+  background:linear-gradient(165deg,#1c1c1c 0%,#141414 58%,#101010 100%);
+}
+body.admin-dashboard .admin-brand{
+  padding:5px 8px 20px;
+  gap:12px;
+}
+body.admin-dashboard .admin-brand-mark{
+  width:42px;height:42px;border-radius:12px;
+  box-shadow:0 5px 16px #ff791f30;
+}
+body.admin-dashboard .admin-nav-item{
+  min-height:45px;
+  padding:10px 11px;
+  border:1px solid transparent;
+  transition:background .18s ease,border-color .18s ease,color .18s ease;
+}
+body.admin-dashboard .admin-nav-item.active{
+  border-color:#75401f;
+  background:linear-gradient(100deg,#472818,#2c1c13);
+  color:#ffb27c;
+}
+body.admin-dashboard .admin-nav-item.active .admin-nav-icon{
+  background:#ff791f;color:#171717;
+}
+body.admin-dashboard .admin-nav-icon{
+  display:grid;place-items:center;
+  width:27px;height:27px;flex:0 0 27px;
+  border-radius:8px;background:#292929;color:#ff9a55;
+}
+body.admin-dashboard .panel-heading{
+  display:flex;flex-direction:column;align-items:flex-start;
+  gap:4px;margin-bottom:22px;padding:0 0 17px;
+  border-bottom:1px solid #303030;
+}
+body.admin-dashboard .panel-heading .eyebrow{
+  font-size:9px;letter-spacing:1.8px;font-weight:800;
+}
+body.admin-dashboard .panel-heading h2{
+  margin:2px 0 0;font-size:clamp(25px,2.5vw,33px);
+  line-height:1.12;letter-spacing:-.7px;
+}
+body.admin-dashboard .panel-heading .muted{
+  max-width:720px;margin:2px 0 0;font-size:12px;line-height:1.6;
+}
+body.admin-dashboard #step-content>.admin-nav~.admin-workspace,
+body.admin-dashboard #step-content>.admin-nav~.admin-kpis,
+body.admin-dashboard #step-content>.admin-nav~.admin-agenda-heading{
+  min-width:0;
+}
+body.admin-dashboard .admin-kpis{gap:14px;margin-bottom:25px}
+body.admin-dashboard .admin-kpis article{
+  position:relative;overflow:hidden;min-height:118px;
+  padding:18px 19px;border-color:#343434;border-radius:14px;
+  background:linear-gradient(145deg,#222 0%,#181818 75%);
+}
+body.admin-dashboard .admin-kpis article:after{
+  content:"";position:absolute;right:-20px;top:-28px;
+  width:84px;height:84px;border:1px solid #ff791f20;border-radius:50%;
+  box-shadow:0 0 0 12px #ff791f08,0 0 0 24px #ff791f05;
+}
+body.admin-dashboard .admin-kpis article strong{
+  position:relative;z-index:1;font-size:30px;letter-spacing:-.5px;
+}
+body.admin-dashboard .admin-agenda-heading{
+  align-items:center;margin:0 0 13px;
+}
+body.admin-dashboard .admin-agenda-heading h3{font-size:21px;letter-spacing:-.2px}
+body.admin-dashboard .admin-agenda-board{gap:14px}
+body.admin-dashboard .admin-agenda-column{
+  padding:13px;border-color:#333;border-radius:14px;
+  background:linear-gradient(160deg,#1c1c1c,#141414);
+}
+body.admin-dashboard .admin-appointment{
+  padding:13px;border-color:#383838;border-left-width:3px;
+  border-radius:11px;background:#222;
+}
+body.admin-dashboard .admin-calendar-panel{
+  padding:21px;border-color:#49301f;border-radius:15px;
+  background:linear-gradient(120deg,#1b1b1b,#241a14);
+}
+body.admin-dashboard .admin-workspace{gap:16px}
+body.admin-dashboard .admin-section-heading h2{letter-spacing:-.4px}
+body.admin-dashboard .manage-tabs{
+  position:static;z-index:auto;
+  border-radius:12px;background:#171717;
+}
+body.admin-dashboard .report-table-wrap{box-shadow:0 8px 22px #0003}
+@media(max-width:1100px){
+  body.admin-dashboard #step-content:has(>.admin-nav){
+    grid-template-columns:210px minmax(0,1fr);gap:16px;
+  }
+}
+@media(max-width:760px){
+  body.admin-dashboard #step-content:has(>.admin-nav){display:flex;flex-direction:column;gap:14px}
+  body.admin-dashboard .admin-nav{min-height:0;padding:12px;top:auto}
+  body.admin-dashboard .admin-brand{padding:2px 4px 12px}
+  body.admin-dashboard .admin-nav-items{overflow-x:auto}
+  body.admin-dashboard .panel-heading{margin-bottom:17px}
+  body.admin-dashboard .admin-kpis{margin-bottom:18px}
+  body.admin-dashboard .admin-agenda-board{grid-template-columns:1fr}
+  body.admin-dashboard .admin-calendar-panel{padding:15px}
+}
