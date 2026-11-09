@@ -5469,3 +5469,45 @@ body:has(#entry-choice-options) .hero-image-shade{
     linear-gradient(180deg,#05050520 0%,#05050520 42%,#050505b8 72%,#050505f2 100%)!important;
 }
 body:has(#entry-choice-options) .topbar .brand{width:min(30vw,390px)!important}
+
+
+/* HOTFIX 2026-11-09 — restore touch/click hit-testing on kiosk entry buttons */
+body:has(#entry-choice-options) .hero-motion,
+body:has(#entry-choice-options) .hero-image-shade{
+  pointer-events:none!important;
+}
+body:has(#entry-choice-options) #entry-choice.shell{
+  position:relative!important;
+  isolation:isolate!important;
+}
+body:has(#entry-choice-options) .hero.hero-home{
+  position:relative!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+body:has(#entry-choice-options) .hero-copy{
+  pointer-events:none!important;
+}
+body:has(#entry-choice-options) .panel{
+  position:relative!important;
+  z-index:20!important;
+  pointer-events:auto!important;
+}
+body:has(#entry-choice-options) #step-content,
+body:has(#entry-choice-options) #entry-choice-options{
+  position:relative!important;
+  z-index:21!important;
+  pointer-events:auto!important;
+}
+body:has(#entry-choice-options) #entry-choice-options .btn{
+  position:relative!important;
+  z-index:22!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+  cursor:pointer!important;
+}
+body:has(#entry-choice-options) #entry-choice-options .btn::before,
+body:has(#entry-choice-options) #entry-choice-options .btn .choice-title,
+body:has(#entry-choice-options) #entry-choice-options .btn .choice-desc{
+  pointer-events:none!important;
+}
