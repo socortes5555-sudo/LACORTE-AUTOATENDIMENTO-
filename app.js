@@ -1860,7 +1860,6 @@ function lcAdminSidebar(){
     item("customers","Clientes","clients")+item("services","Serviços","services")+item("reports","Relatórios","reports")+
     '</nav><div class="lc-admin-sidebar-bottom"><div class="lc-admin-system"><i></i><span>Sistema operacional</span></div>'+
     '<button type="button" class="lc-admin-bottom-link" data-admin-support>'+lcAdminIcon("support")+'<span>Suporte</span></button>'+
-    '<button type="button" class="lc-admin-bottom-link" data-admin-logout>'+lcAdminIcon("logout")+'<span>Sair</span></button>'+
     '<div class="lc-admin-user"><span class="lc-admin-avatar">B1</span><span><strong>Barbeiro 1</strong><small>Administrador</small></span><i></i></div></div></aside>';
 }
 
@@ -1889,6 +1888,7 @@ async function renderAdminOverview(){
   updateProgress();
   setHeader("ADMINISTRAÇÃO LACORTE","Painel Geral","Resumo da operação e da fila compartilhada.");
   notice.textContent="Visão administrativa • Dados carregados do Supabase.";
+  dashboardActions();
   content.innerHTML='<div class="lc-admin-loading">Carregando painel administrativo...</div>';
   try{
     const today=localQueueDate();
@@ -1921,7 +1921,7 @@ async function renderAdminOverview(){
     }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
     content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<main class="lc-admin-main">'+
       '<header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração <b>›</b> Painel Geral</span><h1>Painel Geral</h1></div>'+
-      '<div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair">'+lcAdminIcon("logout")+'</button></div></header>'+
+      '<div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span></div></header>'+
       '<section class="lc-admin-summary-head"><div><span>RESUMO DO DIA</span><p>Indicadores da operação e situação atual da fila.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></section>'+
       '<section class="lc-metric-grid">'+
       '<article class="lc-metric-card"><div><span>FATURAMENTO HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+money(revenueToday)+'</strong><small>Somente atendimentos concluídos</small></article>'+
@@ -1999,7 +1999,7 @@ function lcMountAdminWorkspace(){
   main.className="lc-admin-main";
   const header=document.createElement("header");
   header.className="lc-admin-header";
-  header.innerHTML='<div><span class="lc-admin-breadcrumb">Administração <b>›</b> '+safe(title)+'</span><h1>'+safe(title)+'</h1></div><div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair">'+lcAdminIcon("logout")+'</button></div>';
+  header.innerHTML='<div><span class="lc-admin-breadcrumb">Administração <b>›</b> '+safe(title)+'</span><h1>'+safe(title)+'</h1></div><div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span></div>';
   main.appendChild(header);
   oldNodes.forEach(function(node){main.appendChild(node);});
   if(adminView==="manage"){
