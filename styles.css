@@ -4460,3 +4460,94 @@ body:has(.shell .entry-choice) .site-footer .staff-portal-entry{display:none}
   body:has(.shell .entry-choice) .panel{bottom:105px;padding:12px 16px}
   body:has(.shell .entry-choice) .experience-showcase{bottom:58px}
 }
+
+
+
+/* Totem LaCorte — interface premium em paisagem, sem rolagem na tela inicial */
+body:not(.admin-dashboard){min-height:100vh;overflow-x:hidden}
+body:not(.admin-dashboard) .topbar{height:68px;padding:0 clamp(24px,4vw,64px);background:#101010;border-bottom:1px solid #343434}
+body:not(.admin-dashboard) .brand{display:flex;align-items:center;gap:9px;font-size:28px}
+body:not(.admin-dashboard) .brand-croc{width:52px;height:27px;color:#ff791f}
+body:not(.admin-dashboard) .brand small{font:700 9px 'DM Sans',sans-serif;letter-spacing:2px;color:#aaa;align-self:flex-end;margin:0 0 3px -5px}
+body:not(.admin-dashboard) .shell{width:min(100% - 56px,1440px);max-width:1440px;margin:0 auto;padding:22px 0 12px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);grid-template-rows:auto auto auto auto;column-gap:clamp(24px,3vw,48px);row-gap:14px;align-items:center}
+body:not(.admin-dashboard) .hero{grid-column:1;grid-row:1;padding:0;display:grid;grid-template-columns:1fr .78fr;gap:18px;align-items:center;min-width:0}
+body:not(.admin-dashboard) .hero-copy{position:relative;z-index:2}
+body:not(.admin-dashboard) .hero .eyebrow{font-size:10px;letter-spacing:2.5px}
+body:not(.admin-dashboard) .hero-pretitle{font-size:clamp(16px,1.7vw,23px);color:#ddd;margin:22px 0 0}
+body:not(.admin-dashboard) .hero h1{font-size:clamp(42px,5vw,72px);margin:4px 0 12px;white-space:nowrap}
+body:not(.admin-dashboard) .hero-values{display:flex;align-items:center;gap:11px;color:#ddd;font-size:11px}
+body:not(.admin-dashboard) .hero-values i{height:3px;width:3px;border-radius:50%;background:var(--orange)}
+body:not(.admin-dashboard) .hero .intro{font-size:13px;margin-top:16px}
+body:not(.admin-dashboard) .hero-motion{height:clamp(170px,22vh,230px);border-radius:16px;overflow:hidden;position:relative;border:1px solid #45403b;box-shadow:0 16px 45px #0008}
+body:not(.admin-dashboard) .hero-slide{position:absolute;width:100%;height:100%;object-fit:cover;inset:0}
+body:not(.admin-dashboard) .hero-image-shade{position:absolute;inset:0;background:linear-gradient(90deg,#10101020,#10101000 60%,#10101044)}
+body:not(.admin-dashboard) .progress{display:none}
+body:not(.admin-dashboard) .panel{grid-column:2;grid-row:1 / span 2;padding:clamp(20px,2.2vw,32px);border-radius:18px;border-color:#46413c;background:linear-gradient(145deg,#22201e,#151515 65%);min-width:0}
+body:not(.admin-dashboard) .panel-heading h2{font-size:clamp(24px,2.5vw,34px)}
+body:not(.admin-dashboard) .panel-heading .muted{font-size:12px;margin:5px 0 0}
+body:not(.admin-dashboard) #step-content .entry-choice{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:20px}
+body:not(.admin-dashboard) #step-content .entry-choice .btn{min-height:112px;white-space:normal;font:700 clamp(13px,1.25vw,17px) Oswald,sans-serif;letter-spacing:.7px;padding:18px 12px;border-radius:13px;box-shadow:0 8px 22px #0005}
+body:not(.admin-dashboard) #step-content .entry-choice .btn-primary:before{content:"＋";display:block;font:400 30px 'DM Sans',sans-serif;margin-bottom:7px}
+body:not(.admin-dashboard) #step-content .entry-choice .btn-secondary:before{content:"✓";display:block;font:400 30px 'DM Sans',sans-serif;color:var(--orange);margin-bottom:7px}
+body:not(.admin-dashboard) #step-content #app-message{font-size:11px;margin:10px 0 0}
+body:not(.admin-dashboard) .notice{font-size:10px;margin-top:12px;padding:9px 11px}
+body:not(.admin-dashboard) .actions{margin-top:12px}
+body:not(.admin-dashboard) .photo-marquee{grid-column:1;grid-row:2;overflow:hidden;height:clamp(86px,11vh,112px);border-radius:13px;position:relative;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+body:not(.admin-dashboard) .photo-track{height:100%;width:max-content;display:flex;gap:10px;animation:lacorte-marquee 34s linear infinite}
+body:not(.admin-dashboard) .photo-track img{width:clamp(130px,15vw,210px);height:100%;object-fit:cover;border-radius:10px;filter:saturate(.72) contrast(1.05);border:1px solid #ffffff18}
+@keyframes lacorte-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+body:not(.admin-dashboard) .experience-showcase{grid-column:1 / -1;grid-row:3;display:grid;grid-template-columns:minmax(230px,.7fr) minmax(0,1.3fr);gap:16px;margin:0}
+body:not(.admin-dashboard) .connection-card{padding:10px 14px;min-height:88px;display:flex;align-items:center;gap:14px;border:1px solid #3b3936;border-radius:13px;background:#191817}
+body:not(.admin-dashboard) .wifi-qr-frame{padding:5px;background:white;border-radius:7px;flex:0 0 auto}
+body:not(.admin-dashboard) #wifi-qr canvas,body:not(.admin-dashboard) #wifi-qr img{width:66px!important;height:66px!important}
+body:not(.admin-dashboard) .connection-copy{display:grid;gap:4px}
+body:not(.admin-dashboard) .connection-kicker,.membership-kicker{font-size:9px;letter-spacing:1.8px;color:var(--orange);font-weight:700}
+body:not(.admin-dashboard) .connection-copy strong{font:600 18px Oswald,sans-serif}
+body:not(.admin-dashboard) .connection-copy small{font-size:10px;color:#aaa}
+body:not(.admin-dashboard) .showcase-side{display:grid;grid-template-columns:.8fr 1.2fr;gap:12px;min-width:0}
+body:not(.admin-dashboard) .membership-highlight{padding:12px 16px;border-radius:13px;background:linear-gradient(120deg,#2b1c12,#1b1714);border:1px solid #69401f;display:flex;flex-direction:column;justify-content:center}
+body:not(.admin-dashboard) .membership-highlight h2{font:600 21px Oswald,sans-serif;margin:4px 0}
+body:not(.admin-dashboard) .membership-highlight p{font-size:11px;margin:0;color:#ccc}
+body:not(.admin-dashboard) .membership-highlight p strong{font-size:16px;color:var(--orange)}
+body:not(.admin-dashboard) .contact-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+body:not(.admin-dashboard) .contact-strip>div,body:not(.admin-dashboard) .contact-strip>a{min-width:0;padding:10px;border:1px solid #383532;border-radius:11px;background:#191817;display:flex;flex-direction:column;justify-content:center;gap:4px;text-decoration:none;color:#fff}
+body:not(.admin-dashboard) .contact-strip>div>span,body:not(.admin-dashboard) .contact-strip>a>span:first-child{font-size:8px;letter-spacing:1px;color:#aaa}
+body:not(.admin-dashboard) .contact-strip strong{font-size:10px;overflow-wrap:anywhere}
+body:not(.admin-dashboard) .contact-strip b{font-size:11px;color:var(--orange)}
+body:not(.admin-dashboard) .contact-qr{display:none}
+body:not(.admin-dashboard) .site-footer{grid-column:1/-1;grid-row:4;padding:8px 0 0;margin:0;border-top:1px solid #302e2b;display:flex;align-items:center;justify-content:space-between;gap:12px}
+body:not(.admin-dashboard) .footer-brand{font:700 15px Oswald,sans-serif}
+body:not(.admin-dashboard) .footer-brand span{font:700 8px 'DM Sans',sans-serif;letter-spacing:1.5px}
+body:not(.admin-dashboard) .site-footer>p{font:11px 'DM Sans',sans-serif;color:#888;margin:0}
+body:not(.admin-dashboard) .footer-meta{display:flex;gap:16px;align-items:center;font:10px 'DM Sans',sans-serif;color:#777}
+body:not(.admin-dashboard) .staff-portal-entry{color:#aaa}
+@media (min-width:900px) and (orientation:landscape) and (min-height:620px){
+ body:not(.admin-dashboard){height:100vh;overflow:hidden}
+ body:not(.admin-dashboard) .shell{height:calc(100vh - 68px);grid-template-rows:minmax(190px,1fr) auto auto auto}
+ body:not(.admin-dashboard) .panel{align-self:stretch;display:flex;flex-direction:column;justify-content:center}
+}
+@media (max-width:899px){
+ body:not(.admin-dashboard) .shell{width:calc(100% - 32px);display:flex;flex-direction:column;align-items:stretch;padding-top:18px}
+ body:not(.admin-dashboard) .hero{display:grid;grid-template-columns:1fr .7fr}
+ body:not(.admin-dashboard) .hero h1{font-size:clamp(36px,7vw,56px)}
+ body:not(.admin-dashboard) .panel{width:100%}
+ body:not(.admin-dashboard) .photo-marquee{width:100%}
+ body:not(.admin-dashboard) .experience-showcase{grid-template-columns:1fr}
+ body:not(.admin-dashboard) .showcase-side{grid-template-columns:1fr 1.3fr}
+ body:not(.admin-dashboard) .site-footer{flex-wrap:wrap}
+}
+@media (max-width:560px){
+ body:not(.admin-dashboard) .topbar{height:58px;padding:0 16px}
+ body:not(.admin-dashboard) .brand{font-size:23px}
+ body:not(.admin-dashboard) .brand-croc{width:42px}
+ body:not(.admin-dashboard) .hero{grid-template-columns:1fr}
+ body:not(.admin-dashboard) .hero-motion{display:none}
+ body:not(.admin-dashboard) .hero h1{font-size:43px}
+ body:not(.admin-dashboard) #step-content .entry-choice{grid-template-columns:1fr}
+ body:not(.admin-dashboard) #step-content .entry-choice .btn{min-height:76px}
+ body:not(.admin-dashboard) #step-content .entry-choice .btn:before{display:inline-block;margin:0 10px 0 0;font-size:22px;vertical-align:middle}
+ body:not(.admin-dashboard) .showcase-side{grid-template-columns:1fr}
+ body:not(.admin-dashboard) .contact-strip{grid-template-columns:repeat(2,1fr)}
+ body:not(.admin-dashboard) .site-footer{align-items:flex-start}
+ body:not(.admin-dashboard) .site-footer>p{display:none}
+}
