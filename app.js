@@ -1902,7 +1902,7 @@ async function renderAdminOverview(){
     const waiting=rows.filter(r=>r.status==="waiting");
     const inProgress=rows.filter(r=>r.status==="in_progress");
     const completedToday=rows.filter(r=>r.status==="completed");
-    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress").slice(0,8);
+    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress");
     const queueHtml=visible.length?visible.map(function(row){
       const customer=row.customer||{};
       const name=((customer.first_name||"")+" "+(customer.last_name||"")).trim()||"Cliente";
