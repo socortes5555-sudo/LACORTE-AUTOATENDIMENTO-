@@ -10,10 +10,10 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 test("a página inicial carrega os arquivos essenciais e a marca", () => {
   const html = read("index.html");
   assert.ok(existsSync(join(root, "app.js")));
-  assert.ok(existsSync(join(root, "styles.css")));
+  assert.ok(existsSync(join(root, "customer.css")));
   assert.ok(existsSync(join(root, "assets/lacorte-logo.svg")));
   assert.match(html, /src=["']app\.js\?v=/);
-  assert.match(html, /href=["']styles\.css\?v=/);
+  assert.match(html, /href=["']customer\.css\?v=/);
   assert.match(html, /assets\/lacorte-logo\.svg/);
 });
 
@@ -66,7 +66,7 @@ test("o código enviado ao navegador não contém chave privilegiada do Supabase
 
 test("a interface mantém recursos responsivos e os contatos oficiais", () => {
   const html = read("index.html");
-  const css = read("styles.css") + "\n" + read("customer-layout.css");
+  const css = read("customer.css");
   assert.match(html, /@la_corte_oficial/);
   assert.match(html, /\(48\) 99942-6466/);
   assert.match(css, /@media/);
