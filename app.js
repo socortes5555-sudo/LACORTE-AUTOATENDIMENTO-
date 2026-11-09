@@ -145,7 +145,7 @@ function render(){
 function renderLogin(){
   state.step=1;
   setHeader("AUTOATENDIMENTO LACORTE","Bem-vindo à LaCorte","Cadastre-se uma única vez ou localize seu cadastro.");
-  content.innerHTML = '<div class="entry-choice" id="entry-choice-options"><button class="btn btn-primary" id="start-registration" type="button">NOVO CADASTRO</button><button class="btn btn-secondary" id="start-returning" type="button">JÁ TENHO CADASTRO</button></div><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p>';
+  content.innerHTML = '<div class="entry-choice" id="entry-choice-options"><button class="btn btn-primary" id="start-registration" type="button"><span class="choice-title">NOVO <em>CADASTRO</em></span><span class="choice-desc">Cadastre-se para acessar nossa fila e aproveitar nossos serviços.</span></button><button class="btn btn-secondary" id="start-returning" type="button"><span class="choice-title">JÁ TENHO <em>CADASTRO</em></span><span class="choice-desc">Acesse seu cadastro rapidamente.</span></button></div><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p>';
   actions.replaceChildren();
   document.querySelector("#start-registration").addEventListener("click",renderProfile);
   document.querySelector("#start-returning").addEventListener("click",renderReturningCustomerLookup);
