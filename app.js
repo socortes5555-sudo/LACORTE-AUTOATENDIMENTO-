@@ -43,7 +43,7 @@ const actions = document.querySelector("#step-actions");
 const notice = document.querySelector("#demo-notice");
 
 let customerAutoLogoutTimer = null;
-const CUSTOMER_AUTO_LOGOUT_MS = 5 * 1000;
+const CUSTOMER_AUTO_LOGOUT_MS = 10 * 1000;
 
 function clearCustomerAutoLogout(){
   if(customerAutoLogoutTimer !== null){
@@ -750,11 +750,27 @@ function renderQueueSuccess(){
   notice.textContent="Aguarde ser chamado por um dos profissionais.";
   const ticket=state.queueTicket;
   content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
-  actions.replaceChildren(makeButton("FINALIZAR",function(){
+  function returnCustomerKioskToHome(){
     clearCustomerAutoLogout();
-    state.customer=null;state.lookupToken=null;state.selectedServices=[];state.customerPlan=null;state.customerPlanBenefits=[];state.queueTicket=null;state.step=1;state.message="";state.submitting=false;
-    setAppMode(false);renderLogin();
-  },true));
+    state.customer=null;
+    state.lookupToken=null;
+    state.selectedServices=[];
+    state.customerPlan=null;
+    state.customerPlanBenefits=[];
+    state.queueTicket=null;
+    state.step=1;
+    state.message="";
+    state.submitting=false;
+    state.role="customer";
+    setAppMode(false);
+    renderLogin();
+  }
+
+  actions.replaceChildren(makeButton("FINALIZAR",returnCustomerKioskToHome,true));
+
+  // Após confirmar a entrada, libera o totem automaticamente para o próximo cliente.
+  clearCustomerAutoLogout();
+  customerAutoLogoutTimer = setTimeout(returnCustomerKioskToHome,CUSTOMER_AUTO_LOGOUT_MS);
 }
 
 // Calcula a prévia do benefício. O banco continua sendo a autoridade final
