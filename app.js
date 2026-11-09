@@ -1122,10 +1122,10 @@ async function renderBarberReports(){
  const opts=['today','week','fortnight','month'].map(k=>'<option value="'+k+'" '+(adminReportFilters.period===k?'selected':'')+'>'+({today:'Hoje',week:'Semana',fortnight:'Quinzena',month:'Mês'}[k])+'</option>').join('');
  let html='<section class="summary"><label for="barber-report-period">PERÍODO</label><select id="barber-report-period">'+opts+'</select><div class="report-kpis"><article class="summary"><span>Atendimentos</span><strong>'+done.length+'</strong></article><article class="summary"><span>Faturamento bruto</span><strong>'+money(gross)+'</strong></article><article class="summary"><span>Descontos</span><strong>'+money(discounts)+'</strong></article><article class="summary"><span>Faturamento líquido</span><strong>'+money(revenue)+'</strong></article><article class="summary"><span>Minha comissão</span><strong>'+money(commission)+'</strong></article><article class="summary"><span>Saldo da barbearia</span><strong>'+money(revenue-commission)+'</strong></article></div></section><section class="summary"><h3>VALORES POR FORMA DE PAGAMENTO</h3>';
  Object.keys(payments).forEach(k=>{html+='<div class="summary-row"><span>'+labels[k]+'</span><strong>'+money(payments[k])+'</strong></div>';});html+='</section><section class="summary"><h3>ATENDIMENTOS CONCLUÍDOS</h3>';
- if(done.length){html+='<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Serviços</th><th>Desconto</th><th>Total</th><th>Pagamento</th><th>Comissão</th></tr></thead><tbody>';done.slice().sort((a,b)=>String(b.completed_at).localeCompare(String(a.completed_at))).forEach(x=>{html+='<tr><td>#'+x.queue_number+'</td><td>'+safe(customerNames[x.customer_id]||'Cliente')+'</td><td>'+safe((serviceNames[x.id]||[]).join(', ')||'—')+'</td><td>'+money(Number(x.discount_amount||0))+'</td><td>'+money(Number(x.total_amount))+'</td><td>'+safe(paymentText(x))+'</td><td>'+money(Number(x.commission_amount))+'</td></tr>';});html+='</tbody></table></div>';}else html+='<p class="muted">Nenhum atendimento concluído neste período.</p>';html+='</section>';content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+html;
+ if(done.length){html+='<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Serviços</th><th>Desconto</th><th>Total</th><th>Pagamento</th><th>Comissão</th></tr></thead><tbody>';done.slice().sort((a,b)=>String(b.completed_at).localeCompare(String(a.completed_at))).forEach(x=>{html+='<tr><td>#'+x.queue_number+'</td><td>'+safe(customerNames[x.customer_id]||'Cliente')+'</td><td>'+safe((serviceNames[x.id]||[]).join(', ')||'—')+'</td><td>'+money(Number(x.discount_amount||0))+'</td><td>'+money(Number(x.total_amount))+'</td><td>'+safe(paymentText(x))+'</td><td>'+money(Number(x.commission_amount))+'</td></tr>';});html+='</tbody></table></div>';}else html+='<p class="muted">Nenhum atendimento concluído neste período.</p>';html+='</section>';content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+(state.role==='admin'?'':'<main class="professional-main">')+html+(state.role==='admin'?'':'</main>');
  if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();
  content.querySelector('#barber-report-period').addEventListener('change',function(){adminReportFilters.period=this.value;renderBarberReports();});
- }catch(error){content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();}
+ }catch(error){content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+(state.role==='admin'?'':'<main class="professional-main">')+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>'+(state.role==='admin'?'':'</main>');if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();}
 }
 async function renderAdminReports(view="reports"){
   if(state.role !== "admin") return renderQueueDashboard();
@@ -1849,14 +1849,15 @@ function lcAdminIcon(name){
 }
 
 function lcAdminSidebar(){
+  const activeView=adminView==="plans"?"manage":adminView;
   const item=function(view,label,icon){
-    return '<button type="button" class="lc-admin-nav-item '+(adminView===view?'active':'')+'" data-admin-view="'+view+'">'+lcAdminIcon(icon)+'<span>'+label+'</span></button>';
+    return '<button type="button" class="lc-admin-nav-item '+(activeView===view?'active':'')+'" data-admin-view="'+view+'" '+(activeView===view?'aria-current="page"':'')+'>'+lcAdminIcon(icon)+'<span>'+label+'</span></button>';
   };
   return '<aside class="lc-admin-sidebar">'+
     '<div class="lc-admin-brand"><span class="lc-admin-brand-mark">LC</span><span><strong>LaCorte</strong><small>BARBEARIA</small></span></div>'+
     '<div class="lc-admin-nav-caption">MENU PRINCIPAL</div><nav class="lc-admin-nav" aria-label="Menu administrativo">'+
     item("queue","Painel Geral","overview")+item("history","Histórico","history")+item("manage","Gestão","management")+
-    item("customers","Clientes","clients")+item("services","Serviços","services")+item("plans","Planos","plans")+item("reports","Relatórios","reports")+
+    item("customers","Clientes","clients")+item("services","Serviços","services")+item("reports","Relatórios","reports")+
     '</nav><div class="lc-admin-sidebar-bottom"><div class="lc-admin-system"><i></i><span>Sistema operacional</span></div>'+
     '<button type="button" class="lc-admin-bottom-link" data-admin-support>'+lcAdminIcon("support")+'<span>Suporte</span></button>'+
     '<button type="button" class="lc-admin-bottom-link" data-admin-logout>'+lcAdminIcon("logout")+'<span>Sair</span></button>'+
@@ -1886,84 +1887,51 @@ async function renderAdminOverview(){
   adminView="queue";
   setAppMode(true);
   updateProgress();
-  setHeader("ADMINISTRAÇÃO LACORTE","Painel Geral","Resumo da operação, faturamento e atendimentos.");
+  setHeader("ADMINISTRAÇÃO LACORTE","Painel Geral","Resumo da operação e da fila compartilhada.");
   notice.textContent="Visão administrativa • Dados carregados do Supabase.";
-  dashboardActions();
   content.innerHTML='<div class="lc-admin-loading">Carregando painel administrativo...</div>';
   try{
     const today=localQueueDate();
-    const monthStart=today.slice(0,7)+"-01";
     const nextDay=reportShiftDate(today,1);
     const startIso=today+"T00:00:00-03:00";
     const nextIso=nextDay+"T00:00:00-03:00";
     const results=await Promise.all([
       loadQueueRows(),
-      db.from("lacorte_queue").select("id,barber_id,status,total_amount,queue_date").gte("queue_date",monthStart).lte("queue_date",today).order("queue_date",{ascending:true}),
       db.from("customers").select("id,created_at").gte("created_at",startIso).lt("created_at",nextIso),
       db.from("barbers").select("id,name,active").order("name")
     ]);
     const rows=results[0]||[];
-    if(results[1].error) throw new Error("Faturamento: "+results[1].error.message);
-    if(results[2].error) throw new Error("Novos clientes: "+results[2].error.message);
-    if(results[3].error) throw new Error("Equipe: "+results[3].error.message);
-    const monthRows=results[1].data||[];
+    if(results[1].error) throw new Error("Novos clientes: "+results[1].error.message);
+    if(results[2].error) throw new Error("Equipe: "+results[2].error.message);
     const completedToday=rows.filter(r=>r.status==="completed");
     const revenueToday=completedToday.reduce((sum,r)=>sum+Number(r.total_amount||0),0);
     const waiting=rows.filter(r=>r.status==="waiting");
-    const daily={};
-    for(let d=monthStart;d<=today;d=reportShiftDate(d,1)) daily[d]=0;
-    monthRows.filter(r=>r.status==="completed").forEach(function(r){daily[r.queue_date]=(daily[r.queue_date]||0)+Number(r.total_amount||0);});
-    const chartValues=Object.keys(daily).sort().map(k=>daily[k]);
-    const monthRevenue=monthRows.filter(r=>r.status==="completed").reduce((sum,r)=>sum+Number(r.total_amount||0),0);
-    const barbers=results[3].data||[];
-    const performance=barbers.map(function(b){
-      const count=completedToday.filter(r=>r.barber_id===b.id).length;
-      return {id:b.id,name:b.name,count:count};
-    });
-    const maxPerformance=Math.max(1,...performance.map(x=>x.count));
-    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress").slice(0,5);
+    const barbers=results[2].data||[];
+    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress").slice(0,6);
     const queueHtml=visible.length?visible.map(function(row){
       const customer=row.customer||{};
       const name=((customer.first_name||"Cliente")+" "+(customer.last_name||"")).trim();
       const barber=barbers.find(b=>b.id===row.barber_id);
       const service=(row.items||[]).map(i=>safe(i.service_name)).join(" & ")||"Serviço não informado";
-      const status=row.status==="in_progress"?"Em Atendimento":"Aguardando";
+      const status=row.status==="in_progress"?"Em atendimento":"Aguardando";
       const time=new Date(row.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"});
       const canStart=row.status==="waiting"&&!row.barber_id;
       const canFinish=row.status==="in_progress"&&row.barber_id===state.barberId;
-      return '<article class="lc-queue-row"><div class="lc-queue-time">'+time+'</div><div class="lc-queue-client"><strong>'+safe(name)+'</strong><small>'+service+' · '+safe(barber?barber.name:"Fila compartilhada")+'</small></div><span class="lc-queue-status '+(row.status==="in_progress"?"is-progress":"is-waiting")+'">'+status+'</span><div class="lc-queue-actions">'+(canStart?'<button type="button" data-start="'+safe(row.id)+'">Chamar</button>':'')+(canFinish?'<button type="button" data-finish="'+safe(row.id)+'">Finalizar</button>':'')+(row.status==="waiting"?'<button type="button" data-cancel="'+safe(row.id)+'" aria-label="Cancelar atendimento">×</button>':'')+'</div></article>';
+      return '<article class="lc-queue-row"><div class="lc-queue-time">'+time+'</div><div class="lc-queue-client"><strong>'+safe(name)+'</strong><small>'+service+' · '+safe(barber?barber.name:(row.barber_id?"Profissional responsável":"Fila compartilhada"))+'</small></div><span class="lc-queue-status '+(row.status==="in_progress"?"is-progress":"is-waiting")+'">'+status+'</span><div class="lc-queue-actions">'+(canStart?'<button type="button" data-start="'+safe(row.id)+'">Chamar</button>':'')+(canFinish?'<button type="button" data-finish="'+safe(row.id)+'">Finalizar</button>':'')+(row.status==="waiting"?'<button type="button" data-cancel="'+safe(row.id)+'" aria-label="Cancelar atendimento">Cancelar</button>':'')+'</div></article>';
     }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
-    const teamHtml=performance.map(function(person){
-      const pct=Math.round((person.count/maxPerformance)*100);
-      return '<div class="lc-team-row"><div class="lc-team-meta"><strong>'+safe(person.name)+'</strong><span>'+person.count+' atendimento(s)</span></div><div class="lc-team-track"><i style="width:'+pct+'%"></i></div></div>';
-    }).join("");
-    const monthLabels=Object.keys(daily).sort();
-    const labels=monthLabels.length?'<div class="lc-chart-labels"><span>'+monthLabels[0].slice(8,10)+'/'+monthLabels[0].slice(5,7)+'</span><span>'+monthLabels[Math.floor((monthLabels.length-1)/2)].slice(8,10)+'/'+monthLabels[Math.floor((monthLabels.length-1)/2)].slice(5,7)+'</span><span>'+monthLabels[monthLabels.length-1].slice(8,10)+'/'+monthLabels[monthLabels.length-1].slice(5,7)+'</span></div>':'';
-    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<div class="lc-admin-main">'+
+    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<main class="lc-admin-main">'+
       '<header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração <b>›</b> Painel Geral</span><h1>Painel Geral</h1></div>'+
-      '<div class="lc-admin-header-tools"><label class="lc-admin-search">'+lcAdminIcon("search")+'<input type="search" id="lc-queue-search" placeholder="Buscar cliente..."></label>'+
-      '<button class="lc-admin-icon-btn" type="button" aria-label="Notificações">'+lcAdminIcon("bell")+'<i></i></button><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span></div></header>'+
-      '<div class="lc-admin-welcome"><div><span>VISÃO GERAL DA BARBEARIA</span><h2>Olá, Barbeiro 1!</h2><p>Acompanhe o movimento e os resultados da LaCorte.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></div>'+
+      '<div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair">'+lcAdminIcon("logout")+'</button></div></header>'+
+      '<section class="lc-admin-summary-head"><div><span>RESUMO DO DIA</span><p>Indicadores da operação e situação atual da fila.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></section>'+
       '<section class="lc-metric-grid">'+
-      '<article class="lc-metric-card"><div><span>FATURAMENTO HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+money(revenueToday)+'</strong><small>Atendimentos concluídos hoje</small></article>'+
-      '<article class="lc-metric-card"><div><span>ATENDIMENTOS HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("calendar")+'</b></div><strong>'+rows.length+'</strong><small>'+waiting.length+' aguardando na fila</small></article>'+
-      '<article class="lc-metric-card"><div><span>NOVOS CLIENTES</span><b class="lc-metric-icon">'+lcAdminIcon("clients")+'</b></div><strong>'+results[2].data.length+'</strong><small>Cadastros realizados hoje</small></article>'+
-      '<article class="lc-metric-card"><div><span>FILA DE ESPERA</span><b class="lc-metric-icon">'+lcAdminIcon("history")+'</b></div><strong>'+waiting.length+' pessoa(s)</strong><small>Clientes aguardando agora</small></article></section>'+
-      '<section class="lc-admin-middle"><article class="lc-admin-card lc-revenue-card"><div class="lc-card-heading"><div><h3>Faturamento do mês</h3><p>Receita de atendimentos concluídos</p></div><strong>'+money(monthRevenue)+'</strong></div><div class="lc-chart-wrap">'+lcAdminRevenueChart(chartValues)+'</div>'+labels+'</article>'+
-      '<article class="lc-admin-card lc-queue-card"><div class="lc-card-heading"><div><h3>Fila em tempo real</h3><p>Clientes aguardando e em atendimento</p></div><button type="button" class="lc-text-action" data-refresh-admin>Atualizar</button></div><div class="lc-queue-list">'+queueHtml+'</div><button type="button" class="lc-view-all" data-admin-view="history">Ver histórico completo <span>→</span></button></article></section>'+
-      '<section class="lc-admin-bottom"><article class="lc-admin-card"><div class="lc-card-heading"><div><h3>Equipe & Desempenho</h3><p>Atendimentos concluídos hoje</p></div></div><div class="lc-team-list">'+(teamHtml||'<p class="lc-empty-queue">Nenhum barbeiro cadastrado.</p>')+'</div></article>'+
-      '<article class="lc-admin-card"><div class="lc-card-heading"><div><h3>Acesso rápido</h3><p>Atalhos administrativos</p></div></div><div class="lc-quick-grid">'+
-      '<button type="button" class="lc-quick-primary" data-admin-view="queue">'+lcAdminIcon("overview")+'<span><strong>Fila atual</strong><small>Acompanhar atendimentos</small></span></button>'+
-      '<button type="button" data-admin-view="customers">'+lcAdminIcon("clients")+'<span><strong>Clientes cadastrados</strong><small>Gerenciar clientela</small></span></button>'+
-      '<button type="button" data-admin-view="reports">'+lcAdminIcon("reports")+'<span><strong>Relatórios do caixa</strong><small>Conferir valores</small></span></button>'+
-      '<button type="button" data-admin-view="manage">'+lcAdminIcon("settings")+'<span><strong>Configurações</strong><small>Equipe e serviços</small></span></button></div></article></section>'+
-      '<footer class="lc-admin-footer"><span>© LaCorte Barbearia · Todos os direitos reservados.</span><span>Painel administrativo</span></footer></div></div>';
+      '<article class="lc-metric-card"><div><span>FATURAMENTO HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+money(revenueToday)+'</strong><small>Somente atendimentos concluídos</small></article>'+
+      '<article class="lc-metric-card"><div><span>CONCLUÍDOS HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("calendar")+'</b></div><strong>'+completedToday.length+'</strong><small>Atendimentos finalizados</small></article>'+
+      '<article class="lc-metric-card"><div><span>NOVOS CLIENTES</span><b class="lc-metric-icon">'+lcAdminIcon("clients")+'</b></div><strong>'+(results[1].data||[]).length+'</strong><small>Cadastros realizados hoje</small></article>'+
+      '<article class="lc-metric-card"><div><span>AGUARDANDO</span><b class="lc-metric-icon">'+lcAdminIcon("history")+'</b></div><strong>'+waiting.length+'</strong><small>Fila compartilhada</small></article></section>'+
+      '<section class="lc-admin-middle lc-admin-queue-only"><article class="lc-admin-card lc-queue-card"><div class="lc-card-heading"><div><h3>Fila em tempo real</h3><p>Clientes aguardando e atendimentos em andamento</p></div><button type="button" class="lc-text-action" data-refresh-admin>Atualizar fila</button></div><div class="lc-queue-list">'+queueHtml+'</div><button type="button" class="lc-view-all" data-admin-view="history">Abrir histórico completo <span>→</span></button></article></section>'+
+      '<footer class="lc-admin-footer"><span>© LaCorte Barbearia</span><span>Painel exclusivo do proprietário</span></footer></main></div>';
     bindAdminNavigation();
-    const search=content.querySelector("#lc-queue-search");
-    if(search) search.addEventListener("input",function(){
-      const term=search.value.trim().toLocaleLowerCase("pt-BR");
-      content.querySelectorAll(".lc-queue-row").forEach(function(row){row.hidden=!row.textContent.toLocaleLowerCase("pt-BR").includes(term);});
-    });
+    lcBindAdminSidebarActions();
     const refresh=content.querySelector("[data-refresh-admin]");
     if(refresh) refresh.addEventListener("click",renderAdminOverview);
     content.querySelectorAll("[data-start]").forEach(b=>b.addEventListener("click",()=>openQueueCallDialog(b.dataset.start)));
@@ -1977,17 +1945,98 @@ async function renderAdminOverview(){
         else renderAdminOverview();
       });
     });
-    const logout=content.querySelector("[data-admin-logout]");
-    if(logout) logout.addEventListener("click",async function(){await db.auth.signOut();});
-    const support=content.querySelector("[data-admin-support]");
-    if(support) support.addEventListener("click",function(){alert("Para suporte, entre em contato com a equipe LaCorte.");});
   }catch(error){
-    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<div class="lc-admin-main"><section class="lc-admin-card"><h3>Não foi possível carregar o painel</h3><p>'+safe(error.message)+'</p><button type="button" data-refresh-admin class="lc-text-action">Tentar novamente</button></section></div></div>';
+    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<main class="lc-admin-main"><header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração</span><h1>Painel Geral</h1></div><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta">'+lcAdminIcon("logout")+'</button></header><section class="lc-admin-card"><h3>Não foi possível carregar o painel</h3><p>'+safe(error.message)+'</p><button type="button" data-refresh-admin class="lc-text-action">Tentar novamente</button></section></main></div>';
     bindAdminNavigation();
+    lcBindAdminSidebarActions();
     const retry=content.querySelector("[data-refresh-admin]");
     if(retry) retry.addEventListener("click",renderAdminOverview);
   }
 }
+
+function lcBindAdminSidebarActions(){
+  content.querySelectorAll("[data-admin-logout]").forEach(function(button){
+    if(button.dataset.lcAdminActionBound) return;
+    button.dataset.lcAdminActionBound="1";
+    button.addEventListener("click",async function(){await db.auth.signOut();});
+  });
+  content.querySelectorAll("[data-admin-support]").forEach(function(button){
+    if(button.dataset.lcAdminActionBound) return;
+    button.dataset.lcAdminActionBound="1";
+    button.addEventListener("click",function(){alert("Para suporte, entre em contato com a equipe LaCorte.");});
+  });
+}
+
+bindAdminNavigation = function(){
+  content.querySelectorAll("[data-admin-view]").forEach(function(button){
+    if(button.dataset.lcAdminNavigationBound) return;
+    button.dataset.lcAdminNavigationBound="1";
+    button.addEventListener("click",function(){
+      const view=button.dataset.adminView;
+      adminView=view;
+      if(view==="manage") renderAdminManagement();
+      else if(view==="history") renderAdminReports("history");
+      else if(view==="customers") renderAdminCustomers();
+      else if(view==="services") renderAdminManagement();
+      else if(view==="reports") renderAdminReports();
+      else renderAdminOverview();
+    });
+  });
+};
+
+function lcMountAdminWorkspace(){
+  if(state.role!=="admin"||!content) return;
+  const titleNode=document.querySelector("#step-title");
+  const title=titleNode&&titleNode.textContent.trim()?titleNode.textContent.trim():"Painel administrativo";
+  const oldNodes=Array.from(content.childNodes).filter(function(node){
+    return !(node.nodeType===1&&node.matches(".admin-nav"));
+  });
+  const appShell=document.createElement("div");
+  appShell.className="lc-admin-app";
+  const sidebarHolder=document.createElement("div");
+  sidebarHolder.innerHTML=lcAdminSidebar();
+  const main=document.createElement("main");
+  main.className="lc-admin-main";
+  const header=document.createElement("header");
+  header.className="lc-admin-header";
+  header.innerHTML='<div><span class="lc-admin-breadcrumb">Administração <b>›</b> '+safe(title)+'</span><h1>'+safe(title)+'</h1></div><div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair">'+lcAdminIcon("logout")+'</button></div>';
+  main.appendChild(header);
+  oldNodes.forEach(function(node){main.appendChild(node);});
+  if(adminView==="manage"){
+    const plansCard=document.createElement("section");
+    plansCard.className="summary lc-management-plans-link";
+    plansCard.innerHTML='<div><span class="eyebrow">SERVIÇOS RECORRENTES</span><h3>Planos e assinaturas</h3><p class="muted">Consulte os planos cadastrados e gerencie as assinaturas dos clientes.</p></div><button type="button" class="btn btn-secondary" data-open-admin-plans>GERENCIAR PLANOS</button>';
+    main.appendChild(plansCard);
+    plansCard.querySelector("[data-open-admin-plans]").addEventListener("click",function(){adminView="plans";renderAdminPlans();});
+  }
+  appShell.appendChild(sidebarHolder.firstElementChild);
+  appShell.appendChild(main);
+  content.replaceChildren(appShell);
+  bindAdminNavigation();
+  lcBindAdminSidebarActions();
+}
+
+const originalRenderAdminCustomers = renderAdminCustomers;
+renderAdminCustomers = async function(){
+  await originalRenderAdminCustomers();
+  lcMountAdminWorkspace();
+};
+const originalRenderAdminManagement = renderAdminManagement;
+renderAdminManagement = async function(){
+  await originalRenderAdminManagement();
+  lcMountAdminWorkspace();
+};
+const originalRenderAdminReports = renderAdminReports;
+renderAdminReports = async function(view="reports"){
+  await originalRenderAdminReports(view);
+  lcMountAdminWorkspace();
+};
+const originalRenderAdminPlans = renderAdminPlans;
+renderAdminPlans = async function(){
+  adminView="plans";
+  await originalRenderAdminPlans();
+  lcMountAdminWorkspace();
+};
 
 const originalRenderQueueDashboard = renderQueueDashboard;
 renderQueueDashboard = function(){
