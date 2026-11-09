@@ -5790,3 +5790,18 @@ body.professional-dashboard .professional-main{min-width:0;width:100%}
 
 body.professional-dashboard .professional-customer-card.done{border-left-color:#f97316!important}
 body.professional-dashboard .professional-customer-card.progress{border-left-color:#fb923c!important}
+
+
+/* Estados e hierarquia visual dos painéis: preto, grafite e laranja */
+body.admin-dashboard .panel-heading{display:none!important}
+body.admin-dashboard .admin-appointment.done{border-left-color:#f97316!important}
+body.admin-dashboard .admin-online-dot{background:#f97316!important;box-shadow:0 0 9px #f9731644!important}
+body.admin-dashboard .history-status.status-completed{background:#f9731618!important;color:#fb923c!important}
+body.admin-dashboard .history-status.status-in_progress{background:#30251f!important;color:#fb923c!important}
+body.admin-dashboard .history-status.status-cancelled{background:#292929!important;color:#aaa!important}
+body.admin-dashboard .manage-status.is-active{background:#f9731618!important;color:#fb923c!important}
+body.admin-dashboard .manage-status.is-inactive{background:#292929!important;color:#aaa!important}
+body.admin-dashboard .admin-status.done,
+body.admin-dashboard .badge{background:#f9731618!important;color:#fb923c!important}
+body.professional-dashboard .professional-customer-card.done{border-left-color:#f97316!important}
+body.professional-dashboard .professional-customer-card.progress{border-left-color:#fb923c!important}
