@@ -21,7 +21,7 @@ test("o totem oferece cadastro, retorno e revisão antes de entrar na fila", () 
   const html = read("index.html");
   const app = read("app.js");
   for (const id of ["step-content", "step-actions", "demo-notice"]) {
-    assert.match(html, new RegExp('id=["']' + id + '["']'));
+    assert.match(html, new RegExp(`id=[\"']${id}[\"']`));
   }
   for (const fn of [
     "renderLogin",
