@@ -4592,3 +4592,236 @@ body.staff-portal .brand-logo{width:158px;height:72px;max-height:none;object-fit
 .payment-split-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;margin:12px 0}
 #payment-balance{font-weight:700;margin:10px 0}
 @media(max-width:520px){.payment-split-fields{grid-template-columns:1fr}.payment-dialog{padding:18px}}
+
+
+/* =========================================================
+   LA CORTE — RESPONSIVIDADE POR DISPOSITIVO
+   Admin: desktop | Profissional: celular | Totem: tablet paisagem
+   ========================================================= */
+
+/* ADMINISTRADOR — layout de computador, navegação lateral fixa e área útil ampla */
+@media (min-width: 1024px){
+  html:has(body.admin-dashboard),body.admin-dashboard{min-width:1024px;overflow-x:hidden}
+  body.admin-dashboard .topbar{
+    height:68px!important;padding:0 34px!important;
+    position:sticky;top:0;z-index:50;
+  }
+  body.admin-dashboard .shell{
+    width:calc(100% - 64px)!important;max-width:none!important;
+    margin:0 auto!important;padding:26px 0 40px!important;
+  }
+  body.admin-dashboard .panel{width:100%!important;max-width:none!important}
+  body.admin-dashboard #step-content:has(>.admin-nav){
+    display:grid!important;
+    grid-template-columns:250px minmax(0,1fr)!important;
+    align-items:start!important;gap:26px!important;width:100%!important;
+  }
+  body.admin-dashboard #step-content>.admin-nav{
+    position:sticky!important;top:86px!important;
+    width:100%!important;min-width:0!important;min-height:calc(100vh - 112px)!important;
+    grid-column:1!important;grid-row:1 / span 40!important;
+    padding:20px 14px!important;gap:8px!important;
+  }
+  body.admin-dashboard #step-content>.admin-nav~*{
+    grid-column:2!important;min-width:0!important;width:100%!important;
+  }
+  body.admin-dashboard .admin-nav-item{min-height:46px!important;padding:12px 13px!important;font-size:13px!important}
+  body.admin-dashboard .admin-nav-icon{width:24px!important;font-size:18px!important}
+  body.admin-dashboard .admin-brand{padding:8px 9px 22px!important}
+  body.admin-dashboard .admin-brand-mark{width:44px!important;height:44px!important}
+  body.admin-dashboard .admin-brand strong{font-size:18px!important}
+  body.admin-dashboard .panel-heading{display:flex;align-items:center;justify-content:space-between;gap:24px}
+  body.admin-dashboard .panel-heading h2{font-size:clamp(28px,2.2vw,38px)!important;line-height:1.12}
+  body.admin-dashboard .admin-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+  body.admin-dashboard .admin-kpis article{min-width:0;min-height:128px;padding:18px!important}
+  body.admin-dashboard .admin-kpis article strong{font-size:clamp(25px,2vw,34px)!important}
+  body.admin-dashboard .admin-agenda-board{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  body.admin-dashboard .summary,body.admin-dashboard .admin-queue-card,
+  body.admin-dashboard .admin-calendar-panel{min-width:0}
+  body.admin-dashboard .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  body.admin-dashboard .report-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+/* PROFISSIONAL — celular como tela principal */
+body.professional-dashboard .staff-shell,
+body.staff-portal.professional-dashboard .staff-shell{
+  width:min(1480px,calc(100% - 48px))!important;
+  max-width:1480px!important;margin:0 auto!important;
+}
+body.professional-dashboard #step-content:has(.professional-nav){
+  width:100%!important;min-width:0!important;
+}
+body.professional-dashboard .professional-main{min-width:0!important;width:100%!important}
+body.professional-dashboard .professional-customer-card{
+  min-width:0!important;width:100%!important;
+  grid-template-columns:minmax(0,1fr) minmax(170px,220px)!important;
+  gap:0 18px!important;
+}
+body.professional-dashboard .professional-customer-card .summary-row{
+  grid-template-columns:minmax(82px,112px) minmax(0,1fr)!important;
+  min-width:0!important;
+}
+body.professional-dashboard .professional-customer-card .actions{
+  min-width:0!important;width:100%!important;padding-left:14px!important;
+}
+body.professional-dashboard .professional-customer-card .actions .btn{
+  width:100%!important;min-height:52px!important;white-space:normal!important;
+}
+@media(max-width:720px){
+  body.professional-dashboard .topbar{
+    height:60px!important;min-height:60px!important;padding:0 14px!important;
+  }
+  body.professional-dashboard .brand-logo{width:132px!important;height:52px!important}
+  body.professional-dashboard .top-label{font-size:9px!important;letter-spacing:1px!important}
+  body.professional-dashboard .staff-shell,
+  body.staff-portal.professional-dashboard .staff-shell{
+    width:100%!important;max-width:none!important;
+    margin:0!important;padding:12px 12px 28px!important;
+  }
+  body.professional-dashboard .panel{width:100%!important;max-width:none!important}
+  body.professional-dashboard #step-content:has(.professional-nav){
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:12px!important;width:100%!important;
+  }
+  body.professional-dashboard .professional-nav{
+    position:static!important;display:flex!important;flex-direction:column!important;
+    width:100%!important;min-width:0!important;min-height:0!important;
+    padding:10px!important;gap:8px!important;overflow:visible!important;
+  }
+  body.professional-dashboard .professional-nav-brand{
+    display:flex!important;align-items:center!important;gap:9px!important;
+    padding:2px 4px 9px!important;border:0!important;border-bottom:1px solid #303030!important;
+  }
+  body.professional-dashboard .professional-nav-items{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;width:100%!important;
+  }
+  body.professional-dashboard .professional-nav-item{
+    display:flex!important;justify-content:flex-start!important;
+    min-width:0!important;min-height:42px!important;width:100%!important;
+    padding:8px 10px!important;font-size:11px!important;
+  }
+  body.professional-dashboard .professional-main{
+    display:flex!important;flex-direction:column!important;gap:12px!important;
+    width:100%!important;min-width:0!important;
+  }
+  body.professional-dashboard .professional-main>.admin-kpis{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;width:100%!important;
+  }
+  body.professional-dashboard .professional-main>.admin-kpis article{
+    min-width:0!important;min-height:86px!important;padding:12px!important;
+  }
+  body.professional-dashboard .professional-main>.admin-kpis article>strong{font-size:25px!important}
+  body.professional-dashboard .professional-main>.admin-agenda-heading{
+    flex-wrap:wrap!important;gap:8px!important;
+  }
+  body.professional-dashboard .professional-main>.admin-agenda-heading h3{font-size:19px!important}
+  body.professional-dashboard .professional-customer-card{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    width:100%!important;min-width:0!important;padding:13px!important;gap:0!important;
+  }
+  body.professional-dashboard .professional-customer-card .summary-row{
+    display:grid!important;grid-template-columns:minmax(78px,30%) minmax(0,1fr)!important;
+    gap:8px!important;width:100%!important;padding:9px 0!important;
+    font-size:12px!important;overflow-wrap:anywhere!important;
+  }
+  body.professional-dashboard .professional-customer-card .summary-row:first-child{
+    display:flex!important;justify-content:space-between!important;align-items:center!important;
+    gap:8px!important;flex-wrap:wrap!important;
+  }
+  body.professional-dashboard .professional-customer-card .actions{
+    display:grid!important;grid-template-columns:1fr!important;
+    width:100%!important;min-width:0!important;margin:12px 0 0!important;
+    padding:12px 0 0!important;border:0!important;border-top:1px solid #303030!important;
+    gap:9px!important;
+  }
+  body.professional-dashboard .professional-customer-card .actions .btn{
+    width:100%!important;min-height:48px!important;padding:12px!important;
+    font-size:12px!important;letter-spacing:.5px!important;
+  }
+  body.professional-dashboard .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.professional-dashboard .report-table-wrap,
+  body.professional-dashboard .table-scroll{max-width:100%!important;overflow-x:auto!important}
+  body.professional-dashboard .report-table{min-width:680px!important}
+}
+@media(max-width:380px){
+  body.professional-dashboard .staff-shell{padding-left:8px!important;padding-right:8px!important}
+  body.professional-dashboard .professional-nav-items{grid-template-columns:1fr!important}
+  body.professional-dashboard .professional-customer-card .summary-row{font-size:11px!important}
+}
+
+/* CLIENTE / TOTEM — prioridade para tablet horizontal; adaptação também para celular e desktop */
+@media(min-width:761px) and (orientation:landscape){
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .topbar{
+    height:64px!important;min-height:64px!important;padding:5px 28px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .brand-logo{
+    width:170px!important;height:56px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) #entry-choice.shell{
+    display:grid!important;
+    grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr)!important;
+    grid-template-rows:minmax(0,1fr) auto!important;
+    align-items:center!important;gap:12px 28px!important;
+    width:min(1360px,calc(100% - 56px))!important;max-width:1360px!important;
+    height:calc(100dvh - 64px)!important;min-height:0!important;
+    margin:0 auto!important;padding:14px 0!important;overflow:hidden!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .hero.hero-home{
+    grid-column:1!important;grid-row:1!important;min-height:0!important;height:100%!important;
+    grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;gap:14px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .hero-motion{
+    height:clamp(190px,34vh,340px)!important;max-height:100%!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .hero-home h1{
+    font-size:clamp(38px,4.1vw,64px)!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .panel{
+    grid-column:2!important;grid-row:1!important;align-self:center!important;
+    width:100%!important;max-width:none!important;min-width:0!important;
+    margin:0!important;padding:clamp(16px,2vw,28px)!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .experience-showcase{
+    grid-column:1/-1!important;grid-row:2!important;
+    display:grid!important;grid-template-columns:minmax(190px,.7fr) minmax(0,1.3fr)!important;
+    grid-template-rows:auto!important;gap:10px!important;width:100%!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .experience-showcase>.connection-card{
+    min-height:86px!important;padding:9px 12px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .showcase-side{
+    grid-template-columns:minmax(160px,.75fr) minmax(0,1.25fr)!important;gap:10px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .membership-highlight{min-height:86px!important;padding:9px 12px!important}
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .membership-highlight h2{font-size:18px!important}
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .contact-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .contact-strip>div,
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .contact-strip>a{padding:8px!important}
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .site-footer{
+    grid-column:1/-1!important;grid-row:3!important;flex-direction:row!important;
+    align-items:center!important;padding:7px 0 0!important;margin:0!important;
+  }
+}
+@media(max-width:760px){
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .topbar{
+    height:60px!important;min-height:60px!important;padding:5px 14px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .brand-logo{
+    width:132px!important;height:48px!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) #entry-choice.shell{
+    width:calc(100% - 28px)!important;max-width:none!important;
+    display:flex!important;flex-direction:column!important;gap:12px!important;
+    height:auto!important;min-height:0!important;padding:12px 0 24px!important;overflow:visible!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .hero.hero-home{
+    display:flex!important;flex-direction:column!important;min-height:0!important;height:auto!important;
+  }
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .hero-motion{height:180px!important}
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .panel{width:100%!important;max-width:none!important}
+  body:not(.admin-dashboard):not(.professional-dashboard):not(.staff-portal) .experience-showcase{
+    display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto!important;
+  }
+}
