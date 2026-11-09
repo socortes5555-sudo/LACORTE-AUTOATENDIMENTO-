@@ -5440,3 +5440,32 @@ body:has(#entry-choice-options) .footer-meta{display:none!important}
   body:has(#entry-choice-options) .site-footer{min-height:44px!important}
   body:has(#entry-choice-options) #app-message{position:static!important;margin:8px 0!important}
 }
+
+/* Cinematic photo backdrop: barber scene left, tools/barbershop scene right. */
+body:has(#entry-choice-options) .hero-motion{
+  display:block!important;position:fixed!important;inset:0!important;z-index:-1!important;
+  width:100vw!important;height:100dvh!important;max-height:none!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  overflow:hidden!important;opacity:1!important;mask-image:none!important;
+  background:#050505!important;
+}
+body:has(#entry-choice-options) .hero-slide{
+  position:absolute!important;top:0!important;bottom:0!important;
+  display:block!important;width:50%!important;height:100%!important;
+  max-width:none!important;object-fit:cover!important;
+  filter:brightness(.48) saturate(.82) contrast(1.08)!important;
+  transform:none!important;animation:none!important;border-radius:0!important;
+}
+body:has(#entry-choice-options) .hero-slide.slide-a{
+  left:0!important;right:auto!important;object-position:43% center!important;
+}
+body:has(#entry-choice-options) .hero-slide.slide-b{
+  left:auto!important;right:0!important;object-position:58% center!important;
+}
+body:has(#entry-choice-options) .hero-image-shade{
+  position:absolute!important;inset:0!important;display:block!important;
+  background:
+    linear-gradient(90deg,#05050522 0%,#05050548 27%,#050505ed 43%,#050505ed 57%,#05050548 74%,#05050522 100%),
+    linear-gradient(180deg,#05050520 0%,#05050520 42%,#050505b8 72%,#050505f2 100%)!important;
+}
+body:has(#entry-choice-options) .topbar .brand{width:min(30vw,390px)!important}
