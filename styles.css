@@ -5805,3 +5805,88 @@ body.admin-dashboard .admin-status.done,
 body.admin-dashboard .badge{background:#f9731618!important;color:#fb923c!important}
 body.professional-dashboard .professional-customer-card.done{border-left-color:#f97316!important}
 body.professional-dashboard .professional-customer-card.progress{border-left-color:#fb923c!important}
+
+
+/* LaCorte — painel central alinhado à referência aprovada */
+body.admin-dashboard .lc-metric-grid-three{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.admin-dashboard .lc-admin-header-tools .lc-admin-icon-btn{
+  color:#fb923c;border-color:#3a3029;background:#191919;cursor:pointer
+}
+body.admin-dashboard .lc-admin-header-tools .lc-admin-icon-btn:hover{
+  color:#111;border-color:#f97316;background:#f97316
+}
+body.admin-dashboard .lc-queue-row{
+  display:grid;grid-template-columns:48px minmax(0,1fr);align-items:start;gap:12px;
+  min-width:0;padding:14px 0;border-bottom:1px solid #292929
+}
+body.admin-dashboard .lc-queue-row:last-child{border-bottom:0}
+body.admin-dashboard .lc-queue-ticket{
+  display:grid;place-items:center;min-height:42px;border:1px solid #49301f;border-radius:9px;
+  background:#241912;color:#fb923c;font:700 15px Oswald,sans-serif
+}
+body.admin-dashboard .lc-queue-details{display:grid;gap:9px;min-width:0}
+body.admin-dashboard .lc-queue-primary{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0
+}
+body.admin-dashboard .lc-queue-primary>strong{
+  min-width:0;overflow-wrap:anywhere;color:#f4f4f5;font-size:12px;font-weight:800
+}
+body.admin-dashboard .lc-queue-status{
+  flex:0 0 auto;padding:5px 8px;border-radius:30px;font-size:8px;font-weight:800;white-space:nowrap
+}
+body.admin-dashboard .lc-queue-status.is-progress{background:#30251f;color:#fb923c}
+body.admin-dashboard .lc-queue-status.is-waiting{background:#292929;color:#bdbdbd}
+body.admin-dashboard .lc-queue-meta{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;min-width:0
+}
+body.admin-dashboard .lc-queue-meta>span,
+body.admin-dashboard .lc-queue-bottom>span{
+  display:block;min-width:0;overflow-wrap:anywhere;color:#e2e2e2;font-size:10px;line-height:1.45
+}
+body.admin-dashboard .lc-queue-meta small,
+body.admin-dashboard .lc-queue-bottom small{
+  display:block;margin-bottom:3px;color:#777;font-size:8px;font-weight:800;letter-spacing:.8px
+}
+body.admin-dashboard .lc-queue-bottom{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0
+}
+body.admin-dashboard .lc-queue-actions{
+  display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0;margin:0
+}
+body.admin-dashboard .lc-queue-actions button{
+  min-height:32px;margin:0;padding:7px 10px;border:1px solid #3a3029;border-radius:7px;
+  background:#211912;color:#fb923c;font:800 9px 'DM Sans',sans-serif;cursor:pointer
+}
+body.admin-dashboard .lc-queue-actions button.is-primary{
+  border-color:#f97316;background:#f97316;color:#17110d
+}
+body.admin-dashboard .lc-queue-actions button.is-primary:hover{background:#ff9148}
+body.admin-dashboard .lc-queue-actions button.is-secondary{
+  border-color:#343434;background:#171717;color:#aaa
+}
+body.admin-dashboard .lc-queue-actions button:disabled{opacity:.55;cursor:wait}
+body.admin-dashboard .lc-queue-assigned{color:#929292;font-size:9px;font-weight:700}
+body.professional-dashboard .badge,
+body.professional-dashboard .admin-status.done{
+  background:#f9731618!important;color:#fb923c!important
+}
+body.professional-dashboard .admin-status.progress{
+  background:#30251f!important;color:#fb923c!important
+}
+body.professional-dashboard .admin-online-dot{background:#f97316!important;box-shadow:0 0 8px #f9731644!important}
+@media(max-width:760px){
+  body.admin-dashboard .lc-metric-grid-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  body.admin-dashboard .lc-queue-meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  body.admin-dashboard .lc-queue-bottom{align-items:flex-start;flex-direction:column}
+  body.admin-dashboard .lc-queue-actions{width:100%}
+}
+@media(max-width:420px){
+  body.admin-dashboard .lc-metric-grid-three{gap:6px}
+  body.admin-dashboard .lc-metric-card{padding:10px}
+  body.admin-dashboard .lc-metric-card>div>span{font-size:7px;letter-spacing:.2px}
+  body.admin-dashboard .lc-metric-card>strong{font-size:19px}
+  body.admin-dashboard .lc-queue-row{grid-template-columns:38px minmax(0,1fr);gap:9px}
+  body.admin-dashboard .lc-queue-primary{align-items:flex-start;flex-direction:column}
+  body.admin-dashboard .lc-queue-actions{display:grid;grid-template-columns:minmax(0,1fr) auto}
+  body.admin-dashboard .lc-queue-actions .is-primary{width:100%}
+}
