@@ -1,0 +1,32 @@
+name: CI - LaCorte
+
+on:
+  push:
+    branches:
+      - "automation/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validar aplicação e fluxos principais
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verificar sintaxe JavaScript
+        run: node --check app.js
+
+      - name: Executar testes de fumaça
+        run: node --test tests/*.test.mjs
