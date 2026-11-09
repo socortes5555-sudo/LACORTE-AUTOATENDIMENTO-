@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <title>LaCorte | Painel Administrativo</title>
-  <link rel="stylesheet" href="styles.css?v=20261109-dashboard-final2">
+  <link rel="stylesheet" href="styles.css?v=20261109-dashboard-final3">
   <style>
     body{margin:0;min-height:100vh;background:#101010;color:#f5f5f5;font-family:Arial,sans-serif}
     .topbar{height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;background:#151515;border-bottom:1px solid #333}
@@ -43,7 +43,7 @@
         try { await load("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"); }
         catch(firstError) { await load("https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"); }
         if(!window.supabase||!window.supabase.createClient) throw new Error("Biblioteca Supabase indisponível.");
-        await load("app.js?v=20261109-dashboard-final2");
+        await load("app.js?v=20261109-dashboard-final3");
         if(!window.__LACORTE_APP_STARTED__) {
           // app.js executa initLaCorte no carregamento; se houve erro global, o alerta abaixo informa.
           setTimeout(()=>{
