@@ -77,8 +77,8 @@
         </div>
         <div class="contact-strip">
           <div><span>HORÁRIO DE FUNCIONAMENTO</span><strong>Seg a Sáb</strong><b>08h às 22h</b></div>
-          <a href="https://instagram.com/la_corte_oficial" target="_blank" rel="noopener noreferrer"><span>INSTAGRAM</span><strong>@la_corte_oficial</strong></a>
-          <a href="https://wa.me/5548999426466" target="_blank" rel="noopener noreferrer"><span>FALE CONOSCO</span><strong>(48) 99942-6466</strong></a>
+          <a href="https://instagram.com/la_corte_oficial" target="_blank" rel="noopener noreferrer"><span>INSTAGRAM</span><span class="contact-qr" id="instagram-qr" aria-label="QR Code do Instagram LaCorte"></span><strong>@la_corte_oficial</strong></a>
+          <a href="https://wa.me/5548999426466" target="_blank" rel="noopener noreferrer"><span>WHATSAPP</span><span class="contact-qr" id="whatsapp-qr" aria-label="QR Code do WhatsApp LaCorte"></span><strong>(48) 99942-6466</strong></a>
         </div>
       </div>
     </section>
@@ -105,14 +105,14 @@
     window.addEventListener("load", function () {
       const target = document.getElementById("wifi-qr");
       if (!target || !window.QRCode) return;
-      new QRCode(target, {
-        text: "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;",
-        width: 256,
-        height: 256,
-        colorDark: "#111111",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      const makeQr = (id, value, size) => {
+        const node = document.getElementById(id);
+        if (!node) return;
+        new QRCode(node, { text:value, width:size, height:size, colorDark:"#111111", colorLight:"#ffffff", correctLevel:QRCode.CorrectLevel.H });
+      };
+      makeQr("wifi-qr", "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;", 256);
+      makeQr("instagram-qr", "https://instagram.com/la_corte_oficial", 96);
+      makeQr("whatsapp-qr", "https://wa.me/5548999426466", 96);
     });
   </script>
 </body>
