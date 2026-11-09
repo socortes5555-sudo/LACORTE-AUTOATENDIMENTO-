@@ -4582,3 +4582,13 @@ body.staff-portal .brand-logo{width:158px;height:72px;max-height:none;object-fit
  body:not(.admin-dashboard) .topbar{height:64px}
  body:not(.admin-dashboard) .brand-logo{width:140px;height:58px}
 }
+
+
+/* Finalização financeira: desconto e divisão entre formas de pagamento */
+.payment-dialog{width:min(560px,calc(100vw - 28px));max-height:min(88vh,820px);overflow:auto}
+.payment-dialog .summary-row{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid #38332f}
+.payment-dialog input[type="number"]{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border:1px solid #51463e;border-radius:8px;background:#111;color:#fff;font:600 16px 'DM Sans',sans-serif}
+.payment-dialog label{display:grid;gap:6px;margin:12px 0 6px;color:#ddd;font-size:13px;font-weight:600}
+.payment-split-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;margin:12px 0}
+#payment-balance{font-weight:700;margin:10px 0}
+@media(max-width:520px){.payment-split-fields{grid-template-columns:1fr}.payment-dialog{padding:18px}}
