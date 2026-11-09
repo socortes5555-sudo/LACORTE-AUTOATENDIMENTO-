@@ -653,10 +653,65 @@ function openQueueCallDialog(queueId){
  overlay.querySelector('[data-decline]').addEventListener('click',function(){overlay.remove();});
  overlay.querySelector('[data-accept]').addEventListener('click',async function(){this.disabled=true;const r=await db.rpc('lacorte_start_service',{p_queue_id:queueId});if(r.error){this.disabled=false;overlay.querySelector('#call-error').textContent='Não foi possível iniciar: '+r.error.message;return;}renderQueueDashboard();});
 }
-function openPaymentMethodDialog(queueId){
- const overlay=document.createElement('div');overlay.className='payment-dialog-backdrop';overlay.innerHTML='<section class="payment-dialog"><h3>FINALIZAR ATENDIMENTO</h3><p>Selecione como o cliente pagou.</p><label for="payment-method">Forma de pagamento</label><select id="payment-method"><option value="">Selecione</option><option value="pix">PIX</option><option value="dinheiro">Dinheiro</option><option value="credito">Crédito</option><option value="debito">Débito</option></select><div class="actions"><button class="btn btn-secondary" data-close>VOLTAR</button><button class="btn btn-primary" data-confirm>CONFIRMAR FINALIZAÇÃO</button></div><p class="muted" id="payment-error"></p></section>';content.append(overlay);
- overlay.querySelector('[data-close]').addEventListener('click',()=>overlay.remove());
- overlay.querySelector('[data-confirm]').addEventListener('click',async function(){const method=overlay.querySelector('#payment-method').value;if(!method){overlay.querySelector('#payment-error').textContent='Selecione uma forma de pagamento.';return;}this.disabled=true;const r=await db.rpc('lacorte_finish_service',{p_queue_id:queueId,p_payment_method:method});if(r.error){this.disabled=false;overlay.querySelector('#payment-error').textContent='Não foi possível finalizar: '+r.error.message;return;}renderQueueDashboard();});
+async function openPaymentMethodDialog(queueId){
+ const queueResult=await db.from("lacorte_queue").select("gross_amount,total_amount,discount_amount").eq("id",queueId).single();
+ if(queueResult.error){alert("Não foi possível carregar o valor do atendimento: "+queueResult.error.message);return;}
+ const queue=queueResult.data||{};
+ const gross=Number(queue.gross_amount ?? queue.total_amount ?? 0);
+ const previousDiscount=Number(queue.discount_amount||0);
+ const initialNet=Math.max(0,gross-previousDiscount);
+ const overlay=document.createElement("div");
+ overlay.className="payment-dialog-backdrop";
+ overlay.innerHTML='<section class="payment-dialog"><h3>FINALIZAR ATENDIMENTO</h3>'+
+  '<div class="summary-row"><span>Valor dos serviços</span><strong id="payment-gross">'+money(gross)+'</strong></div>'+
+  '<label for="payment-discount">Desconto (R$)</label><input id="payment-discount" type="number" min="0" max="'+gross.toFixed(2)+'" step="0.01" value="'+previousDiscount.toFixed(2)+'">'+
+  '<div class="summary-row"><span>Total a receber</span><strong id="payment-net">'+money(initialNet)+'</strong></div>'+
+  '<p class="muted">Informe quanto foi recebido em cada forma. Pode combinar PIX, dinheiro e cartões.</p>'+
+  '<div class="payment-split-fields">'+
+  '<label>PIX (R$)<input data-payment="pix" type="number" min="0" step="0.01" value="'+(initialNet>0?initialNet.toFixed(2):"")+'"></label>'+
+  '<label>Dinheiro (R$)<input data-payment="dinheiro" type="number" min="0" step="0.01"></label>'+
+  '<label>Crédito (R$)<input data-payment="credito" type="number" min="0" step="0.01"></label>'+
+  '<label>Débito (R$)<input data-payment="debito" type="number" min="0" step="0.01"></label></div>'+
+  '<div class="summary-row"><span>Total informado</span><strong id="payment-entered">'+money(initialNet)+'</strong></div>'+
+  '<p class="muted" id="payment-balance" aria-live="polite">Valores conferem.</p>'+
+  '<div class="actions"><button class="btn btn-secondary" data-close>VOLTAR</button><button class="btn btn-primary" data-confirm>CONFIRMAR FINALIZAÇÃO</button></div>'+
+  '<p class="muted" id="payment-error" role="alert"></p></section>';
+ content.append(overlay);
+ const discountInput=overlay.querySelector("#payment-discount");
+ const amountInputs=Array.from(overlay.querySelectorAll("[data-payment]"));
+ const confirmButton=overlay.querySelector("[data-confirm]");
+ function amounts(){
+  return amountInputs.map(input=>({method:input.dataset.payment,amount:Math.round((Number(input.value)||0)*100)/100})).filter(x=>x.amount>0);
+ }
+ function updatePaymentPreview(){
+  const discount=Math.round((Number(discountInput.value)||0)*100)/100;
+  const net=Math.max(0,Math.round((gross-discount)*100)/100);
+  const entered=Math.round(amounts().reduce((sum,x)=>sum+x.amount,0)*100)/100;
+  overlay.querySelector("#payment-net").textContent=money(net);
+  overlay.querySelector("#payment-entered").textContent=money(entered);
+  const balance=Math.round((net-entered)*100)/100;
+  const message=balance===0?"Valores conferem.":balance>0?"Falta receber "+money(balance):"Há "+money(Math.abs(balance))+" a mais que o total.";
+  overlay.querySelector("#payment-balance").textContent=message;
+  overlay.querySelector("#payment-balance").style.color=balance===0?"#8ed6a2":"#ff9b55";
+  confirmButton.disabled=balance!==0||discount<0||discount>gross;
+ }
+ discountInput.addEventListener("input",updatePaymentPreview);
+ amountInputs.forEach(input=>input.addEventListener("input",updatePaymentPreview));
+ overlay.querySelector("[data-close]").addEventListener("click",()=>overlay.remove());
+ confirmButton.addEventListener("click",async function(){
+  const discount=Math.round((Number(discountInput.value)||0)*100)/100;
+  const payments=amounts();
+  const net=Math.round((gross-discount)*100)/100;
+  const sum=Math.round(payments.reduce((total,p)=>total+p.amount,0)*100)/100;
+  if(discount<0||discount>gross||sum!==net){overlay.querySelector("#payment-error").textContent="Confira o desconto e a soma dos pagamentos.";return;}
+  if(net>0&&!payments.length){overlay.querySelector("#payment-error").textContent="Informe pelo menos uma forma de pagamento.";return;}
+  this.disabled=true;
+  const result=await db.rpc("lacorte_finish_service_with_payments",{p_queue_id:queueId,p_discount_amount:discount,p_payments:payments});
+  if(result.error){this.disabled=false;overlay.querySelector("#payment-error").textContent="Não foi possível finalizar: "+result.error.message;return;}
+  overlay.remove();
+  renderQueueDashboard();
+ });
+ updatePaymentPreview();
 }
 
 async function routeAuthenticatedUser(user){
@@ -1060,13 +1115,14 @@ function reportPieChart(items, valueFormatter, emptyMessage){
 
 async function renderBarberReports(){
  if(!(state.role==='barber' || (state.role==='admin' && state.barberId)))return renderQueueDashboard();professionalView='reports';setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();actions.prepend(makeButton("VOLTAR À FILA",renderQueueDashboard,true));content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
- try{const range=reportDateRange(),r=await db.from('lacorte_queue').select('id,customer_id,status,total_amount,commission_amount,payment_method,queue_date,completed_at,queue_number').eq('barber_id',state.barberId).gte('queue_date',range.start).lte('queue_date',range.end);if(r.error)throw r.error;
- const rows=r.data||[],done=rows.filter(x=>x.status==='completed');const ids=Array.from(new Set(done.map(x=>x.customer_id).filter(Boolean))),queueIds=done.map(x=>x.id);const extra=await Promise.all([ids.length?db.from('customers').select('id,first_name,last_name').in('id',ids):Promise.resolve({data:[],error:null}),queueIds.length?db.from('lacorte_queue_items').select('queue_id,service_name').in('queue_id',queueIds):Promise.resolve({data:[],error:null})]);if(extra[0].error)throw extra[0].error;if(extra[1].error)throw extra[1].error;const customerNames={},serviceNames={};(extra[0].data||[]).forEach(c=>customerNames[c.id]=(c.first_name+' '+c.last_name).trim());(extra[1].data||[]).forEach(i=>(serviceNames[i.queue_id]||(serviceNames[i.queue_id]=[])).push(i.service_name));const gross=done.reduce((s,x)=>s+Number(x.total_amount||0),0),commission=done.reduce((s,x)=>s+Number(x.commission_amount||0),0),payments={pix:0,dinheiro:0,credito:0,debito:0},labels={pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'};
- done.forEach(x=>{if(payments[x.payment_method]!==undefined)payments[x.payment_method]+=Number(x.total_amount||0);});
+ try{const range=reportDateRange(),r=await db.from('lacorte_queue').select('id,customer_id,status,total_amount,gross_amount,discount_amount,commission_amount,payment_method,queue_date,completed_at,queue_number').eq('barber_id',state.barberId).gte('queue_date',range.start).lte('queue_date',range.end);if(r.error)throw r.error;
+ const rows=r.data||[],done=rows.filter(x=>x.status==='completed');const ids=Array.from(new Set(done.map(x=>x.customer_id).filter(Boolean))),queueIds=done.map(x=>x.id);const extra=await Promise.all([ids.length?db.from('customers').select('id,first_name,last_name').in('id',ids):Promise.resolve({data:[],error:null}),queueIds.length?db.from('lacorte_queue_items').select('queue_id,service_name').in('queue_id',queueIds):Promise.resolve({data:[],error:null}),queueIds.length?db.from('lacorte_queue_payments').select('queue_id,payment_method,amount').in('queue_id',queueIds):Promise.resolve({data:[],error:null})]);if(extra.some(x=>x.error))throw extra.find(x=>x.error).error;const customerNames={},serviceNames={},paymentsByQueue={};(extra[0].data||[]).forEach(c=>customerNames[c.id]=(c.first_name+' '+c.last_name).trim());(extra[1].data||[]).forEach(i=>(serviceNames[i.queue_id]||(serviceNames[i.queue_id]=[])).push(i.service_name));(extra[2].data||[]).forEach(p=>(paymentsByQueue[p.queue_id]||(paymentsByQueue[p.queue_id]=[])).push(p));const gross=done.reduce((s,x)=>s+Number(x.gross_amount??x.total_amount??0),0),discounts=done.reduce((s,x)=>s+Number(x.discount_amount||0),0),revenue=done.reduce((s,x)=>s+Number(x.total_amount||0),0),commission=done.reduce((s,x)=>s+Number(x.commission_amount||0),0),payments={pix:0,dinheiro:0,credito:0,debito:0},labels={pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'};
+ done.forEach(x=>{const lines=paymentsByQueue[x.id]||[];if(lines.length)lines.forEach(p=>{if(payments[p.payment_method]!==undefined)payments[p.payment_method]+=Number(p.amount||0);});else if(payments[x.payment_method]!==undefined)payments[x.payment_method]+=Number(x.total_amount||0);});
+ const paymentText=x=>{const lines=paymentsByQueue[x.id]||[];return lines.length?lines.map(p=>labels[p.payment_method]+' '+money(Number(p.amount))).join(' + '):(labels[x.payment_method]||'—');};
  const opts=['today','week','fortnight','month'].map(k=>'<option value="'+k+'" '+(adminReportFilters.period===k?'selected':'')+'>'+({today:'Hoje',week:'Semana',fortnight:'Quinzena',month:'Mês'}[k])+'</option>').join('');
  let html='<section class="summary"><label for="barber-report-period">PERÍODO</label><select id="barber-report-period">'+opts+'</select><div class="report-kpis"><article class="summary"><span>Atendimentos</span><strong>'+done.length+'</strong></article><article class="summary"><span>Faturamento bruto</span><strong>'+money(gross)+'</strong></article><article class="summary"><span>Minha comissão</span><strong>'+money(commission)+'</strong></article><article class="summary"><span>Saldo da barbearia</span><strong>'+money(gross-commission)+'</strong></article></div></section><section class="summary"><h3>VALORES POR FORMA DE PAGAMENTO</h3>';
  Object.keys(payments).forEach(k=>{html+='<div class="summary-row"><span>'+labels[k]+'</span><strong>'+money(payments[k])+'</strong></div>';});html+='</section><section class="summary"><h3>ATENDIMENTOS CONCLUÍDOS</h3>';
- if(done.length){html+='<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Comissão</th></tr></thead><tbody>';done.slice().sort((a,b)=>String(b.completed_at).localeCompare(String(a.completed_at))).forEach(x=>{html+='<tr><td>#'+x.queue_number+'</td><td>'+safe(customerNames[x.customer_id]||'Cliente')+'</td><td>'+safe((serviceNames[x.id]||[]).join(', ')||'—')+'</td><td>'+money(Number(x.total_amount))+'</td><td>'+safe(labels[x.payment_method]||'—')+'</td><td>'+money(Number(x.commission_amount))+'</td></tr>';});html+='</tbody></table></div>';}else html+='<p class="muted">Nenhum atendimento concluído neste período.</p>';html+='</section>';content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+html;
+ if(done.length){html+='<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Serviços</th><th>Desconto</th><th>Total</th><th>Pagamento</th><th>Comissão</th></tr></thead><tbody>';done.slice().sort((a,b)=>String(b.completed_at).localeCompare(String(a.completed_at))).forEach(x=>{html+='<tr><td>#'+x.queue_number+'</td><td>'+safe(customerNames[x.customer_id]||'Cliente')+'</td><td>'+safe((serviceNames[x.id]||[]).join(', ')||'—')+'</td><td>'+money(Number(x.discount_amount||0))+'</td><td>'+money(Number(x.total_amount))+'</td><td>'+safe(paymentText(x))+'</td><td>'+money(Number(x.commission_amount))+'</td></tr>';});html+='</tbody></table></div>';}else html+='<p class="muted">Nenhum atendimento concluído neste período.</p>';html+='</section>';content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+html;
  if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();
  content.querySelector('#barber-report-period').addEventListener('change',function(){adminReportFilters.period=this.value;renderBarberReports();});
  }catch(error){content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();}
@@ -1083,7 +1139,7 @@ async function renderAdminReports(view="reports"){
   try {
     range = reportDateRange();
     const queueResult = await db.from("lacorte_queue")
-      .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_percent,commission_amount,payment_method,created_at,completed_at")
+      .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,gross_amount,discount_amount,commission_percent,commission_amount,payment_method,created_at,completed_at")
       .gte("queue_date",range.start).lte("queue_date",range.end)
       .order("queue_date",{ascending:true}).order("created_at",{ascending:true});
     if(queueResult.error) throw new Error("Não foi possível consultar os atendimentos: "+queueResult.error.message);
@@ -1095,10 +1151,11 @@ async function renderAdminReports(view="reports"){
     const queueIds = rows.map(function(row){return row.id;});
     const lookups = await Promise.all([
       customerIds.length ? db.from("customers").select("id,first_name,last_name,phone").in("id",customerIds) : Promise.resolve({data:[],error:null}),
-      queueIds.length ? db.from("lacorte_queue_items").select("queue_id,service_name,unit_price").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
+      queueIds.length ? db.from("lacorte_queue_items").select("queue_id,service_name,unit_price").in("queue_id",queueIds) : Promise.resolve({data:[],error:null}),
+      queueIds.length ? db.from("lacorte_queue_payments").select("queue_id,payment_method,amount").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
     ]);
     if(lookups[0].error) throw new Error("Não foi possível consultar os clientes: "+lookups[0].error.message);
-    if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);
+    if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);\n    if(lookups[2].error) throw new Error("Não foi possível consultar os pagamentos: "+lookups[2].error.message);
     const barberById = {};
     (barberResult.data || []).forEach(function(barber){barberById[barber.id]=barber.name;});
     const customerById = {};
@@ -1109,11 +1166,21 @@ async function renderAdminReports(view="reports"){
       itemsByQueue[item.queue_id].push(item);
     });
 
-    const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);
+    const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);\n    const grossRevenue = completedRows.reduce(function(sum,row){return sum+Number(row.gross_amount ?? row.total_amount ?? 0);},0);\n    const discountTotal = completedRows.reduce(function(sum,row){return sum+Number(row.discount_amount || 0);},0);
     const commissions = completedRows.reduce(function(sum,row){return sum+Number(row.commission_amount || 0);},0);
     const net = revenue-commissions;
     const paymentTotals = {pix:0,dinheiro:0,credito:0,debito:0};
-    completedRows.forEach(function(row){if(paymentTotals[row.payment_method] !== undefined) paymentTotals[row.payment_method] += Number(row.total_amount || 0);});
+    const paymentLinesByQueue = {};
+    (lookups[2].data || []).forEach(function(line){(paymentLinesByQueue[line.queue_id]||(paymentLinesByQueue[line.queue_id]=[])).push(line);});
+    completedRows.forEach(function(row){
+      const lines=paymentLinesByQueue[row.id]||[];
+      if(lines.length) lines.forEach(function(line){if(paymentTotals[line.payment_method] !== undefined) paymentTotals[line.payment_method] += Number(line.amount||0);});
+      else if(paymentTotals[row.payment_method] !== undefined) paymentTotals[row.payment_method] += Number(row.total_amount||0);
+    });
+    const paymentLabelForRow=function(row){
+      const lines=paymentLinesByQueue[row.id]||[];
+      return lines.length?lines.map(function(line){return ({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"})[line.payment_method]+" "+money(Number(line.amount||0));}).join(" + "):(({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"})[row.payment_method] || row.payment_method || "—");
+    };
     const counts = {
       completed:completedRows.length,
       waiting:rows.filter(function(row){return row.status==="waiting";}).length,
@@ -1161,7 +1228,7 @@ async function renderAdminReports(view="reports"){
       const serviceText=(itemsByQueue[row.id] || []).map(function(item){
         return safe(item.service_name)+" ("+money(Number(item.unit_price || 0))+")";
       }).join(", ") || "—";
-      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id || 'Aguardando atribuição')+'</td><td>'+serviceText+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"})[row.payment_method] || row.payment_method || '—')+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
+      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id || 'Aguardando atribuição')+'</td><td>'+serviceText+'</td><td>'+money(Number(row.discount_amount || 0))+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(paymentLabelForRow(row))+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
     });
 
     const periodOptions = '<option value="today" '+(adminReportFilters.period==="today"?"selected":"")+'>Hoje</option>'+
@@ -1179,12 +1246,12 @@ async function renderAdminReports(view="reports"){
     if(view === "history"){
       html += '<section class="summary admin-history-panel"><div class="admin-history-heading"><div><h3>REGISTROS DO PERÍODO</h3><p class="muted">Todos os atendimentos da barbearia, com status e responsável.</p></div><strong>'+rows.length+' registro(s)</strong></div>'+
         (rows.length
-          ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>'
+          ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Desconto</th><th>Total líquido</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>'
           : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
         '</section>';
     } else {
       html += '<div class="report-kpis">'+
-        '<article class="summary"><span class="muted">Faturamento</span><strong>'+money(revenue)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Faturamento bruto</span><strong>'+money(grossRevenue)+'</strong></article>'+\n        '<article class="summary"><span class="muted">Descontos</span><strong>'+money(discountTotal)+'</strong></article>'+\n        '<article class="summary"><span class="muted">Faturamento líquido</span><strong>'+money(revenue)+'</strong></article>'+
         '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
         '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
         '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
