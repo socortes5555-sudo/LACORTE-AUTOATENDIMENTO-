@@ -714,7 +714,7 @@ async function openPaymentMethodDialog(queueId){
  updatePaymentPreview();
 }
 
-async async function routeAuthenticatedUser(user){
+async function routeAuthenticatedUser(user){
   state.user = user;
   state.customer = null;
   state.selectedServices = [];
