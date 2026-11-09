@@ -5760,3 +5760,30 @@ body:has(#entry-choice-options) .staff-portal-entry:focus-visible{
   body:has(#entry-choice-options) .site-footer{min-height:72px!important;padding:12px 0 8px!important}
   body:has(#entry-choice-options) .footer-meta{flex-direction:column!important;gap:6px!important}
 }
+
+
+/* LaCorte dashboards — acabamento unificado, sem interferir no autoatendimento */
+body.admin-dashboard .lc-admin-app{width:100%;max-width:1480px}
+body.admin-dashboard .lc-admin-sidebar{background:#171717;border-right-color:#303030}
+body.admin-dashboard .lc-admin-nav-item.active{background:#f97316;color:#111}
+body.admin-dashboard .lc-admin-user>i{background:#f97316}
+body.admin-dashboard .lc-admin-summary-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 12px}
+body.admin-dashboard .lc-admin-summary-head>div>span{color:#fb923c;font-size:9px;font-weight:800;letter-spacing:1.4px}
+body.admin-dashboard .lc-admin-summary-head p{margin:5px 0 0;color:#888;font-size:11px}
+body.admin-dashboard .lc-admin-queue-only{grid-template-columns:minmax(0,1fr);margin-top:13px}
+body.admin-dashboard .lc-admin-queue-only>.lc-admin-card{min-width:0}
+body.admin-dashboard .lc-admin-main>.summary,
+body.admin-dashboard .lc-admin-main>.admin-workspace{margin-top:12px;margin-bottom:12px}
+body.admin-dashboard .lc-management-plans-link{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;padding:15px 17px}
+body.admin-dashboard .lc-management-plans-link h3{margin:5px 0;color:#f4f4f5;font:700 15px Oswald,sans-serif}
+body.admin-dashboard .lc-management-plans-link p{margin:0;font-size:10px}
+body.admin-dashboard .lc-management-plans-link .eyebrow{color:#fb923c;font-size:8px;font-weight:800;letter-spacing:1.2px}
+body.professional-dashboard .professional-nav-item.active{background:#f97316;border-color:#f97316;color:#111}
+body.professional-dashboard .professional-nav-item.active .professional-nav-icon{background:#1a1a1a;color:#fb923c}
+body.professional-dashboard .professional-main{min-width:0;width:100%}
+@media(max-width:760px){
+  body.admin-dashboard .lc-admin-summary-head{align-items:flex-start;flex-direction:column}
+  body.admin-dashboard .lc-management-plans-link{align-items:stretch;flex-direction:column}
+  body.admin-dashboard .lc-management-plans-link .btn{width:100%}
+  body.professional-dashboard .professional-nav{width:100%;min-width:0}
+}
