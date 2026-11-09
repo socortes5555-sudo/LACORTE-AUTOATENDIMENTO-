@@ -1850,6 +1850,8 @@ function lcAdminIcon(name){
 
 function lcAdminSidebar(){
   const activeView=adminView==="plans"?"manage":adminView;
+  const owner=barbers.find(function(item){return item.id===state.barberId;});
+  const ownerName=owner?owner.name:"Barbeiro 1";
   const item=function(view,label,icon){
     return '<button type="button" class="lc-admin-nav-item '+(activeView===view?'active':'')+'" data-admin-view="'+view+'" '+(activeView===view?'aria-current="page"':'')+'>'+lcAdminIcon(icon)+'<span>'+label+'</span></button>';
   };
@@ -1859,8 +1861,7 @@ function lcAdminSidebar(){
     item("queue","Painel Geral","overview")+item("history","Histórico","history")+item("manage","Gestão","management")+
     item("customers","Clientes","clients")+item("services","Serviços","services")+item("reports","Relatórios","reports")+
     '</nav><div class="lc-admin-sidebar-bottom"><div class="lc-admin-system"><i></i><span>Sistema operacional</span></div>'+
-    '<button type="button" class="lc-admin-bottom-link" data-admin-support>'+lcAdminIcon("support")+'<span>Suporte</span></button>'+
-    '<div class="lc-admin-user"><span class="lc-admin-avatar">B1</span><span><strong>Barbeiro 1</strong><small>Administrador</small></span><i></i></div></div></aside>';
+    '<div class="lc-admin-user"><span class="lc-admin-avatar">B1</span><span><strong>'+safe(ownerName)+'</strong><small>Administrador</small></span><i></i></div></div></aside>';
 }
 
 function lcAdminDateLabel(){
@@ -1891,44 +1892,56 @@ async function renderAdminOverview(){
   dashboardActions();
   content.innerHTML='<div class="lc-admin-loading">Carregando painel administrativo...</div>';
   try{
-    const today=localQueueDate();
-    const nextDay=reportShiftDate(today,1);
-    const startIso=today+"T00:00:00-03:00";
-    const nextIso=nextDay+"T00:00:00-03:00";
     const results=await Promise.all([
       loadQueueRows(),
-      db.from("customers").select("id,created_at").gte("created_at",startIso).lt("created_at",nextIso),
       db.from("barbers").select("id,name,active").order("name")
     ]);
     const rows=results[0]||[];
-    if(results[1].error) throw new Error("Novos clientes: "+results[1].error.message);
-    if(results[2].error) throw new Error("Equipe: "+results[2].error.message);
-    const completedToday=rows.filter(r=>r.status==="completed");
-    const revenueToday=completedToday.reduce((sum,r)=>sum+Number(r.total_amount||0),0);
+    if(results[1].error) throw new Error("Equipe: "+results[1].error.message);
+    const barbers=results[1].data||[];
     const waiting=rows.filter(r=>r.status==="waiting");
-    const barbers=results[2].data||[];
-    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress").slice(0,6);
+    const inProgress=rows.filter(r=>r.status==="in_progress");
+    const completedToday=rows.filter(r=>r.status==="completed");
+    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress").slice(0,8);
     const queueHtml=visible.length?visible.map(function(row){
       const customer=row.customer||{};
-      const name=((customer.first_name||"Cliente")+" "+(customer.last_name||"")).trim();
+      const name=((customer.first_name||"")+" "+(customer.last_name||"")).trim()||"Cliente";
       const barber=barbers.find(b=>b.id===row.barber_id);
-      const service=(row.items||[]).map(i=>safe(i.service_name)).join(" & ")||"Serviço não informado";
-      const status=row.status==="in_progress"?"Em atendimento":"Aguardando";
-      const time=new Date(row.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"});
+      const barberName=barber?barber.name:(row.barber_id?"Profissional responsável":"Aguardando definição");
+      const service=(row.items||[]).map(i=>safe(i.service_name)).join(", ")||"Serviço não informado";
+      const time=formatDateTime(row.created_at);
+      const isProgress=row.status==="in_progress";
       const canStart=row.status==="waiting"&&!row.barber_id;
-      const canFinish=row.status==="in_progress"&&row.barber_id===state.barberId;
-      return '<article class="lc-queue-row"><div class="lc-queue-time">'+time+'</div><div class="lc-queue-client"><strong>'+safe(name)+'</strong><small>'+service+' · '+safe(barber?barber.name:(row.barber_id?"Profissional responsável":"Fila compartilhada"))+'</small></div><span class="lc-queue-status '+(row.status==="in_progress"?"is-progress":"is-waiting")+'">'+status+'</span><div class="lc-queue-actions">'+(canStart?'<button type="button" data-start="'+safe(row.id)+'">Chamar</button>':'')+(canFinish?'<button type="button" data-finish="'+safe(row.id)+'">Finalizar</button>':'')+(row.status==="waiting"?'<button type="button" data-cancel="'+safe(row.id)+'" aria-label="Cancelar atendimento">Cancelar</button>':'')+'</div></article>';
+      const canFinish=isProgress&&row.barber_id===state.barberId;
+      const status=isProgress?"Em atendimento":"Aguardando";
+      const action=canStart
+        ? '<button type="button" class="is-primary" data-start="'+safe(row.id)+'">INICIAR ATENDIMENTO</button>'
+        : canFinish
+          ? '<button type="button" class="is-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>'
+          : isProgress
+            ? '<span class="lc-queue-assigned">Em atendimento por '+safe(barberName)+'</span>'
+            : '<span class="lc-queue-assigned">Aguardando profissional</span>';
+      return '<article class="lc-queue-row"><div class="lc-queue-ticket">#'+safe(row.queue_number)+'</div><div class="lc-queue-details">'+
+        '<div class="lc-queue-primary"><strong>'+safe(name)+'</strong><span class="lc-queue-status '+(isProgress?"is-progress":"is-waiting")+'">'+status+'</span></div>'+
+        '<div class="lc-queue-meta">'+
+          '<span><small>TELEFONE</small>'+safe(customer.phone||"—")+'</span>'+
+          '<span><small>BARBEIRO</small>'+safe(barberName)+'</span>'+
+          '<span><small>SERVIÇOS</small>'+service+'</span>'+
+          '<span><small>VALOR</small>'+money(Number(row.total_amount||0))+'</span>'+
+        '</div>'+
+        '<div class="lc-queue-bottom"><span><small>ENTRADA</small>'+safe(time)+'</span><div class="lc-queue-actions">'+action+
+          (row.status==="waiting"?'<button type="button" class="is-secondary" data-cancel="'+safe(row.id)+'">CANCELAR</button>':'')+
+        '</div></div></div></article>';
     }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
     content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<main class="lc-admin-main">'+
       '<header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração <b>›</b> Painel Geral</span><h1>Painel Geral</h1></div>'+
-      '<div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span></div></header>'+
-      '<section class="lc-admin-summary-head"><div><span>RESUMO DO DIA</span><p>Indicadores da operação e situação atual da fila.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></section>'+
-      '<section class="lc-metric-grid">'+
-      '<article class="lc-metric-card"><div><span>FATURAMENTO HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+money(revenueToday)+'</strong><small>Somente atendimentos concluídos</small></article>'+
-      '<article class="lc-metric-card"><div><span>CONCLUÍDOS HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("calendar")+'</b></div><strong>'+completedToday.length+'</strong><small>Atendimentos finalizados</small></article>'+
-      '<article class="lc-metric-card"><div><span>NOVOS CLIENTES</span><b class="lc-metric-icon">'+lcAdminIcon("clients")+'</b></div><strong>'+(results[1].data||[]).length+'</strong><small>Cadastros realizados hoje</small></article>'+
-      '<article class="lc-metric-card"><div><span>AGUARDANDO</span><b class="lc-metric-icon">'+lcAdminIcon("history")+'</b></div><strong>'+waiting.length+'</strong><small>Fila compartilhada</small></article></section>'+
-      '<section class="lc-admin-middle lc-admin-queue-only"><article class="lc-admin-card lc-queue-card"><div class="lc-card-heading"><div><h3>Fila em tempo real</h3><p>Clientes aguardando e atendimentos em andamento</p></div><button type="button" class="lc-text-action" data-refresh-admin>Atualizar fila</button></div><div class="lc-queue-list">'+queueHtml+'</div><button type="button" class="lc-view-all" data-admin-view="history">Abrir histórico completo <span>→</span></button></article></section>'+
+      '<div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair da conta">'+lcAdminIcon("logout")+'</button></div></header>'+
+      '<section class="lc-admin-summary-head"><div><span>VISÃO GERAL DOS ATENDIMENTOS DE HOJE</span><p>Fila compartilhada e operação dos dois profissionais.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></section>'+
+      '<section class="lc-metric-grid lc-metric-grid-three">'+
+      '<article class="lc-metric-card"><div><span>AGUARDANDO</span><b class="lc-metric-icon">'+lcAdminIcon("history")+'</b></div><strong>'+waiting.length+'</strong><small>Na fila compartilhada</small></article>'+
+      '<article class="lc-metric-card"><div><span>EM ATENDIMENTO</span><b class="lc-metric-icon">'+lcAdminIcon("overview")+'</b></div><strong>'+inProgress.length+'</strong><small>Com os profissionais</small></article>'+
+      '<article class="lc-metric-card"><div><span>CONCLUÍDOS HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+completedToday.length+'</strong><small>Atendimentos finalizados</small></article></section>'+
+      '<section class="lc-admin-middle lc-admin-queue-only"><article class="lc-admin-card lc-queue-card"><div class="lc-card-heading"><div><h3>Atendimentos de hoje</h3><p>Senha, cliente, telefone, barbeiro, serviços, valor e horário de entrada.</p></div><button type="button" class="lc-text-action" data-refresh-admin>Atualizar fila</button></div><div class="lc-queue-list">'+queueHtml+'</div><button type="button" class="lc-view-all" data-admin-view="history">Abrir histórico completo <span>→</span></button></article></section>'+
       '<footer class="lc-admin-footer"><span>© LaCorte Barbearia</span><span>Painel exclusivo do proprietário</span></footer></main></div>';
     bindAdminNavigation();
     lcBindAdminSidebarActions();
@@ -1958,12 +1971,10 @@ function lcBindAdminSidebarActions(){
   content.querySelectorAll("[data-admin-logout]").forEach(function(button){
     if(button.dataset.lcAdminActionBound) return;
     button.dataset.lcAdminActionBound="1";
-    button.addEventListener("click",async function(){await db.auth.signOut();});
-  });
-  content.querySelectorAll("[data-admin-support]").forEach(function(button){
-    if(button.dataset.lcAdminActionBound) return;
-    button.dataset.lcAdminActionBound="1";
-    button.addEventListener("click",function(){alert("Para suporte, entre em contato com a equipe LaCorte.");});
+    button.addEventListener("click",async function(){
+      button.disabled=true;
+      await db.auth.signOut();
+    });
   });
 }
 
@@ -1999,7 +2010,7 @@ function lcMountAdminWorkspace(){
   main.className="lc-admin-main";
   const header=document.createElement("header");
   header.className="lc-admin-header";
-  header.innerHTML='<div><span class="lc-admin-breadcrumb">Administração <b>›</b> '+safe(title)+'</span><h1>'+safe(title)+'</h1></div><div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span></div>';
+  header.innerHTML='<div><span class="lc-admin-breadcrumb">Administração <b>›</b> '+safe(title)+'</span><h1>'+safe(title)+'</h1></div><div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair da conta">'+lcAdminIcon("logout")+'</button></div>';
   main.appendChild(header);
   oldNodes.forEach(function(node){main.appendChild(node);});
   if(adminView==="manage"){
