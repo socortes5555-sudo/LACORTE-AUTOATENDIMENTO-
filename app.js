@@ -1155,7 +1155,8 @@ async function renderAdminReports(view="reports"){
       queueIds.length ? db.from("lacorte_queue_payments").select("queue_id,payment_method,amount").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
     ]);
     if(lookups[0].error) throw new Error("Não foi possível consultar os clientes: "+lookups[0].error.message);
-    if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);\n    if(lookups[2].error) throw new Error("Não foi possível consultar os pagamentos: "+lookups[2].error.message);
+    if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);
+    if(lookups[2].error) throw new Error("Não foi possível consultar os pagamentos: "+lookups[2].error.message);
     const barberById = {};
     (barberResult.data || []).forEach(function(barber){barberById[barber.id]=barber.name;});
     const customerById = {};
@@ -1166,7 +1167,9 @@ async function renderAdminReports(view="reports"){
       itemsByQueue[item.queue_id].push(item);
     });
 
-    const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);\n    const grossRevenue = completedRows.reduce(function(sum,row){return sum+Number(row.gross_amount ?? row.total_amount ?? 0);},0);\n    const discountTotal = completedRows.reduce(function(sum,row){return sum+Number(row.discount_amount || 0);},0);
+    const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);
+    const grossRevenue = completedRows.reduce(function(sum,row){return sum+Number(row.gross_amount ?? row.total_amount ?? 0);},0);
+    const discountTotal = completedRows.reduce(function(sum,row){return sum+Number(row.discount_amount || 0);},0);
     const commissions = completedRows.reduce(function(sum,row){return sum+Number(row.commission_amount || 0);},0);
     const net = revenue-commissions;
     const paymentTotals = {pix:0,dinheiro:0,credito:0,debito:0};
@@ -1251,7 +1254,9 @@ async function renderAdminReports(view="reports"){
         '</section>';
     } else {
       html += '<div class="report-kpis">'+
-        '<article class="summary"><span class="muted">Faturamento bruto</span><strong>'+money(grossRevenue)+'</strong></article>'+\n        '<article class="summary"><span class="muted">Descontos</span><strong>'+money(discountTotal)+'</strong></article>'+\n        '<article class="summary"><span class="muted">Faturamento líquido</span><strong>'+money(revenue)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Faturamento bruto</span><strong>'+money(grossRevenue)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Descontos</span><strong>'+money(discountTotal)+'</strong></article>'+
+        '<article class="summary"><span class="muted">Faturamento líquido</span><strong>'+money(revenue)+'</strong></article>'+
         '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
         '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
         '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
