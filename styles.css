@@ -4551,3 +4551,21 @@ body:not(.admin-dashboard) .staff-portal-entry{color:#aaa}
  body:not(.admin-dashboard) .site-footer{align-items:flex-start}
  body:not(.admin-dashboard) .site-footer>p{display:none}
 }
+
+
+/* Marca oficial LaCorte: SVG transparente sobre degradê integrado */
+.brand{display:flex;align-items:center;text-decoration:none}
+.brand-logo{display:block;width:clamp(132px,15vw,190px);height:auto;max-height:62px;object-fit:contain}
+body:not(.admin-dashboard):not(.staff-portal){
+ background:
+  radial-gradient(ellipse at 15% 12%,rgba(255,104,18,.15),transparent 34%),
+  radial-gradient(ellipse at 88% 78%,rgba(255,104,18,.09),transparent 38%),
+  linear-gradient(120deg,#080808 0%,#171411 48%,#090909 100%);
+}
+body:not(.admin-dashboard):not(.staff-portal) .topbar{
+ background:linear-gradient(100deg,rgba(8,8,8,.93),rgba(28,20,15,.88),rgba(8,8,8,.94));
+ border-bottom:1px solid rgba(255,125,38,.22);
+}
+body.staff-portal .brand-logo{width:155px;max-height:54px}
+body.staff-portal .topbar{background:linear-gradient(100deg,#090909,#211710 55%,#090909)}
+@media(max-width:560px){.brand-logo{width:126px;max-height:48px}}
