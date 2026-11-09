@@ -447,13 +447,16 @@ function stopQueueRealtime(){
 function subscribeToQueueRealtime(){
   if(!db || typeof db.channel !== "function") return;
   stopQueueRealtime();
+  const refreshActiveStaffView=function(){
+    if(state.role==="admin") renderQueueDashboard();
+    else if(state.role==="barber"){
+      if(professionalView==="reports") renderBarberReports();
+      else renderQueueDashboard();
+    }
+  };
   queueRealtimeChannel = db.channel("lacorte-shared-queue-live")
-    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue"},function(){
-      if(state.role==="admin" || state.role==="barber") renderQueueDashboard();
-    })
-    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_items"},function(){
-      if(state.role==="admin" || state.role==="barber") renderQueueDashboard();
-    })
+    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue"},refreshActiveStaffView)
+    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_items"},refreshActiveStaffView)
     .subscribe();
 }
 
