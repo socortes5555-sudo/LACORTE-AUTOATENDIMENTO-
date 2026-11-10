@@ -92,3 +92,9 @@ test("o layout do cliente contempla celular, tablet e movimento reduzido", () =>
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /:focus-visible/);
 });
+
+test("a senha da rede Wi-Fi não fica exposta no HTML público", () => {
+  const html = read("index.html");
+  assert.doesNotMatch(html, /WIFI:T:WPA;|P:[^;]{8,};;/);
+  assert.match(html, /Solicite a senha à nossa equipe/);
+});
