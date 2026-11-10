@@ -70,13 +70,11 @@
 
     <section class="experience-showcase" aria-label="Informações e contatos LaCorte">
       <div class="connection-card">
-        <div class="wifi-qr-frame">
-          <div id="wifi-qr" role="img" aria-label="QR Code para conectar ao Wi-Fi LaCorte"></div>
-        </div>
+        <div class="wifi-qr-frame connection-icon" aria-hidden="true">Wi-Fi</div>
         <div class="connection-copy">
           <span class="connection-kicker">CONECTE-SE</span>
-          <strong>Wi-Fi LaCorte 5G</strong>
-          <small>Aponte a câmera e conecte-se</small>
+          <strong>Wi-Fi LaCorte</strong>
+          <small>Solicite a senha à nossa equipe.</small>
         </div>
       </div>
 
@@ -141,7 +139,6 @@
           correctLevel: QRCode.CorrectLevel.H
         });
       };
-      makeQr("wifi-qr", "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;", 256);
       makeQr("instagram-qr", "https://instagram.com/la_corte_oficial", 96);
       makeQr("whatsapp-qr", "https://wa.me/5548999426466", 96);
     });
