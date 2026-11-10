@@ -57,11 +57,11 @@
 
 <section class="experience-showcase" aria-label="Informações LaCorte">
       <div class="connection-card">
-        <div class="wifi-qr-frame"><div id="wifi-qr" role="img" aria-label="QR Code para conectar ao Wi-Fi La Corte"></div></div>
+        <div class="wifi-qr-frame" aria-hidden="true">Wi-Fi</div>
         <div class="connection-copy">
           <span class="connection-kicker">CONECTE-SE</span>
           <strong>Wi-Fi LaCorte 5G</strong>
-          <small>Aponte a câmera e conecte-se</small>
+          <small>Solicite a senha à nossa equipe.</small>
         </div>
       </div>
       <div class="showcase-side">
@@ -94,18 +94,16 @@
       document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
     }
   </script>
-  <script src="app.js?v=20261109-startupfix2"></script>
+  <script src="app.js?v=20261110-queue-decline1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script>
     window.addEventListener("load", function () {
-      const target = document.getElementById("wifi-qr");
-      if (!target || !window.QRCode) return;
+      if (!window.QRCode) return;
       const makeQr = (id, value, size) => {
         const node = document.getElementById(id);
         if (!node) return;
         new QRCode(node, { text:value, width:size, height:size, colorDark:"#111111", colorLight:"#ffffff", correctLevel:QRCode.CorrectLevel.H });
       };
-      makeQr("wifi-qr", "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;", 256);
       makeQr("instagram-qr", "https://instagram.com/la_corte_oficial", 96);
       makeQr("whatsapp-qr", "https://wa.me/5548999426466", 96);
     });

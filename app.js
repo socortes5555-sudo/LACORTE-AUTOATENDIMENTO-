@@ -429,12 +429,28 @@ async function loadCatalogs(){
 
 async function loadQueueRows(){
  const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_amount,payment_method,created_at,started_at,completed_at').eq('queue_date',localQueueDate()).order('queue_number',{ascending:true});
- if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);const rows=result.data||[];if(!rows.length)return [];
- const customerIds=Array.from(new Set(rows.map(r=>r.customer_id))),queueIds=rows.map(r=>r.id);
- const lookups=await Promise.all([db.from('customers').select('id,first_name,last_name,phone').in('id',customerIds),db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds)]);
- if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
- const customers={},items={};(lookups[0].data||[]).forEach(c=>customers[c.id]=c);(lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
- return rows.map(r=>Object.assign({},r,{customer:customers[r.customer_id]||null,items:items[r.id]||[]}));
+ if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);
+ const rows=result.data||[];
+ if(!rows.length)return [];
+ const customerIds=Array.from(new Set(rows.map(r=>r.customer_id)));
+ const queueIds=rows.map(r=>r.id);
+ const lookups=await Promise.all([
+  db.from('customers').select('id,first_name,last_name,phone').in('id',customerIds),
+  db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds),
+  db.from('lacorte_queue_declines').select('queue_id,barber_id').in('queue_id',queueIds)
+ ]);
+ if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);
+ if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
+ if(lookups[2].error)throw new Error('Erro ao consultar preferências da fila: '+lookups[2].error.message);
+ const customers={},items={},declines={};
+ (lookups[0].data||[]).forEach(c=>customers[c.id]=c);
+ (lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
+ (lookups[2].data||[]).forEach(d=>(declines[d.queue_id]||(declines[d.queue_id]=[])).push(d.barber_id));
+ return rows.map(r=>Object.assign({},r,{
+  customer:customers[r.customer_id]||null,
+  items:items[r.id]||[],
+  declinedBarberIds:declines[r.id]||[]
+ }));
 }
 
 let queueRealtimeChannel = null;
@@ -521,7 +537,9 @@ function renderQueueDashboard(){
     const visibleRows = admin
       ? rows.filter(function(row){ return row.status === "waiting" || row.status === "in_progress"; })
       : rows.filter(function(row){
-          return row.status === "waiting" ||
+          const waitingForAnotherBarber = row.status === "waiting" &&
+            !(row.declinedBarberIds || []).includes(state.barberId);
+          return waitingForAnotherBarber ||
             (row.status === "in_progress" && row.barber_id === state.barberId);
         });
 
@@ -652,9 +670,40 @@ function renderQueueDashboard(){
 }
 
 function openQueueCallDialog(queueId){
- const overlay=document.createElement('div');overlay.className='payment-dialog-backdrop';overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3><p>Confirme o resultado da chamada. Se o cliente preferir outro barbeiro, mantenha a senha aguardando.</p><div class="actions"><button class="btn btn-secondary" data-decline>NÃO ACEITOU / MANTER NA FILA</button><button class="btn btn-primary" data-accept>CLIENTE ACEITOU</button></div><p class="muted" id="call-error"></p></section>';content.append(overlay);
- overlay.querySelector('[data-decline]').addEventListener('click',function(){overlay.remove();});
- overlay.querySelector('[data-accept]').addEventListener('click',async function(){this.disabled=true;const r=await db.rpc('lacorte_start_service',{p_queue_id:queueId});if(r.error){this.disabled=false;overlay.querySelector('#call-error').textContent='Não foi possível iniciar: '+r.error.message;return;}renderQueueDashboard();});
+ const overlay=document.createElement("div");
+ overlay.className="payment-dialog-backdrop";
+ const declineAction=state.role==="barber"
+  ? '<button class="btn btn-secondary" data-decline title="Pular este cliente para outro barbeiro sem removê-lo da fila">NÃO ACEITOU / MANTER NA FILA</button>'
+  : "";
+ overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3>'+
+  '<p>Confirme se o cliente aceita ser atendido por você. Ao pular, a senha continua aguardando outro profissional, sem sair da fila.</p>'+
+  '<div class="actions">'+declineAction+'<button class="btn btn-primary" data-accept>CLIENTE ACEITOU</button></div>'+
+  '<p class="muted" id="call-error" role="alert"></p></section>';
+ content.append(overlay);
+ const declineButton=overlay.querySelector("[data-decline]");
+ if(declineButton){
+  declineButton.addEventListener("click",async function(){
+   this.disabled=true;
+   const result=await db.rpc("lacorte_decline_queue_entry",{p_queue_id:queueId});
+   if(result.error){
+    this.disabled=false;
+    overlay.querySelector("#call-error").textContent="Não foi possível pular o cliente: "+result.error.message;
+    return;
+   }
+   overlay.remove();
+   renderQueueDashboard();
+  });
+ }
+ overlay.querySelector("[data-accept]").addEventListener("click",async function(){
+  this.disabled=true;
+  const result=await db.rpc("lacorte_start_service",{p_queue_id:queueId});
+  if(result.error){
+   this.disabled=false;
+   overlay.querySelector("#call-error").textContent="Não foi possível iniciar: "+result.error.message;
+   return;
+  }
+  renderQueueDashboard();
+ });
 }
 async function openPaymentMethodDialog(queueId){
  const queueResult=await db.from("lacorte_queue").select("gross_amount,total_amount,discount_amount").eq("id",queueId).single();
