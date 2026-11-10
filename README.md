@@ -12,15 +12,17 @@ O sistema é orientado a **fila de atendimento por ordem de entrada**. Não é u
 
 ## Arquivos do projeto
 
-- `index.html`: estrutura da aplicação e carregamento dos recursos.
-- `styles.css`: identidade visual, componentes e responsividade.
-- `app.js`: autenticação, navegação, autoatendimento, fila, painéis e relatórios.
+- `index.html` + `customer.css`: autoatendimento do cliente.
+- `barbeiros.html` + `barber.css`: área profissional dos barbeiros.
+- `painel-admin-preview.html` + `admin.css`: painel administrativo do proprietário.
+- `app.js`: lógica compartilhada de autenticação da equipe, navegação, autoatendimento, fila, painéis e relatórios.
+- `assets/`: identidade visual e recursos estáticos.
 
 ## Tecnologias e serviços
 
 - Front-end: HTML, CSS e JavaScript.
 - Backend e banco de dados: Supabase.
-- Autenticação: acesso por link/código enviado por e-mail.
+- Identificação do cliente: telefone normalizado; autenticação por e-mail/senha é restrita à equipe.
 - Publicação: GitHub Pages.
 - Operações de fila: funções RPC no banco de dados, incluindo:
   - `lacorte_create_queue_entry`
@@ -32,9 +34,9 @@ A aplicação utiliza a chave pública/publicável do Supabase no navegador. Cha
 
 ## Jornada do cliente
 
-1. O cliente informa o e-mail e realiza o acesso.
+1. O cliente informa seu telefone para identificação.
 2. Na primeira visita, completa o perfil com nome, sobrenome, telefone e aniversário.
-3. Nas próximas visitas, os dados já cadastrados podem ser reutilizados.
+3. Nas próximas visitas, os dados já cadastrados podem ser reutilizados pelo telefone.
 4. Escolhe os serviços desejados.
 5. Confere os dados e confirma a entrada.
 6. Recebe sua senha e acompanha o status do atendimento.
