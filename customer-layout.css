@@ -70,3 +70,33 @@ body:has(#entry-choice) #entry-choice .staff-portal-entry{color:#ccc}
 }
 @media(max-width:420px){body:has(#entry-choice) #entry-choice .connection-card{flex-direction:column!important;text-align:center}}
 @media(prefers-reduced-motion:reduce){body:has(#entry-choice) #entry-choice .hero-slide{animation:none!important}}
+
+
+/* Área reservada para a futura galeria do autoatendimento.
+   Não carrega fotos externas nem altera o fluxo funcional do totem. */
+body:has(#entry-choice) #entry-choice .customer-gallery-slot{
+  display:flex;align-items:center;gap:clamp(12px,2.4vw,22px);
+  min-height:88px;padding:16px clamp(16px,3vw,24px);
+  border:1px dashed #654022;border-radius:16px;
+  background:linear-gradient(105deg,#17110d 0%,#141414 68%,#1b120c 100%);
+  color:#f7f5f2;
+}
+body:has(#entry-choice) #entry-choice .gallery-slot-mark{
+  display:grid;place-items:center;flex:0 0 48px;height:48px;
+  border:1px solid var(--lc-orange);border-radius:12px;
+  color:var(--lc-orange);font:700 17px Oswald,sans-serif;letter-spacing:1px;
+}
+body:has(#entry-choice) #entry-choice .gallery-slot-copy{min-width:0;flex:1}
+body:has(#entry-choice) #entry-choice .gallery-slot-copy>span{
+  color:var(--lc-orange);font-size:10px;font-weight:700;letter-spacing:1.6px
+}
+body:has(#entry-choice) #entry-choice .gallery-slot-copy p{
+  margin:4px 0 0;color:#c8c1bb;font-size:13px;line-height:1.45
+}
+body:has(#entry-choice) #entry-choice .gallery-slot-status{
+  color:#888;font-size:9px;font-weight:700;letter-spacing:1px;text-align:right
+}
+@media(max-width:520px){
+  body:has(#entry-choice) #entry-choice .customer-gallery-slot{align-items:flex-start;flex-wrap:wrap}
+  body:has(#entry-choice) #entry-choice .gallery-slot-status{width:100%;padding-left:60px;text-align:left}
+}
