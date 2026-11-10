@@ -673,7 +673,7 @@ function openQueueCallDialog(queueId){
  const overlay=document.createElement("div");
  overlay.className="payment-dialog-backdrop";
  const declineAction=state.role==="barber"
-  ? '<button class="btn btn-secondary" data-decline>PULAR PARA OUTRO BARBEIRO / MANTER NA FILA</button>'
+  ? '<button class="btn btn-secondary" data-decline title="Pular este cliente para outro barbeiro sem removê-lo da fila">NÃO ACEITOU / MANTER NA FILA</button>'
   : "";
  overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3>'+
   '<p>Confirme se o cliente aceita ser atendido por você. Ao pular, a senha continua aguardando outro profissional, sem sair da fila.</p>'+
