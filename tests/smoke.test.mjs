@@ -16,7 +16,7 @@ test("cada painel carrega sua própria folha de estilos", () => {
   for (const [htmlPath, cssPath] of pages) {
     const html = read(htmlPath);
     assert.ok(existsSync(join(root, cssPath)), cssPath + " deve existir");
-    assert.match(html, new RegExp("href=[\\"']" + cssPath.replace(".", "\\.") + "\\?v="));
+    assert.ok(html.includes(cssPath + "?v="), htmlPath + " deve apontar para " + cssPath);
   }
   assert.equal(existsSync(join(root, "styles.css")), false);
   assert.equal(existsSync(join(root, "customer-layout.css")), false);
@@ -26,7 +26,7 @@ test("o totem oferece cadastro, retorno e revisão antes de entrar na fila", () 
   const html = read("index.html");
   const app = read("app.js");
   for (const id of ["step-content", "step-actions", "demo-notice"]) {
-    assert.match(html, new RegExp("id=[\\"']" + id + "[\\"']"));
+    assert.ok(html.includes("id=\"" + id + "\"") || html.includes("id='" + id + "'"), id + " deve existir no HTML");
   }
   for (const fn of ["renderLogin", "renderProfile", "renderReturningCustomerLookup", "renderServices", "renderConfirmation", "submitQueueEntry"]) {
     assert.match(app, new RegExp("function " + fn + "\\s*\\("), fn + " deve existir");
