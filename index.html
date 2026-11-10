@@ -3,50 +3,63 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#090909">
+  <meta name="description" content="Autoatendimento LaCorte Barbershop. Identifique-se, escolha seus serviços e entre na fila.">
   <title>LaCorte | Autoatendimento</title>
-  <link rel="stylesheet" href="styles.css?v=20261109-visual-cleanup2">
-  <link rel="stylesheet" href="customer-layout.css?v=20261109-1">
+  <link rel="stylesheet" href="styles.css?v=20261110-totem-layout1">
+  <link rel="stylesheet" href="customer-layout.css?v=20261110-totem-layout1">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#" aria-label="LaCorte início"><img class="brand-logo" src="assets/lacorte-logo.svg" alt="LaCorte Barbershop"></a>
+    <a class="brand" href="#" aria-label="LaCorte início">
+      <img class="brand-logo" src="assets/lacorte-logo.svg" alt="LaCorte Barbershop">
+    </a>
     <span class="top-label">AUTOATENDIMENTO</span>
   </header>
 
   <main id="entry-choice" class="shell">
-    <section class="hero hero-home">
+    <section class="hero hero-home" aria-labelledby="welcome-title">
       <div class="hero-copy">
         <p class="eyebrow">BARBEARIA • EXPERIÊNCIA LA CORTE</p>
         <p class="hero-pretitle">SEU ESTILO, NOSSA PRIORIDADE</p>
-        <h1>Bem-vindo à <em>La Corte</em> Barbearia!</h1>
-        <div class="hero-values"><span>SEGUNDA A SÁBADO</span><i></i><span>09:00 ÀS 20:00</span></div>
+        <h1 id="welcome-title">Bem-vindo à <em>La Corte</em> Barbearia!</h1>
         <p class="intro">Identifique-se, escolha seus serviços e entre na fila.</p>
       </div>
     </section>
 
+    <section class="customer-gallery-slot" aria-label="Espaço reservado para futuras imagens da LaCorte">
+      <div class="gallery-slot-mark" aria-hidden="true">LC</div>
+      <div class="gallery-slot-copy">
+        <span>ESPAÇO RESERVADO</span>
+        <p>Suas imagens poderão ser adicionadas aqui quando desejar.</p>
+      </div>
+      <span class="gallery-slot-status">GALERIA FUTURA</span>
+    </section>
+
     <nav class="progress" aria-label="Etapas do atendimento">
       <div class="progress-step active" data-progress="1"><span>1</span><small>Identificação</small></div>
-      <i></i>
+      <i aria-hidden="true"></i>
       <div class="progress-step" data-progress="2"><span>2</span><small>Cadastro</small></div>
-      <i></i>
+      <i aria-hidden="true"></i>
       <div class="progress-step" data-progress="3"><span>3</span><small>Serviços</small></div>
-      <i></i>
+      <i aria-hidden="true"></i>
       <div class="progress-step" data-progress="4"><span>4</span><small>Revisão</small></div>
-      <i></i>
+      <i aria-hidden="true"></i>
       <div class="progress-step" data-progress="5"><span>5</span><small>Fila</small></div>
     </nav>
 
-    <section class="panel">
+    <section class="panel" aria-label="Atendimento ao cliente">
       <div class="panel-heading">
         <div>
           <p class="eyebrow" id="step-kicker">ETAPA 01</p>
           <h2 id="step-title">Acesse sua conta</h2>
-          <p class="muted" id="step-description">Informe seu e-mail para receber o link de acesso.</p>
+          <p class="muted" id="step-description">Cadastre-se uma única vez ou localize seu cadastro.</p>
         </div>
       </div>
 
-      <div id="step-content" aria-live="polite"><p class="muted">Carregando o autoatendimento LaCorte...</p></div>
+      <div id="step-content" aria-live="polite" aria-busy="false">
+        <p class="muted">Carregando o autoatendimento LaCorte...</p>
+      </div>
 
       <div class="notice" id="demo-notice">
         Seus dados serão protegidos. Não há pagamento online neste atendimento.
@@ -55,25 +68,41 @@
       <div class="actions" id="step-actions"></div>
     </section>
 
-<section class="experience-showcase" aria-label="Informações LaCorte">
+    <section class="experience-showcase" aria-label="Informações e contatos LaCorte">
       <div class="connection-card">
-        <div class="wifi-qr-frame"><div id="wifi-qr" role="img" aria-label="QR Code para conectar ao Wi-Fi La Corte"></div></div>
+        <div class="wifi-qr-frame">
+          <div id="wifi-qr" role="img" aria-label="QR Code para conectar ao Wi-Fi LaCorte"></div>
+        </div>
         <div class="connection-copy">
           <span class="connection-kicker">CONECTE-SE</span>
           <strong>Wi-Fi LaCorte 5G</strong>
           <small>Aponte a câmera e conecte-se</small>
         </div>
       </div>
+
       <div class="showcase-side">
         <div class="membership-highlight">
           <span class="membership-kicker">VANTAGENS LACORTE</span>
           <h2>PLANOS MENSAIS</h2>
           <p>A PARTIR DE <strong>R$ 80,00</strong></p>
         </div>
+
         <div class="contact-strip">
-          <div><span>HORÁRIO DE FUNCIONAMENTO</span><strong>Segunda a sábado</strong><b>09h às 20h</b></div>
-          <a href="https://instagram.com/la_corte_oficial" target="_blank" rel="noopener noreferrer"><span>INSTAGRAM</span><span class="contact-qr" id="instagram-qr" aria-label="QR Code do Instagram LaCorte"></span><strong>@la_corte_oficial</strong></a>
-          <a href="https://wa.me/5548999426466" target="_blank" rel="noopener noreferrer"><span>WHATSAPP</span><span class="contact-qr" id="whatsapp-qr" aria-label="QR Code do WhatsApp LaCorte"></span><strong>(48) 99942-6466</strong></a>
+          <div>
+            <span>HORÁRIO DE FUNCIONAMENTO</span>
+            <strong>Segunda a sábado</strong>
+            <b>09h às 20h</b>
+          </div>
+          <a href="https://instagram.com/la_corte_oficial" target="_blank" rel="noopener noreferrer">
+            <span>INSTAGRAM</span>
+            <span class="contact-qr" id="instagram-qr" aria-label="QR Code do Instagram LaCorte"></span>
+            <strong>@la_corte_oficial</strong>
+          </a>
+          <a href="https://wa.me/5548999426466" target="_blank" rel="noopener noreferrer">
+            <span>WHATSAPP</span>
+            <span class="contact-qr" id="whatsapp-qr" aria-label="QR Code do WhatsApp LaCorte"></span>
+            <strong>(48) 99942-6466</strong>
+          </a>
         </div>
       </div>
     </section>
@@ -91,7 +120,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     if (!window.supabase) {
-      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\\/script>');
     }
   </script>
   <script src="app.js?v=20261109-startupfix2"></script>
@@ -103,7 +132,14 @@
       const makeQr = (id, value, size) => {
         const node = document.getElementById(id);
         if (!node) return;
-        new QRCode(node, { text:value, width:size, height:size, colorDark:"#111111", colorLight:"#ffffff", correctLevel:QRCode.CorrectLevel.H });
+        new QRCode(node, {
+          text: value,
+          width: size,
+          height: size,
+          colorDark: "#111111",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
       };
       makeQr("wifi-qr", "WIFI:T:WPA;S:LaCorte_5G;P:18253030Lc@;;", 256);
       makeQr("instagram-qr", "https://instagram.com/la_corte_oficial", 96);
