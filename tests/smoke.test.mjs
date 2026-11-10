@@ -11,10 +11,30 @@ test("a página inicial carrega os arquivos essenciais e a marca", () => {
   const html = read("index.html");
   assert.ok(existsSync(join(root, "app.js")));
   assert.ok(existsSync(join(root, "styles.css")));
+  assert.ok(existsSync(join(root, "customer-layout.css")));
   assert.ok(existsSync(join(root, "assets/lacorte-logo.svg")));
   assert.match(html, /src=["']app\.js\?v=/);
   assert.match(html, /href=["']styles\.css\?v=/);
+  assert.match(html, /href=["']customer-layout\.css\?v=/);
+  assert.ok(html.indexOf("customer-layout.css?v=") > html.indexOf("styles.css?v="), "o layout do cliente deve carregar depois do CSS base");
   assert.match(html, /assets\/lacorte-logo\.svg/);
+  assert.doesNotMatch(html, /images\.unsplash\.com/i);
+});
+
+
+test("o rodapé do autoatendimento mantém o acesso da equipe visível e acessível", () => {
+  const html = read("index.html");
+  const css = read("customer-layout.css");
+  assert.match(html, /class=["']staff-portal-entry["']/);
+  assert.match(css, /\.site-footer \.footer-meta\{display:flex!important\}/);
+  assert.match(css, /\.site-footer \.staff-portal-entry\{display:inline-flex!important/);
+  assert.match(css, /\.staff-portal-entry:focus-visible/);
+});
+
+test("a tela do cliente respeita a preferência por movimento reduzido", () => {
+  const css = read("customer-layout.css");
+  assert.match(css, /@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/i);
+  assert.match(css, /#entry-choice-options\s+\.btn\{transition:none!important\}/);
 });
 
 test("o totem oferece cadastro, retorno e revisão antes de entrar na fila", () => {
