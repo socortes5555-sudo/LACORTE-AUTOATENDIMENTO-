@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "automation/**"
+      - "refactor/css-isolation-20261109"
   pull_request:
     branches:
       - main
