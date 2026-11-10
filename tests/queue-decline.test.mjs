@@ -41,3 +41,12 @@ test("a recusa é gravada apenas pelo barbeiro autenticado e a tabela não permi
   assert.match(sql, /grant select on table public\.lacorte_queue_declines to authenticated/i);
   assert.match(sql, /grant execute on function public\.lacorte_decline_queue_entry\(uuid\) to authenticated/i);
 });
+
+test("a RPC pública usa SECURITY INVOKER e delega a operação privilegiada ao schema privado", () => {
+  const sql = read("supabase/migrations/20261110172000_harden_queue_decline_rpc.sql");
+  assert.match(sql, /create or replace function private\.lacorte_decline_queue_entry_internal/i);
+  assert.match(sql, /create or replace function public\.lacorte_decline_queue_entry/i);
+  assert.match(sql, /security invoker/i);
+  assert.match(sql, /grant execute on function private\.lacorte_decline_queue_entry_internal\(uuid\) to authenticated/i);
+  assert.doesNotMatch(sql, /grant execute on function public\.lacorte_decline_queue_entry\(uuid\) to anon/i);
+});
