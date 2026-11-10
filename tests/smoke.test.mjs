@@ -42,7 +42,7 @@ test("o totem oferece cadastro, retorno e revisão antes de entrar na fila", () 
 test("o cliente não escolhe o barbeiro e a chamada permite manter a senha aguardando", () => {
   const app = read("app.js");
   assert.match(app, /Fila compartilhada/);
-  assert.match(app, /NÃO ACEITOU \\/ MANTER NA FILA/);
+  assert.ok(app.includes("NÃO ACEITOU / MANTER NA FILA"));
   assert.match(app, /data-decline/);
   assert.match(app, /row\.status === ["']waiting["'] && !row\.barber_id/);
 });
@@ -62,13 +62,13 @@ test("os painéis de administração e profissional possuem rotas próprias", ()
 });
 
 test("o código enviado ao navegador não contém chave privilegiada do Supabase", () => {
-  const browserFiles = read("app.js") + "\\n" + read("index.html");
+  const browserFiles = read("app.js") + "\n" + read("index.html");
   assert.doesNotMatch(browserFiles, /SUPABASE_SERVICE_ROLE_KEY|service_role|BEGIN PRIVATE KEY/i);
 });
 
 test("a interface mantém recursos responsivos e os contatos oficiais", () => {
   const html = read("index.html");
-  const css = read("styles.css") + "\\n" + read("customer-layout.css");
+  const css = read("styles.css") + "\n" + read("customer-layout.css");
   assert.match(html, /@la_corte_oficial/);
   assert.match(html, /\(48\) 99942-6466/);
   assert.match(css, /@media/);
