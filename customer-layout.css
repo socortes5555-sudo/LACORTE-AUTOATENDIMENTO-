@@ -69,4 +69,11 @@ body:has(#entry-choice) #entry-choice .staff-portal-entry{color:#ccc}
   body:has(#entry-choice) #entry-choice .progress-step:not(.active) small{display:none}
 }
 @media(max-width:420px){body:has(#entry-choice) #entry-choice .connection-card{flex-direction:column!important;text-align:center}}
-@media(prefers-reduced-motion:reduce){body:has(#entry-choice) #entry-choice .hero-slide{animation:none!important}}
+/* Correções finais do autoatendimento: rodapé e acessibilidade. */
+body:has(#entry-choice-options) #entry-choice .site-footer .footer-meta{display:flex!important}
+body:has(#entry-choice-options) #entry-choice .site-footer .staff-portal-entry{display:inline-flex!important;align-items:center!important}
+body:has(#entry-choice-options) #entry-choice .site-footer .staff-portal-entry:focus-visible{outline:2px solid var(--lc-orange)!important;outline-offset:3px!important;border-radius:4px!important}
+body:has(#entry-choice) #entry-choice :is(a,button,input,select,textarea):focus-visible{outline:2px solid var(--lc-orange)!important;outline-offset:3px!important}
+@media(prefers-reduced-motion:reduce){
+  body:has(#entry-choice-options) #entry-choice-options .btn{transition:none!important}
+}
