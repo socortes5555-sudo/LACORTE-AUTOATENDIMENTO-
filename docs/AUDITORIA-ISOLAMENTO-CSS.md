@@ -1,38 +1,34 @@
-# LaCorte — auditoria inicial de isolamento visual
+# LaCorte — auditoria e isolamento de CSS
 
-Data: 2026-11-09
-Branch de trabalho: refactor/css-isolation-20261109
-Branch de produção preservada: main
+Data: 2026-11-09  
+Branch: `refactor/css-isolation-20261109`
 
-## Estado confirmado no repositório
-- styles.css: 350.246 caracteres, 5.893 linhas, 109 blocos @media, aproximadamente 2.993 blocos de regra e 2.656 ocorrências de !important.
-- index.html (totem/cliente) carrega styles.css e customer-layout.css.
-- barbeiros.html carrega o mesmo styles.css.
-- painel-admin-preview.html carrega o mesmo styles.css.
-- app.js concentra a lógica compartilhada; não deve ser reescrito durante a separação visual.
-- totem-inicio-preview.html não carrega folha de estilo própria no estado auditado.
-- Não existe package.json na raiz; não presumir que comandos npm estejam disponíveis.
-- Migrações Supabase, testes e ativos estão presentes e fora do escopo da refatoração visual.
+## Resultado desta etapa
 
-## Diagnóstico
-Os três ambientes principais compartilham uma folha global extensa. O CSS do cliente já foi parcialmente separado em customer-layout.css, mas ainda depende de styles.css. O arquivo compartilhado contém regras para cliente, administrador e profissional, além de correções históricas sobrepostas. Apenas criar novos arquivos sem migrar as regras e remover a dependência antiga não resolve o acoplamento.
+As três folhas de estilo foram reduzidas por escopo, removendo regras explicitamente pertencentes aos outros painéis:
 
-## Arquitetura-alvo
-- styles-base.css: tokens, reset, tipografia e componentes realmente compartilhados.
-- customer.css: somente autoatendimento do cliente.
-- barber.css: somente painel do profissional.
-- admin.css: somente painel administrativo.
-- Cada HTML carrega apenas a base e sua folha específica.
-- app.js, IDs, handlers, autenticação, integrações Supabase, dados e migrações permanecem inalterados nesta etapa.
+| Tela | Antes | Depois | Redução |
+|---|---:|---:|---:|
+| Cliente | 358.143 caracteres | 178.877 | 50% |
+| Barbeiros | 350.405 caracteres | 75.019 | 79% |
+| Administração | 351.847 caracteres | 155.310 | 56% |
 
-## Regras de segurança da migração
-1. Migrar em branch isolada; não substituir main durante a auditoria.
-2. Inventariar seletores e dependências por página antes de mover regras.
-3. Não apagar styles.css nem customer-layout.css até provar que nenhum HTML depende deles.
-4. Fazer a migração em etapas pequenas e revisar diffs.
-5. Validar sintaxe CSS, seletores órfãos, carregamento de cada página e regressões visuais em desktop, tablet e celular.
-6. Manter o Supabase e os dados de produção intocados.
-7. Só promover para main depois dos testes e da aprovação visual.
+## Arquitetura
 
-## Próxima etapa técnica
-Classificar os seletores do CSS atual por escopo (#entry-choice/cliente, .professional-dashboard/barbeiro, .admin-dashboard/admin e componentes globais), identificar regras genéricas compartilhadas e conflitos de ordem/especificidade. Em seguida, criar as quatro folhas-alvo e alterar os HTMLs para carregamento individual, sem remover o CSS legado até a validação final.
+- `index.html` carrega somente `customer.css`.
+- `barbeiros.html` carrega somente `barber.css`.
+- `painel-admin-preview.html` carrega somente `admin.css`.
+- `app.js` permanece compartilhado porque contém a lógica de negócio e os componentes dinâmicos dos painéis.
+- A folha legada `styles.css` e a folha complementar `customer-layout.css` não existem mais na branch.
+
+## Critério aplicado
+
+Foram removidos seletores explicitamente identificados como exclusivos de outra área: prefixos administrativos (`.admin-*`, `.lc-admin-*`, `.lc-queue-*`, `.manage-*`), profissionais (`.professional-*`, `.staff-shell`, componentes de pagamento do profissional) e componentes visuais exclusivos do totem (hero, showcase, membership, connection, QR e entrada do cliente). Regras globais e componentes de uso compartilhado foram preservados.
+
+## Limites da validação
+
+A alteração foi feita por análise estática dos seletores e dos nomes de classes usados pelo HTML e pelo JavaScript. A CI foi configurada para executar `node --check app.js` e `node --test tests/*.test.mjs` nesta branch. Ainda é necessária inspeção visual real nos três painéis, em tablet, celular e desktop, antes de promover para `main`.
+
+## Proteção de dados
+
+Nenhuma migration, tabela, registro, cliente, senha de fila, histórico, credencial ou configuração do Supabase foi alterada nesta limpeza.
