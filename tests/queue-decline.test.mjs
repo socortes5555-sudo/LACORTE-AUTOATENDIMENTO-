@@ -30,6 +30,7 @@ test("o barbeiro pode pular um cliente sem removê-lo nem mudar sua posição", 
   assert.match(sql, /private\.lacorte_start_service_internal/i);
   assert.match(sql, /Este cliente prefere aguardar outro profissional/i);
   assert.doesNotMatch(sql, /\b(drop table|truncate|delete from)\b/i);
+  assert.doesNotMatch(sql, /on delete cascade/i);
 });
 
 test("a recusa é gravada apenas pelo barbeiro autenticado e a tabela não permite escrita direta", () => {
