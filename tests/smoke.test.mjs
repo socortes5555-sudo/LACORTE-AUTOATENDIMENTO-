@@ -11,9 +11,11 @@ test("a página inicial carrega os arquivos essenciais e a marca", () => {
   const html = read("index.html");
   assert.ok(existsSync(join(root, "app.js")));
   assert.ok(existsSync(join(root, "styles.css")));
+  assert.ok(existsSync(join(root, "customer-layout.css")));
   assert.ok(existsSync(join(root, "assets/lacorte-logo.svg")));
   assert.match(html, /src=["']app\.js\?v=/);
   assert.match(html, /href=["']styles\.css\?v=/);
+  assert.match(html, /href=["']customer-layout\.css\?v=/);
   assert.match(html, /assets\/lacorte-logo\.svg/);
 });
 
@@ -21,7 +23,7 @@ test("o totem oferece cadastro, retorno e revisão antes de entrar na fila", () 
   const html = read("index.html");
   const app = read("app.js");
   for (const id of ["step-content", "step-actions", "demo-notice"]) {
-    assert.match(html, new RegExp(`id=[\"']${id}[\"']`));
+    assert.match(html, new RegExp(`id=["']${id}["']`));
   }
   for (const fn of [
     "renderLogin",
@@ -40,7 +42,7 @@ test("o totem oferece cadastro, retorno e revisão antes de entrar na fila", () 
 test("o cliente não escolhe o barbeiro e a chamada permite manter a senha aguardando", () => {
   const app = read("app.js");
   assert.match(app, /Fila compartilhada/);
-  assert.match(app, /NÃO ACEITOU \/ MANTER NA FILA/);
+  assert.ok(app.includes("NÃO ACEITOU / MANTER NA FILA"));
   assert.match(app, /data-decline/);
   assert.match(app, /row\.status === ["']waiting["'] && !row\.barber_id/);
 });
@@ -70,4 +72,29 @@ test("a interface mantém recursos responsivos e os contatos oficiais", () => {
   assert.match(html, /@la_corte_oficial/);
   assert.match(html, /\(48\) 99942-6466/);
   assert.match(css, /@media/);
+});
+
+test("o layout do totem preserva a identidade original e reserva a galeria sem imagens genéricas", () => {
+  const html = read("index.html");
+  const css = read("customer-layout.css");
+  assert.match(html, /assets\/lacorte-logo\.svg/);
+  assert.match(html, /class=["']customer-gallery-slot["']/);
+  assert.match(html, /Suas imagens poderão ser adicionadas aqui/);
+  assert.doesNotMatch(html + css, /unsplash|images\.unsplash/i);
+  assert.match(css, /\.entry-choice/);
+  assert.match(css, /\.customer-gallery-slot/);
+});
+
+test("o layout do cliente contempla celular, tablet e movimento reduzido", () => {
+  const css = read("customer-layout.css");
+  assert.match(css, /@media\(max-width:760px\)/);
+  assert.match(css, /@media\(max-width:540px\)/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /:focus-visible/);
+});
+
+test("a senha da rede Wi-Fi não fica exposta no HTML público", () => {
+  const html = read("index.html");
+  assert.doesNotMatch(html, /WIFI:T:WPA;|P:[^;]{8,};;/);
+  assert.match(html, /Solicite a senha à nossa equipe/);
 });
