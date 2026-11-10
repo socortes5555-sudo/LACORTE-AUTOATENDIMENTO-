@@ -2,7 +2,7 @@
 -- A senha permanece em status waiting e conserva o número original da fila.
 
 create table if not exists public.lacorte_queue_declines (
-  queue_id uuid not null references public.lacorte_queue(id) on delete cascade,
+  queue_id uuid not null references public.lacorte_queue(id) on delete restrict,
   barber_id text not null references public.barbers(id) on delete restrict,
   declined_at timestamptz not null default now(),
   primary key (queue_id, barber_id)
