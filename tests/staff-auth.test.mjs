@@ -51,3 +51,16 @@ test('todos os recursos locais referenciados existem',()=>{
   }
  }
 });
+
+test('o código confirma o e-mail antes de pedir uma senha',async()=>{
+ const events=[];let submit;
+ const button={};const status={};
+ const controls={'#staff-otp':{value:'123456'},'button[type="submit"]':button,'#staff-verify-message':status};
+ const form={addEventListener:(name,handler)=>submit=handler,querySelector:selector=>controls[selector]||{addEventListener(){}}};
+ const ctx={state:{},URLSearchParams,safe:v=>v||'',setAppMode(){},setHeader(){},notice:{},content:{querySelector:()=>form},actions:{replaceChildren(){}},bindPasswordVisibility(){},
+ db:{auth:{verifyOtp:async()=>{events.push('verify');return {data:{user:{id:'fixture'}}}}},from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{role:'barber'}})})})})},renderStaffPasswordOnly:()=>events.push('password')};
+ vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('function renderStaffPasswordVerification('),app.indexOf('function renderStaffPasswordOnly(')),ctx);
+ ctx.renderStaffPasswordVerification('fixture@example.test');
+ assert.doesNotMatch(ctx.content.innerHTML,/staff-new-password|staff-confirm-password/);
+ await submit({preventDefault(){}});assert.deepEqual(events,['verify','password']);
+});

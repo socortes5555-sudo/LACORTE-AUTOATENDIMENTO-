@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
       current_email: email,
       code_sent: !codeError,
       message: codeError
-        ? "Profissional cadastrado. Não foi possível enviar o código agora. Ele pode solicitar o código em PRIMEIRO ACESSO? CRIAR MINHA SENHA."
+        ? "Profissional cadastrado. Não foi possível enviar a confirmação agora. Ele pode solicitar a confirmação em PRIMEIRO ACESSO? CRIAR MINHA SENHA."
         : "Profissional cadastrado e confirmação enviada ao e-mail informado. Na área profissional, ele deve usar PRIMEIRO ACESSO? CRIAR MINHA SENHA, confirmar o e-mail e definir a própria senha.",
     });
   }
@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
   if (targetUser.user.email?.toLowerCase() === email) {
     const { error: codeError } = await authClient.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: "https://socortes5555-sudo.github.io/LACORTE-AUTOATENDIMENTO-/barbeiros.html?setup=1" } });
     return reply(200, { current_email: email, code_sent: !codeError,
-      message: codeError ? "Este e-mail já está cadastrado. Solicite o código em PRIMEIRO ACESSO? CRIAR MINHA SENHA." : "Confirmação enviada ao e-mail cadastrado. O profissional pode confirmar o e-mail e criar a senha pelo primeiro acesso." });
+      message: codeError ? "Este e-mail já está cadastrado. Solicite a confirmação em PRIMEIRO ACESSO? CRIAR MINHA SENHA." : "Confirmação enviada ao e-mail cadastrado. O profissional pode confirmar o e-mail e criar a senha pelo primeiro acesso." });
   }
 
   const { error: updateError } = await admin.auth.admin.updateUserById(targetRole.user_id, {
@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
   if (updateError) return reply(400, { error: "Não foi possível trocar o e-mail: " + updateError.message });
 
   return reply(200, {
-    message: "E-mail atualizado. O Barbeiro 2 deverá usar PRIMEIRO ACESSO? CRIAR MINHA SENHA na tela profissional para receber o código neste endereço e cadastrar a própria senha.",
+    message: "E-mail atualizado. O Barbeiro 2 deverá usar PRIMEIRO ACESSO? CRIAR MINHA SENHA na tela profissional para receber a confirmação neste endereço e cadastrar a própria senha.",
     current_email: email,
   });
 });

@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
 const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false, flowType: "implicit" } }) : null;
-const STAFF_PORTAL = /\/(?:barbeiros|painel-admin-preview)(?:\.html)?\/?$/i.test(window.location.pathname);
+const STAFF_PORTAL = /\/barbeiros(?:\.html)?\/?$/i.test(window.location.pathname);
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -23,8 +23,7 @@ const services = [
 
 const barbers = [
   {id:"barbeiro-1",name:"Barbeiro 01",available:true},
-  {id:"barbeiro-2",name:"Barbeiro 02",available:true},
-  {id:"barbeiro-3",name:"Barbeiro 03",available:false}
+  {id:"barbeiro-2",name:"Barbeiro 02",available:true}
 ];
 
 const state = {
@@ -441,93 +440,6 @@ function renderConfirmation(){
   setActions(function(){state.step=3;renderServices();},submitQueueEntry,"ENTRAR NA FILA",state.submitting);
 }
 
-async function loadCustomer(user){
-  state.user=user;
-
-  const {data,error}=await db
-    .from("customers")
-    .select("*")
-    .eq("user_id",user.id)
-    .maybeSingle();
-
-  if(error){
-    state.message="Erro ao consultar cadastro: "+error.message;
-    state.step=2;
-    render();
-    return;
-  }
-
-  state.customer=data;
-  state.customerPlan=null;
-  state.customerPlanBenefits=[];
-
-  if(data){
-    const planResult = await db.from("lacorte_customer_plans")
-      .select("*")
-      .eq("customer_id",data.id)
-      .order("created_at",{ascending:false})
-      .limit(1)
-      .maybeSingle();
-    if(planResult.error){
-      state.message="Não foi possível consultar seu plano: "+planResult.error.message;
-    } else if(planResult.data){
-      state.customerPlan=planResult.data;
-      if(planResult.data.plan_id){
-        const benefitResult=await db.from("lacorte_plans")
-          .select("benefits")
-          .eq("id",planResult.data.plan_id)
-          .maybeSingle();
-        if(!benefitResult.error && benefitResult.data && Array.isArray(benefitResult.data.benefits)){
-          state.customerPlanBenefits=benefitResult.data.benefits;
-        }
-      }
-    }
-    state.step=3;
-  }else{
-    state.step=2;
-  }
-
-  if(!state.message) state.message="";
-  render();
-}
-
-async function init(){
-  if(!window.supabase){
-    content.textContent="Não foi possível carregar a conexão com o Supabase.";
-    return;
-  }
-
-  const {data,error}=await db.auth.getSession();
-
-  if(error){
-    state.message="Erro ao verificar acesso: "+error.message;
-  }
-
-  if(data.session){
-    await loadCustomer(data.session.user);
-  }else{
-    render();
-  }
-
-  db.auth.onAuthStateChange(async(event,session)=>{
-    if(event==="SIGNED_IN"&&session){
-      await loadCustomer(session.user);
-    }
-
-    if(event==="SIGNED_OUT"){
-      state.user=null;
-      state.customer=null;
-      state.selectedServices=[];
-      state.step=1;
-      render();
-    }
-  });
-}
-
-// init(); // substituído pelo roteamento por perfil abaixo
-
-
-
 // ===== LA CORTE: roteamento por perfil e fila real =====
 state.role = null;
 state.barberId = null;
@@ -862,7 +774,8 @@ async function routeAuthenticatedUser(user){
     showMessage(error.message);
     return;
   }
-  await loadCustomer(user);
+  state.step = 1;
+  renderLogin();
 }
 
 async function submitQueueEntry(){
@@ -1060,16 +973,16 @@ function renderStaffPasswordSetup(initialEmail,message){
   setAppMode(false);
   setHeader("PRIMEIRO ACESSO","Criar senha profissional","Confirme seu e-mail e defina a senha que usará nos próximos acessos.");
   notice.textContent = "Enviaremos a confirmação para o e-mail cadastrado. Use o código recebido ou abra o link do e-mail para criar sua senha.";
-  content.innerHTML = '<form id="staff-password-setup" class="staff-login-form"><label for="staff-setup-email">E-mail profissional cadastrado</label><input id="staff-setup-email" type="email" autocomplete="email" value="'+safe(initialEmail||"")+'" placeholder="Seu e-mail cadastrado" required><p id="staff-setup-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENVIAR CÓDIGO DE CONFIRMAÇÃO</button><button class="btn btn-secondary" id="staff-setup-back" type="button">VOLTAR AO LOGIN</button></form>';
+  content.innerHTML = '<form id="staff-password-setup" class="staff-login-form"><label for="staff-setup-email">E-mail profissional cadastrado</label><input id="staff-setup-email" type="email" autocomplete="email" value="'+safe(initialEmail||"")+'" placeholder="Seu e-mail cadastrado" required><p id="staff-setup-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENVIAR CONFIRMAÇÃO POR E-MAIL</button><button class="btn btn-secondary" id="staff-setup-back" type="button">VOLTAR AO LOGIN</button></form>';
   actions.replaceChildren();
   const form=content.querySelector("#staff-password-setup");
   form.addEventListener("submit",async function(event){
     event.preventDefault();
     const email=form.querySelector("#staff-setup-email").value.trim().toLowerCase();
     const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-setup-message");
-    button.disabled=true;status.textContent="Enviando código para seu e-mail...";
+    button.disabled=true;status.textContent="Enviando confirmação para seu e-mail...";
     const sent=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:new URL("barbeiros.html?setup=1",window.location.href).href}});
-    if(sent.error){status.textContent="Não foi possível enviar o código. Confira o e-mail cadastrado e tente novamente. "+sent.error.message;button.disabled=false;return;}
+    if(sent.error){status.textContent="Não foi possível enviar a confirmação. Confira o e-mail cadastrado e tente novamente. "+sent.error.message;button.disabled=false;return;}
     renderStaffPasswordVerification(email);
   });
   form.querySelector("#staff-setup-back").addEventListener("click",function(){renderStaffLogin();});
@@ -1077,21 +990,17 @@ function renderStaffPasswordSetup(initialEmail,message){
 
 function renderStaffPasswordVerification(email,message){
   setAppMode(false);
-  setHeader("CONFIRMAR E-MAIL","Definir sua senha","Use o código recebido e escolha sua senha. Se o e-mail tiver um botão de confirmação, abra-o para criar a senha diretamente.");
-  notice.textContent = "O código confirma que você tem acesso à caixa de e-mail profissional.";
-  content.innerHTML = '<form id="staff-password-verify" class="staff-login-form"><label for="staff-otp">Código recebido por e-mail</label><input id="staff-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required><label for="staff-new-password">Criar senha (mínimo 8 caracteres)</label>'+passwordField("staff-new-password","Criar senha","new-password","Mínimo 8 caracteres")+'<label for="staff-confirm-password">Confirmar senha</label>'+passwordField("staff-confirm-password","Confirmar senha","new-password","Repita a senha")+'<p id="staff-verify-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR E SALVAR SENHA</button><button class="btn btn-secondary" id="staff-resend-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="staff-verify-back" type="button">VOLTAR AO LOGIN</button></form>';
+  setHeader("CONFIRMAÇÃO ENVIADA","Confira seu e-mail","Abra o botão de confirmação no e-mail da LaCorte. Você será levado à criação da sua senha profissional.");
+  notice.textContent = "Confira também o spam. Se o e-mail trouxer um código numérico, você pode confirmá-lo abaixo.";
+  content.innerHTML = '<form id="staff-password-verify" class="staff-login-form"><label for="staff-otp">Código recebido por e-mail</label><input id="staff-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required><p id="staff-verify-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR CÓDIGO</button><button class="btn btn-secondary" id="staff-resend-code" type="button">REENVIAR CONFIRMAÇÃO</button><button class="btn btn-secondary" id="staff-verify-back" type="button">VOLTAR AO LOGIN</button></form>';
   actions.replaceChildren();
   const form=content.querySelector("#staff-password-verify");
   bindPasswordVisibility(form);
   form.addEventListener("submit",async function(event){
     event.preventDefault();
     const token=form.querySelector("#staff-otp").value.trim();
-    const password=form.querySelector("#staff-new-password").value;
-    const confirmation=form.querySelector("#staff-confirm-password").value;
     const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-verify-message");
     if(!/^[0-9]{6}$/.test(token)){status.textContent="Digite o código de 6 números recebido.";return;}
-    if(password.length<8){status.textContent="A senha precisa ter pelo menos 8 caracteres.";return;}
-    if(password!==confirmation){status.textContent="As senhas não conferem.";return;}
     button.disabled=true;status.textContent="Confirmando seu e-mail...";
     const verified=await db.auth.verifyOtp({email:email,token:token,type:"email"});
     if(verified.error){status.textContent="Código inválido ou expirado. Solicite outro código e tente novamente.";button.disabled=false;return;}
@@ -1104,12 +1013,9 @@ function renderStaffPasswordVerification(email,message){
       renderStaffLogin("Este e-mail não está autorizado como conta profissional. Peça ao administrador para conferir o cadastro.");
       return;
     }
-    status.textContent="Salvando sua senha...";
-    const saved=await db.auth.updateUser({password:password});
-    if(saved.error){renderStaffPasswordOnly(saved.error.message);return;}
-    await routeAuthenticatedUser(saved.data.user||user);
+    renderStaffPasswordOnly();
   });
-  form.querySelector("#staff-resend-code").addEventListener("click",function(){renderStaffPasswordSetup(email,"Solicite um novo código para este e-mail.");});
+  form.querySelector("#staff-resend-code").addEventListener("click",function(){renderStaffPasswordSetup(email,"Solicite uma nova confirmação para este e-mail.");});
   form.querySelector("#staff-verify-back").addEventListener("click",function(){db.auth.signOut({scope:"local"}).then(function(){renderStaffLogin();});});
 }
 
@@ -1128,8 +1034,10 @@ function renderStaffPasswordOnly(message){
     const status=form.querySelector("#staff-password-only-message");
     if(password.length<8){status.textContent="A senha precisa ter pelo menos 8 caracteres.";return;}
     if(password!==confirm){status.textContent="As senhas não conferem.";return;}
+    const button=form.querySelector('button[type="submit"]');
+    button.disabled=true;
     const result=await db.auth.updateUser({password:password});
-    if(result.error){status.textContent="Não foi possível salvar a senha: "+result.error.message;return;}
+    if(result.error){status.textContent="Não foi possível salvar a senha: "+result.error.message;button.disabled=false;return;}
     await routeAuthenticatedUser(result.data.user);
   });
 }
