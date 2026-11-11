@@ -87,6 +87,16 @@ O painel administrativo contempla filtros por período e indicadores como:
 
 Os valores financeiros devem ser interpretados conforme os atendimentos efetivamente concluídos e os registros persistidos no banco.
 
+## Instalação como aplicativo (PWA)
+
+O sistema LaCorte pode ser instalado como aplicativo **sem reconstruir os painéis** e sem criar banco de dados separado. O aplicativo é online: internet é necessária para login, fila, atendimentos e relatórios.
+
+- **Totem / cliente:** abra o endereço principal no Chrome/Edge e use **Instalar aplicativo**; no iPhone/iPad, use **Compartilhar → Adicionar à Tela de Início**. A entrada instalada abre o autoatendimento.
+- **Equipe / administrador:** abra `barbeiros.html` no navegador e instale a entrada **LaCorte Equipe** da mesma maneira. O profissional continua fazendo login com e-mail e senha, e suas permissões não mudam.
+- **Computador:** no Chrome/Edge, use a opção de instalar o aplicativo na barra de endereço ou no menu do navegador.
+
+A configuração de instalação está em `manifest.webmanifest` e `manifest-profissionais.webmanifest`, com ícones oficiais em `assets/lacorte-app-192.png` e `assets/lacorte-app-512.png`. O service worker não armazena clientes, sessões nem relatórios em cache. A atualização do site continua disponível normalmente e os dados permanecem online no Supabase.
+
 ## Publicação
 
 Aplicação publicada em:

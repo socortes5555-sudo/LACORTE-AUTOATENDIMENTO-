@@ -1,0 +1,33 @@
+{
+  "id": "./",
+  "name": "LaCorte — Autoatendimento",
+  "short_name": "LaCorte",
+  "description": "Autoatendimento presencial e fila da Barbearia LaCorte.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090909",
+  "theme_color": "#090909",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "assets/lacorte-app-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/lacorte-app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/lacorte-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "prefer_related_applications": false
+}
