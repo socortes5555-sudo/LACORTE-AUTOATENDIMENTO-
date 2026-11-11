@@ -1368,7 +1368,6 @@ function adminNavigation(){
     navItem("manage","Gestão","♙")+
     navItem("customers","Clientes","♧")+
     navItem("services","Serviços","✂")+
-    navItem("plans","Planos","▣")+
     navItem("reports","Relatórios","▥")+
     '<div class="admin-nav-footer"><span class="admin-online-dot"></span> Sistema operacional</div></aside>';
 }
@@ -1525,7 +1524,8 @@ async function renderAdminManagement(){
     html += '<div class="' + workspaceClass + '"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>' +
       workspaceTitle + '</h2><p class="muted">' + workspaceDescription +
       '</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
-      tabsMarkup + '</nav>';
+      tabsMarkup + '</nav>' +
+      (!servicesOnly ? '<div class="manage-secondary-action"><button type="button" class="btn btn-secondary" data-open-admin-plans>GERENCIAR PLANOS E ASSINATURAS</button></div>' : '');
     if(!servicesOnly){
       html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><h3>ACESSO DO BARBEIRO 2</h3><p class="muted">Atualize o e-mail profissional vinculado ao acesso do segundo barbeiro. O administrador permanece separado.</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><form id="barber-access-form" class="admin-form"><label for="barber-access-email">Novo e-mail profissional</label><input id="barber-access-email" name="email" type="email" required autocomplete="email" placeholder="barbeiro@exemplo.com"><button class="btn btn-primary" type="submit">ATUALIZAR ACESSO</button><p id="barber-access-message" class="muted" role="status"></p></form></section></div>';
       html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome do barbeiro</label><input name="name" required maxlength="80" placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
@@ -1561,6 +1561,8 @@ async function renderAdminManagement(){
       });
     });
     bindAdminNavigation();
+    const plansShortcut = content.querySelector("[data-open-admin-plans]");
+    if(plansShortcut) plansShortcut.addEventListener("click", function(){ adminView = "plans"; renderAdminPlans(); });
     content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
       tab.addEventListener("click", function(){
         const selected = tab.dataset.manageTab;
