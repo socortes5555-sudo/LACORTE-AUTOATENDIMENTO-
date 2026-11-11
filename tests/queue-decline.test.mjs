@@ -50,3 +50,11 @@ test("a RPC pública usa SECURITY INVOKER e delega a operação privilegiada ao 
   assert.match(sql, /grant execute on function private\.lacorte_decline_queue_entry_internal\(uuid\) to authenticated/i);
   assert.doesNotMatch(sql, /grant execute on function public\.lacorte_decline_queue_entry\(uuid\) to anon/i);
 });
+
+
+test("o painel administrativo identifica os barbeiros que já pularam uma senha", () => {
+  assert.match(app, /const declinedBarberNames = \\(row\\.declinedBarberIds \\|\\| \\[\\]\\)\\.map/);
+  assert.match(app, /admin && row\\.status === "waiting" && declinedBarberNames\\.length/);
+  assert.match(app, /Profissionais que já pularam/);
+  assert.match(app, /declinedBarberNames\\.map\\(safe\\)\\.join/);
+});
