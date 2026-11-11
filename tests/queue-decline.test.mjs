@@ -53,8 +53,8 @@ test("a RPC pública usa SECURITY INVOKER e delega a operação privilegiada ao 
 
 
 test("o painel administrativo identifica os barbeiros que já pularam uma senha", () => {
-  assert.match(app, /const declinedBarberNames = \\(row\\.declinedBarberIds \\|\\| \\[\\]\\)\\.map/);
-  assert.match(app, /admin && row\\.status === "waiting" && declinedBarberNames\\.length/);
+  assert.match(app, /const declinedBarberNames = \(row\.declinedBarberIds \|\| \[\]\)\.map/);
+  assert.match(app, /admin && row\.status === "waiting" && declinedBarberNames\.length/);
   assert.match(app, /Profissionais que já pularam/);
-  assert.match(app, /declinedBarberNames\\.map\\(safe\\)\\.join/);
+  assert.match(app, /declinedBarberNames\.map\(safe\)\.join/);
 });
