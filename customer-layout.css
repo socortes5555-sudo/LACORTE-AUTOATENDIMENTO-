@@ -577,8 +577,6 @@ body:has(#entry-choice) #entry-choice .footer-meta{
   color:#aaa;
   font-size:11px;
 }
-body:has(#entry-choice) #entry-choice .staff-portal-entry{color:#ddd}
-body:has(#entry-choice) #entry-choice .staff-portal-entry:hover{color:var(--lc-orange)}
 #entry-choice .panel:has(#entry-choice-options) .panel-heading,
 #entry-choice .panel:has(#entry-choice-options) .actions,
 #entry-choice #app-message:empty{display:none}
@@ -608,6 +606,27 @@ body:has(#entry-choice) #entry-choice:has(#entry-choice-options)>.progress{displ
   body:has(#entry-choice) .topbar .brand{margin:0 auto}
   body:has(#entry-choice) .topbar .top-label{display:none}
   body:has(#entry-choice) #entry-choice .site-footer{text-align:center}
+  /* Somente celular: mostra o jacaré oficial centralizado na tela inicial. */
+  #entry-choice:has(#entry-choice-options) .reference-art{
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+    width:100%;
+    min-height:clamp(140px,30svh,240px);
+  }
+  #entry-choice:has(#entry-choice-options) .reference-logo{
+    position:relative;
+    inset:auto;
+    display:block;
+    width:min(82vw,340px);
+    height:clamp(130px,28svh,225px);
+    aspect-ratio:auto;
+    transform:none;
+    background:url("assets/lacorte-jacare-mobile.svg") center / contain no-repeat;
+    mix-blend-mode:normal;
+    -webkit-mask-image:none;
+    mask-image:none;
+  }
 }
 @media(prefers-reduced-motion:reduce){
   body:has(#entry-choice) *,

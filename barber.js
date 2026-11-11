@@ -45,7 +45,7 @@ function bindProfessionalNavigation(){
 function mountBarberHeader(){
   const header=document.querySelector('.topbar');
   header.dataset.barberHeader='1';
-  header.innerHTML=(["payment","profile"].includes(professionalView)?'<button type="button" class="barber-header-back" aria-label="Voltar à fila">'+barberIcon("left")+'</button>':'')+'<a class="barber-home-link" href="./" aria-label="Voltar ao painel inicial do cliente"><img class="brand-logo" src="assets/lacorte-logo.svg" alt="LaCorte Barbershop"></a>'+
+  header.innerHTML=(["payment","profile"].includes(professionalView)?'<button type="button" class="barber-header-back" aria-label="Voltar à fila">'+barberIcon("left")+'</button>':'')+'<span class="barber-brand"><img class="brand-logo" src="assets/lacorte-logo.svg" alt="LaCorte Barbershop"></span>'+
     '<button class="barber-header-profile" type="button" data-professional-view="profile" aria-label="Abrir meu perfil">'+barberProfileAvatar()+'</button>';
   const back=header.querySelector('.barber-header-back');if(back) back.onclick=renderBarberQueue;
 }

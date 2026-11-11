@@ -95,7 +95,7 @@ O sistema LaCorte pode ser instalado como aplicativo **sem reconstruir os painé
 - **Equipe / administrador:** abra `barbeiros.html` no navegador e instale a entrada **LaCorte Equipe** da mesma maneira. O profissional continua fazendo login com e-mail e senha, e suas permissões não mudam.
 - **Computador:** no Chrome/Edge, use a opção de instalar o aplicativo na barra de endereço ou no menu do navegador.
 
-A configuração de instalação está em `manifest.webmanifest` e `manifest-profissionais.webmanifest`, com ícones oficiais em `assets/lacorte-app-192.png` e `assets/lacorte-app-512.png`. O service worker não armazena clientes, sessões nem relatórios em cache. A atualização do site continua disponível normalmente e os dados permanecem online no Supabase.
+A configuração de instalação está em `manifest.webmanifest` e `manifest-profissionais.webmanifest`, com ícones oficiais em `assets/lacorte-app-v3-192.png` e `assets/lacorte-app-v3-512.png`. O service worker não armazena clientes, sessões nem relatórios em cache. A atualização do site continua disponível normalmente e os dados permanecem online no Supabase.
 
 ## Publicação
 

@@ -10,11 +10,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="LaCorte Equipe">
   <link rel="manifest" href="manifest-profissionais.webmanifest">
-  <link rel="apple-touch-icon" href="assets/lacorte-app-v2-192.png">
+  <link rel="apple-touch-icon" href="assets/lacorte-app-v3-192.png">
   <title>LaCorte | Área Profissional</title>
   <link id="staff-login-styles" rel="stylesheet" href="staff-login.css?v=staff-return-57">
   <link id="staff-default-styles" rel="stylesheet" href="admin-layout.css?v=admin-design-58" media="not all">
-  <link id="barber-styles" rel="stylesheet" href="barber-layout.css?v=staff-return-57" media="not all">
+  <link id="barber-styles" rel="stylesheet" href="barber-layout.css?v=staff-nav-clean-61" media="not all">
 </head>
 <body class="staff-portal">
   <header class="topbar">
@@ -42,13 +42,12 @@
       <div class="notice" id="demo-notice">Acesso exclusivo para barbeiros e administrador. O cliente deve utilizar o autoatendimento.</div>
       <div class="actions" id="step-actions"></div>
     </section>
-    <footer class="staff-return"><a class="staff-return-link" href="./">← Voltar ao painel inicial do cliente</a></footer>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
   <script>
     if (!window.supabase) document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.119.0"><\/script>');
   </script>
-  <script src="barber.js?v=staff-return-57"></script>
+  <script src="barber.js?v=staff-nav-clean-61"></script>
   <script src="admin.js?v=admin-design-58"></script>
   <script src="app.js?v=staff-access-60"></script>
   <script src="pwa.js?v=pwa-1" defer></script>
