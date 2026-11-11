@@ -606,6 +606,20 @@ body:has(#entry-choice) #entry-choice:has(#entry-choice-options)>.progress{displ
   body:has(#entry-choice) .topbar .brand{margin:0 auto}
   body:has(#entry-choice) .topbar .top-label{display:none}
   body:has(#entry-choice) #entry-choice .site-footer{text-align:center}
+  /* Arte de FUNDO da tela inicial: jacaré visível, ligeiramente à direita da logo.
+     Apenas celular; tablet e desktop mantêm o fundo original. */
+  #entry-choice.shell:has(#entry-choice-options):not(.custom-totem-background)::before{
+    inset:0;
+    background:
+      linear-gradient(180deg,rgba(9,9,9,.12),rgba(9,9,9,.35) 55%,rgba(9,9,9,.78)),
+      url("assets/totem-cena.svg") calc(50% + 150px) 22% / auto clamp(205px,42svh,320px) no-repeat;
+    -webkit-mask-image:none;
+    mask-image:none;
+    opacity:.9;
+  }
+  #entry-choice.shell:has(#entry-choice-options):not(.custom-totem-background)::after{
+    content:none;
+  }
   /* Celular: a logo OFICIAL completa, centralizada, sem recorte ou máscara. */
   #entry-choice:has(#entry-choice-options) .hero-home{
     align-items:center;
