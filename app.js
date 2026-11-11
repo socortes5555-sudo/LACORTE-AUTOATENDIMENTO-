@@ -584,6 +584,10 @@ function renderQueueDashboard(){
       const customer = row.customer || {};
       const name = (customer.first_name || "Cliente") + " " + (customer.last_name || "");
       const barber = barbers.find(function(item){ return item.id === row.barber_id; });
+      const declinedBarberNames = (row.declinedBarberIds || []).map(function(id){
+        const declinedBarber = barbers.find(function(item){ return item.id === id; });
+        return declinedBarber ? declinedBarber.name : "Profissional indisponível";
+      });
       const serviceText = row.items.map(function(item){
         return safe(item.service_name) + " (" + money(Number(item.unit_price)) + ")";
       }).join(", ") || "—";
@@ -605,6 +609,10 @@ function renderQueueDashboard(){
         serviceText + '</strong></div>' +
         '<div class="summary-row"><span>Status</span><strong>' +
         statusLabel(row.status) + '</strong></div>' +
+        (admin && row.status === "waiting" && declinedBarberNames.length
+          ? '<div class="summary-row"><span>Profissionais que já pularam (' + declinedBarberNames.length + ')</span><strong>' +
+            declinedBarberNames.map(safe).join(", ") + '</strong></div>'
+          : '') +
         (row.barber_id
           ? '<div class="summary-row"><span>Responsável</span><strong>' +
             safe(barber ? barber.name : row.barber_id) + '</strong></div>'
