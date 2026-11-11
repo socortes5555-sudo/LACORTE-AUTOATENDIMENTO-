@@ -32,6 +32,9 @@ const state = {
   user:null,
   customer:null,
   selectedServices:[],
+  participants:[],
+  activeParticipant:0,
+  queueRequestId:null,
   message:"",
   customerPlan:null,
   customerPlanBenefits:[],
@@ -43,7 +46,7 @@ const actions = document.querySelector("#step-actions");
 const notice = document.querySelector("#demo-notice");
 
 let customerAutoLogoutTimer = null;
-const CUSTOMER_AUTO_LOGOUT_MS = 10 * 1000;
+const CUSTOMER_AUTO_LOGOUT_MS = 5 * 1000;
 
 function clearCustomerAutoLogout(){
   if(customerAutoLogoutTimer !== null){
@@ -143,9 +146,21 @@ function render(){
 }
 
 function renderLogin(){
+  clearKioskSelection();
   state.step=1;
   setHeader("AUTOATENDIMENTO LACORTE","Bem-vindo à LaCorte","Cadastre-se uma única vez ou localize seu cadastro.");
-  content.innerHTML = '<div class="entry-choice" id="entry-choice-options"><button class="btn btn-primary" id="start-registration" type="button"><span class="choice-title">NOVO <em>CADASTRO</em></span><span class="choice-desc">Cadastre-se para acessar nossa fila e aproveitar nossos serviços.</span></button><button class="btn btn-secondary" id="start-returning" type="button"><span class="choice-title">JÁ TENHO <em>CADASTRO</em></span><span class="choice-desc">Acesse seu cadastro rapidamente.</span></button></div><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p>';
+  content.innerHTML = `<div class="entry-choice" id="entry-choice-options">
+    <article class="entry-card">
+      <div class="choice-title">NOVO <em>CADASTRO</em></div>
+      <p>Cadastre-se para acessar nossa fila.</p>
+      <button class="btn btn-primary" id="start-registration" type="button">Cadastrar</button>
+    </article>
+    <article class="entry-card">
+      <div class="choice-title">JÁ TENHO <em>CADASTRO</em></div>
+      <p>Acesse seu cadastro rapidamente.</p>
+      <button class="btn btn-primary" id="start-returning" type="button">Entrar</button>
+    </article>
+  </div><p id="app-message" class="muted" role="status">${safe(state.message)}</p>`;
   actions.replaceChildren();
   document.querySelector("#start-registration").addEventListener("click",renderProfile);
   document.querySelector("#start-returning").addEventListener("click",renderReturningCustomerLookup);
@@ -214,7 +229,40 @@ async function kioskRequest(payload){
   return result.data;
 }
 
-async function continueKioskCustomer(result){
+const KIOSK_SELECTION_KEY = "lacorte-service-selection";
+
+function clearKioskSelection(){
+  try{ sessionStorage.removeItem(KIOSK_SELECTION_KEY); }catch(_){}
+}
+
+function rememberKioskSelection(){
+  const { customer, lookupToken, selectedServices } = state;
+  if(STAFF_PORTAL || !customer || !lookupToken) return;
+  try{
+    sessionStorage.setItem(KIOSK_SELECTION_KEY, JSON.stringify({
+      customer: { first_name:customer.first_name, last_name:customer.last_name, phone:customer.phone },
+      lookup_token:lookupToken,
+      selectedIds:selectedServices.map(service => service.id),
+      participants:state.participants.map(person => ({
+        name:person.name,service_ids:person.services.map(service => service.id)
+      })),
+      activeParticipant:state.activeParticipant,
+      requestId:state.queueRequestId,
+      expiresAt:Math.min(Date.now() + 120000, Number(lookupToken.split(".")[1]))
+    }));
+  }catch(_){}
+}
+
+function takeKioskSelectionForReload(){
+  let selection;
+  try{ selection = JSON.parse(sessionStorage.getItem(KIOSK_SELECTION_KEY)); }catch(_){}
+  clearKioskSelection();
+  if(performance.getEntriesByType("navigation")[0]?.type !== "reload") return null;
+  if(!selection?.customer || !selection.lookup_token || !(selection.expiresAt > Date.now())) return null;
+  return selection;
+}
+
+async function continueKioskCustomer(result, selectedIds = [], savedSelection = {}){
   if(!result||!result.customer||!result.lookup_token) throw new Error("Não foi possível validar seu cadastro. Tente novamente.");
   state.customer=result.customer;
   state.lookupToken=result.lookup_token;
@@ -230,8 +278,28 @@ async function continueKioskCustomer(result){
     state.customerPlanBenefits=Array.isArray(planResult.benefits)?planResult.benefits:[];
   }catch(_){}
   await loadCatalogs();
+  const savedPeople = Array.isArray(savedSelection.participants) ? savedSelection.participants.slice(0,6) :
+    [{name:"",service_ids:selectedIds}];
+  state.participants = savedPeople.map((person,index) => ({
+    name:index === 0 ? ((state.customer.first_name||"")+" "+(state.customer.last_name||"")).trim() :
+      String(person.name||"").slice(0,100),
+    services:services.filter(service => Array.isArray(person.service_ids) && person.service_ids.includes(service.id))
+  }));
+  if(!state.participants.length) state.participants.push({name:state.customer.first_name,services:[]});
+  state.activeParticipant = Math.max(0,Math.min(state.participants.length-1,Number(savedSelection.activeParticipant)||0));
+  state.queueRequestId = savedSelection.requestId || crypto.randomUUID();
+  state.selectedServices = state.participants[0].services;
+  const lookupToken = state.lookupToken;
+  totemPromotions = [];
   state.step=3;
   render();
+  void loadTotemPromotions(true).then(function(promotions){
+    if(state.lookupToken !== lookupToken) return;
+    totemPromotions = promotions;
+    if(state.step === 3) renderServices();
+  }).catch(function(error){
+    console.warn("Não foi possível carregar as promoções do totem.", error.message);
+  });
 }
 
 function renderCustomerPlanCard(){
@@ -255,20 +323,122 @@ function renderCustomerPlanCard(){
     '</section>';
 }
 
+function participantLabel(person,index){
+  return index === 0 ? "Você — "+person.name : (person.name.trim() || "Pessoa "+(index+1));
+}
+
+function participantTotal(person,index){
+  const preview = index === 0 ? getCustomerPlanPreview(person.services) : null;
+  return preview ? preview.total : person.services.reduce((sum,service)=>sum+Number(service.price),0);
+}
+
+function participantsTotal(){
+  return state.participants.reduce((sum,person,index)=>sum+participantTotal(person,index),0);
+}
+
 function renderServices(){
-  setHeader('ETAPA 02','Escolha seus serviços','Selecione um ou mais serviços. A fila é compartilhada entre os barbeiros.');
-  content.innerHTML=renderCustomerPlanCard()+'<div class="grid" id="choices"></div>';const grid=document.querySelector('#choices');
-  services.forEach(function(s){const el=document.createElement('button');el.className='choice'+(state.selectedServices.some(x=>x.id===s.id)?' selected':'');el.innerHTML='<span class="name">'+safe(s.name)+'</span><span class="detail">'+safe(s.detail)+'</span><span class="price">'+money(s.price)+'</span>';el.onclick=function(){const exists=state.selectedServices.some(x=>x.id===s.id);state.selectedServices=exists?state.selectedServices.filter(x=>x.id!==s.id):state.selectedServices.concat([s]);renderServices();};grid.append(el);});
-  const preview=getCustomerPlanPreview(),total=preview?preview.total:state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
-  const totalEl=document.createElement('div');totalEl.className='summary';totalEl.innerHTML='<div class="summary-row"><span>Serviços selecionados</span><strong>'+state.selectedServices.length+'</strong></div>'+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div>';content.append(totalEl);
-  setActions(function(){state.step=1;render();},function(){state.step=4;render();},'REVISAR SOLICITAÇÃO',state.selectedServices.length===0);
+  rememberKioskSelection();
+  const index = state.activeParticipant;
+  const person = state.participants[index];
+  setHeader("ETAPA 02","Escolha os serviços","Escolha os serviços de cada pessoa. Vocês entram com uma única senha.");
+  const promotionStrip = content.querySelector(".totem-promotion");
+  content.innerHTML = '<section class="family-selection" aria-label="Pessoas na mesma senha">'+
+    '<div class="family-heading"><strong>Quem vai ser atendido?</strong>'+
+    '<button type="button" class="btn btn-secondary" data-add-person>+ Adicionar outra pessoa</button></div>'+
+    '<nav class="family-people" aria-label="Escolher pessoa">'+
+    state.participants.map((person,index)=>'<button type="button" data-person="'+index+'" aria-pressed="'+
+      (index === state.activeParticipant)+'">'+safe(participantLabel(person,index))+
+      '<small>'+person.services.length+' serviço(s) · '+money(participantTotal(person,index))+'</small></button>').join("")+
+    '</nav><div class="family-person-editor"></div></section><div class="grid" id="choices"></div>';
+  const add = content.querySelector("[data-add-person]");
+  add.disabled = state.participants.length >= 6;
+  add.addEventListener("click",function(){
+    state.participants.push({name:"",services:[]});
+    state.activeParticipant = state.participants.length-1;
+    state.queueRequestId = crypto.randomUUID();
+    renderServices();
+    content.querySelector("#participant-name")?.focus();
+  });
+  content.querySelectorAll("[data-person]").forEach(button => {
+    button.addEventListener("click",function(){
+      state.activeParticipant = Number(button.dataset.person);
+      renderServices();
+    });
+  });
+  const editor = content.querySelector(".family-person-editor");
+  if(index > 0){
+    editor.innerHTML = '<label for="participant-name">Nome ou identificação desta pessoa (opcional)</label>'+
+      '<div><input id="participant-name" maxlength="100" placeholder="Ex.: filho, João" value="'+safe(person.name)+'">'+
+      '<button type="button" class="btn btn-secondary" data-remove-person>Remover pessoa</button></div>'+
+      '<p class="muted">Os serviços desta pessoa serão registrados separadamente. O plano do titular vale somente para ele.</p>';
+    editor.querySelector("input").addEventListener("input",function(){
+      person.name = this.value;
+      state.queueRequestId = crypto.randomUUID();
+      const button = content.querySelector('[data-person="'+index+'"]');
+      button.firstChild.textContent = participantLabel(person,index);
+      rememberKioskSelection();
+    });
+    editor.querySelector("[data-remove-person]").addEventListener("click",function(){
+      if(person.services.length && !confirm("Remover esta pessoa e os serviços escolhidos para ela?")) return;
+      state.participants.splice(index,1);
+      state.activeParticipant = Math.max(0,index-1);
+      state.queueRequestId = crypto.randomUUID();
+      renderServices();
+    });
+  }else{
+    editor.innerHTML = renderCustomerPlanCard();
+  }
+  const grid = content.querySelector("#choices");
+  services.forEach(function(service){
+    const selected = person.services.some(item=>item.id===service.id);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "choice"+(selected ? " selected" : "");
+    button.setAttribute("aria-pressed",String(selected));
+    button.innerHTML = '<span class="name">'+safe(service.name)+'</span><span class="detail">'+
+      safe(service.detail)+'</span><span class="price">'+money(service.price)+'</span>';
+    button.addEventListener("click",function(){
+      person.services = selected ? person.services.filter(item=>item.id!==service.id) : person.services.concat(service);
+      state.selectedServices = state.participants[0].services;
+      state.queueRequestId = crypto.randomUUID();
+      renderServices();
+      content.querySelectorAll("#choices .choice")[services.indexOf(service)]?.focus();
+    });
+    grid.append(button);
+  });
+  if(totemPromotions.length) grid.before(promotionStrip || makeTotemPromotionStrip());
+  const summary = document.createElement("div");
+  summary.className = "summary";
+  summary.innerHTML = '<div class="summary-row"><span>'+safe(participantLabel(person,index))+
+    '</span><strong>'+money(participantTotal(person,index))+'</strong></div>'+
+    '<div class="summary-row summary-total"><span>Total de '+state.participants.length+
+    ' pessoa(s)</span><strong>'+money(participantsTotal())+'</strong></div>'+
+    '<p class="muted">Selecione ao menos um serviço para cada pessoa.</p>';
+  content.append(summary);
+  setActions(function(){state.step=1;render();},function(){state.step=4;render();},
+    "REVISAR SOLICITAÇÃO",state.participants.some(person=>person.services.length===0));
 }
 
 function renderConfirmation(){
-  setHeader('ETAPA 03','Confira sua solicitação','Confirme seus dados e serviços antes de entrar na fila.');
-  const preview=getCustomerPlanPreview(),total=preview?preview.total:state.selectedServices.reduce((sum,s)=>sum+Number(s.price),0);
-  content.innerHTML='<div class="summary"><div class="summary-row"><span>Cliente</span><strong>'+safe((state.customer.first_name||'')+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Telefone</span><strong>'+safe(state.customer.phone||'—')+'</strong></div></div><div class="summary"><strong>Serviços</strong>'+state.selectedServices.map(function(s){return '<div class="summary-row"><span>'+safe(s.name)+'</span><strong>'+money(s.price)+'</strong></div>';}).join('')+(preview?'<p class="muted">'+safe(preview.description)+'</p>':'')+'<div class="summary-row summary-total"><span>Total</span><strong>'+money(total)+'</strong></div></div><p class="muted">Você não escolhe barbeiro nem forma de pagamento. Ao confirmar, sua senha entra na fila única da LaCorte.</p><p id="app-message" class="muted">'+safe(state.message)+'</p>';
-  setActions(function(){state.step=3;renderServices();},submitQueueEntry,'ENTRAR NA FILA',state.submitting);
+  rememberKioskSelection();
+  setHeader("ETAPA 03","Confira sua solicitação","Uma senha para todos, com os serviços separados por pessoa.");
+  content.innerHTML = '<section class="summary"><div class="summary-row"><span>Cadastro</span><strong>'+
+    safe(state.customer.first_name+" "+(state.customer.last_name||""))+'</strong></div>'+
+    '<div class="summary-row"><span>Telefone</span><strong>'+safe(state.customer.phone||"—")+'</strong></div></section>'+
+    state.participants.map(function(person,index){
+      const preview = index === 0 ? getCustomerPlanPreview(person.services) : null;
+      return '<section class="summary"><h3>'+safe(participantLabel(person,index))+'</h3>'+
+        person.services.map(service=>'<div class="summary-row"><span>'+safe(service.name)+
+          '</span><strong>'+money(service.price)+'</strong></div>').join("")+
+        (preview ? '<p class="muted">'+safe(preview.description)+'</p>' : "")+
+        '<div class="summary-row summary-total"><span>Total desta pessoa</span><strong>'+
+        money(participantTotal(person,index))+'</strong></div></section>';
+    }).join("")+
+    '<div class="summary"><div class="summary-row summary-total"><span>Total da senha</span><strong>'+
+    money(participantsTotal())+'</strong></div></div>'+
+    '<p class="muted">Cada pessoa pode ser atendida por um barbeiro diferente. A equipe define o profissional ao chamar.</p>'+
+    '<p id="app-message" class="muted" role="status">'+safe(state.message)+'</p>';
+  setActions(function(){state.step=3;renderServices();},submitQueueEntry,"ENTRAR NA FILA",state.submitting);
 }
 
 async function loadCustomer(user){
@@ -365,12 +535,28 @@ state.queueTicket = null;
 state.submitting = false;
 
 function setAppMode(dashboard){
+  if(typeof stopBarberTimer === "function") stopBarberTimer();
+  const staffHeader = document.querySelector(".topbar");
+  if(staffHeader?.dataset.barberHeader && !(dashboard && state.role === "barber")){
+    staffHeader.innerHTML = staffHeaderHTML;
+    delete staffHeader.dataset.barberHeader;
+  }
+  document.body.classList.remove("barber-payment");
   const hero = document.querySelector(".hero");
-  const progress = document.querySelector(".progress");
+  const progress = document.querySelector(".progress[aria-label]");
   if (hero) hero.style.display = dashboard ? "none" : "";
   if (progress) progress.style.display = dashboard ? "none" : "";
   document.body.classList.toggle("admin-dashboard",!!dashboard && state.role==="admin");
-  document.body.classList.toggle("professional-dashboard",!!dashboard && state.role==="barber");
+  const barberDashboard = !!dashboard && state.role === "barber";
+  document.body.classList.toggle("professional-dashboard",barberDashboard);
+  const defaultStyles = document.querySelector("#staff-default-styles");
+  const barberStyles = document.querySelector("#barber-styles");
+  const loginStyles = document.querySelector("#staff-login-styles");
+  if(loginStyles) loginStyles.media = dashboard ? "not all" : "all";
+  if(defaultStyles && barberStyles){
+    defaultStyles.media = dashboard && !barberDashboard ? "all" : "not all";
+    barberStyles.media = barberDashboard ? "all" : "not all";
+  }
 }
 
 function localQueueDate(){
@@ -394,6 +580,15 @@ function formatDateTime(value){
   });
 }
 
+function queueTicketNumber(row){
+  return row.group_ticket_number ?? row.queue_number;
+}
+
+function queuePersonLabel(row,registeredName){
+  return row.participant_name ?
+    "Pessoa "+row.participant_index+" — "+row.participant_name+" · Cadastro "+registeredName : registeredName;
+}
+
 function statusLabel(status){
   return ({
     waiting: "Aguardando",
@@ -412,7 +607,7 @@ function dashboardActions(){
 async function loadCatalogs(){
   const results = await Promise.all([
     db.from("services").select("id,name,detail,price,active").eq("active", true).order("name"),
-    db.from("barbers").select("id,name,active").eq("active", true).order("name")
+    db.from("barbers").select("id,name,active,commission_percent").eq("active", true).order("name")
   ]);
 
   if (results[0].error) throw new Error("Não foi possível carregar os serviços: " + results[0].error.message);
@@ -423,34 +618,18 @@ async function loadCatalogs(){
   }));
 
   barbers.splice(0, barbers.length, ...(results[1].data || []).map(function(b){
-    return { id: b.id, name: b.name, available: true };
+    return { id: b.id, name: b.name, available: true, commission_percent: Number(b.commission_percent) };
   }));
 }
 
 async function loadQueueRows(){
- const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,status,total_amount,commission_amount,payment_method,created_at,started_at,completed_at').eq('queue_date',localQueueDate()).order('queue_number',{ascending:true});
- if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);
- const rows=result.data||[];
- if(!rows.length)return [];
- const customerIds=Array.from(new Set(rows.map(r=>r.customer_id)));
- const queueIds=rows.map(r=>r.id);
- const lookups=await Promise.all([
-  db.from('customers').select('id,first_name,last_name,phone').in('id',customerIds),
-  db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds),
-  db.from('lacorte_queue_declines').select('queue_id,barber_id').in('queue_id',queueIds)
- ]);
- if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);
- if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
- if(lookups[2].error)throw new Error('Erro ao consultar preferências da fila: '+lookups[2].error.message);
- const customers={},items={},declines={};
- (lookups[0].data||[]).forEach(c=>customers[c.id]=c);
- (lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
- (lookups[2].data||[]).forEach(d=>(declines[d.queue_id]||(declines[d.queue_id]=[])).push(d.barber_id));
- return rows.map(r=>Object.assign({},r,{
-  customer:customers[r.customer_id]||null,
-  items:items[r.id]||[],
-  declinedBarberIds:declines[r.id]||[]
- }));
+ const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,group_ticket_number,group_id,participant_index,participant_name,status,total_amount,commission_percent,commission_amount,payment_method,created_at,started_at,completed_at').in('status',['waiting','in_progress']).order('queue_date',{ascending:true}).order('queue_number',{ascending:true});
+ if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);const rows=result.data||[];if(!rows.length)return [];
+ const customerIds=Array.from(new Set(rows.map(r=>r.customer_id))),queueIds=rows.map(r=>r.id);
+ const lookups=await Promise.all([db.from('customers').select('id,first_name,last_name').in('id',customerIds),db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds)]);
+ if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
+ const customers={},items={};(lookups[0].data||[]).forEach(c=>customers[c.id]=c);(lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
+ return rows.map(r=>Object.assign({},r,{customer:customers[r.customer_id]||null,items:items[r.id]||[]}));
 }
 
 let queueRealtimeChannel = null;
@@ -464,9 +643,18 @@ function subscribeToQueueRealtime(){
   if(!db || typeof db.channel !== "function") return;
   stopQueueRealtime();
   const refreshActiveStaffView=function(){
-    if(state.role==="admin") renderQueueDashboard();
-    else if(state.role==="barber"){
-      if(professionalView==="reports") renderBarberReports();
+    if(content.querySelector(".payment-dialog-backdrop")) return;
+    if(state.role==="admin"){
+      if(adminView === "settings"){
+        const queue = content.querySelector("[data-admin-queue]");
+        if(queue && !queue.querySelector(".payment-dialog-backdrop")) renderAdminQueue(queue);
+      }else if(["queue","fila"].includes(adminView) && !content.querySelector("[data-admin-queue] .payment-dialog-backdrop")){
+        renderQueueDashboard();
+      }
+    }else if(state.role==="barber"){
+      if(["profile","payment"].includes(professionalView) || content.querySelector(".payment-dialog-backdrop")) return;
+      if(professionalView==="history") renderBarberHistory();
+      else if(professionalView==="reports") renderBarberReports();
       else renderQueueDashboard();
     }
   };
@@ -477,244 +665,81 @@ function subscribeToQueueRealtime(){
 }
 
 
-// Navegação do profissional: fila e relatórios em telas independentes.
-let professionalView = "queue";
-function professionalNavigation(view){
-  professionalView = view || professionalView;
-  const barber = barbers.find(function(item){ return item.id === state.barberId; });
-  const barberName = barber ? barber.name.toUpperCase() : "PROFISSIONAL";
-  const item = function(key,label,icon){
-    return '<button type="button" class="professional-nav-item ' +
-      (professionalView === key ? "active" : "") +
-      '" data-professional-view="' + key + '"><span class="professional-nav-icon" aria-hidden="true">' +
-      icon + '</span><span>' + label + '</span></button>';
-  };
-  return '<nav class="professional-nav" aria-label="Navegação profissional">' +
-    '<div class="professional-nav-brand"><span class="professional-brand-mark">LC</span>' +
-    '<span><strong>LA CORTE</strong><small>' + safe(barberName) + '</small></span></div>' +
-    '<div class="professional-nav-items">' +
-    item("queue","Fila compartilhada","▦") +
-    item("reports","Meus relatórios","▤") +
-    '</div></nav>';
-}
-function bindProfessionalNavigation(){
-  content.querySelectorAll("[data-professional-view]").forEach(function(button){
-    button.addEventListener("click",function(){
-      professionalView=button.dataset.professionalView;
-      if(professionalView==="reports") renderBarberReports();
-      else renderQueueDashboard();
-    });
-  });
-}
-
-function renderQueueDashboard(){
-  setAppMode(true);
-  updateProgress();
-  const admin = state.role === "admin";
-  if(admin) adminView = "queue";
-  const assignedBarber = barbers.find(function(item){ return item.id === state.barberId; });
-  const professionalName = assignedBarber ? assignedBarber.name : "Área profissional";
-
-  setHeader(
-    admin ? "ADMINISTRAÇÃO LACORTE" : professionalName.toUpperCase(),
-    admin ? "Painel Geral" : "Fila compartilhada",
-    admin
-      ? "Resumo da operação e atendimentos em andamento."
-      : "Fila compartilhada para receber o próximo cliente e acompanhar seus próprios atendimentos."
-  );
-  notice.textContent = "Fila presencial • Sem pagamento online.";
-  content.innerHTML = '<p class="muted">Carregando fila compartilhada...</p>';
-  dashboardActions();
-
-  loadQueueRows().then(function(rows){
-    if(!content.isConnected) return;
-
-    const waitingRows = rows.filter(function(row){ return row.status === "waiting"; });
-    const allProgressRows = rows.filter(function(row){ return row.status === "in_progress"; });
-    const ownProgressRows = allProgressRows.filter(function(row){ return row.barber_id === state.barberId; });
-    const allCompletedRows = rows.filter(function(row){ return row.status === "completed"; });
-    const ownCompletedRows = allCompletedRows.filter(function(row){ return row.barber_id === state.barberId; });
-    const visibleRows = admin
-      ? rows.filter(function(row){ return row.status === "waiting" || row.status === "in_progress"; })
-      : rows.filter(function(row){
-          const waitingForAnotherBarber = row.status === "waiting" &&
-            !(row.declinedBarberIds || []).includes(state.barberId);
-          return waitingForAnotherBarber ||
-            (row.status === "in_progress" && row.barber_id === state.barberId);
-        });
-
-    const progressCount = admin ? allProgressRows.length : ownProgressRows.length;
-    const completedCount = admin ? allCompletedRows.length : ownCompletedRows.length;
-    const totalCount = admin
-      ? rows.length
-      : waitingRows.length + ownProgressRows.length + ownCompletedRows.length;
-
-    let panelHtml = admin
-      ? adminNavigation()
-      : professionalNavigation("queue") + '<main class="professional-main">';
-
-    panelHtml += '<div class="professional-page-tools">' +
-      '<span class="professional-page-eyebrow">OPERAÇÃO EM TEMPO REAL</span>' +
-      '<button type="button" class="professional-refresh" data-refresh-queue aria-label="Atualizar fila">' +
-      '<span aria-hidden="true">↻</span> ATUALIZAR FILA</button></div>';
-
-    panelHtml += '<div class="admin-kpis">' +
-      '<article><span>' + (admin ? "AGUARDANDO" : "FILA AGUARDANDO") + '</span><strong>' + waitingRows.length + '</strong><small>Fila compartilhada</small></article>' +
-      '<article><span>' + (admin ? "EM ATENDIMENTO" : "MEUS ATENDIMENTOS") + '</span><strong>' + progressCount + '</strong><small>' + (admin ? "Todos os profissionais" : "Somente os seus") + '</small></article>' +
-      '<article><span>CONCLUÍDOS HOJE</span><strong>' + completedCount + '</strong><small>' + (admin ? "Toda a barbearia" : "Seus atendimentos") + '</small></article>' +
-      '<article><span>' + (admin ? "TOTAL DO DIA" : "MINHA MOVIMENTAÇÃO") + '</span><strong>' + totalCount + '</strong><small>' + (admin ? "Todos os registros" : "Fila + seus atendimentos") + '</small></article>' +
-      '</div>';
-
-    panelHtml += '<div class="admin-agenda-heading"><div><small>' +
-      (admin ? "VISÃO GERAL" : "PRÓXIMOS ATENDIMENTOS") +
-      '</small><h3>' + (admin ? "Operação em andamento" : "Fila e meus atendimentos") +
-      '</h3></div><span>' + waitingRows.length + ' aguardando</span></div>';
-
-    if(!visibleRows.length){
-      panelHtml += '<section class="summary professional-empty-state"><strong>' +
-        (admin ? "Operação tranquila neste momento" : "Nenhum atendimento pendente para você") +
-        '</strong><p class="muted">' +
-        (admin
-          ? "Não há clientes aguardando ou atendimentos em andamento agora."
-          : "Os clientes aguardando aparecem aqui. Atendimentos em andamento de outros profissionais ficam separados.") +
-        '</p></section>';
-    }
-
-    visibleRows.forEach(function(row){
-      const customer = row.customer || {};
-      const name = (customer.first_name || "Cliente") + " " + (customer.last_name || "");
-      const barber = barbers.find(function(item){ return item.id === row.barber_id; });
-      const declinedBarberNames = (row.declinedBarberIds || []).map(function(id){
-        const declinedBarber = barbers.find(function(item){ return item.id === id; });
-        return declinedBarber ? declinedBarber.name : "Profissional indisponível";
-      });
-      const serviceText = row.items.map(function(item){
-        return safe(item.service_name) + " (" + money(Number(item.unit_price)) + ")";
-      }).join(", ") || "—";
-      const className = row.status === "in_progress" ? "progress" : "waiting";
-      const canStart = row.status === "waiting" && !row.barber_id;
-      const canFinish = row.status === "in_progress" &&
-        row.barber_id === state.barberId;
-
-      panelHtml += '<article class="summary admin-queue-card ' +
-        (admin ? "" : "professional-customer-card ") + className + '">' +
-        '<div class="summary-row"><span>Senha #' + safe(row.queue_number) + ' • ' +
-        formatDateTime(row.created_at) + '</span><strong>' +
-        money(Number(row.total_amount)) + '</strong></div>' +
-        '<div class="summary-row"><span>Cliente</span><strong>' +
-        safe(name.trim()) + '</strong></div>' +
-        '<div class="summary-row"><span>Telefone</span><strong>' +
-        safe(customer.phone || "—") + '</strong></div>' +
-        '<div class="summary-row"><span>Serviços</span><strong>' +
-        serviceText + '</strong></div>' +
-        '<div class="summary-row"><span>Status</span><strong>' +
-        statusLabel(row.status) + '</strong></div>' +
-        (admin && row.status === "waiting" && declinedBarberNames.length
-          ? '<div class="summary-row"><span>Profissionais que já pularam (' + declinedBarberNames.length + ')</span><strong>' +
-            declinedBarberNames.map(safe).join(", ") + '</strong></div>'
-          : '') +
-        (row.barber_id
-          ? '<div class="summary-row"><span>Responsável</span><strong>' +
-            safe(barber ? barber.name : row.barber_id) + '</strong></div>'
-          : '') +
-        '<div class="actions">';
-
-      if(canStart){
-        panelHtml += '<button class="btn btn-primary" data-start="' +
-          safe(row.id) + '">CHAMAR CLIENTE</button>';
-      }
-      if(canFinish){
-        panelHtml += '<button class="btn btn-primary" data-finish="' +
-          safe(row.id) + '">FINALIZAR ATENDIMENTO</button>';
-      }
-      if(admin && row.status === "waiting"){
-        panelHtml += '<button class="btn btn-secondary" data-cancel="' +
-          safe(row.id) + '">CANCELAR</button>';
-      }
-      if(row.status === "waiting" && row.barber_id && row.barber_id !== state.barberId && !admin){
-        panelHtml += '<span class="professional-assigned-note">Aguardando o profissional responsável</span>';
-      }
-      panelHtml += '</div></article>';
-    });
-
-    if(!admin) panelHtml += '</main>';
-    content.innerHTML = panelHtml;
-
-    if(admin) bindAdminNavigation();
-    else bindProfessionalNavigation();
-
-    const refreshQueue = content.querySelector("[data-refresh-queue]");
-    if(refreshQueue) refreshQueue.addEventListener("click", renderQueueDashboard);
-
-    content.querySelectorAll("[data-start]").forEach(function(button){
-      button.addEventListener("click", function(){
-        openQueueCallDialog(button.dataset.start);
-      });
-    });
-    content.querySelectorAll("[data-finish]").forEach(function(button){
-      button.addEventListener("click", function(){
-        openPaymentMethodDialog(button.dataset.finish);
-      });
-    });
-    content.querySelectorAll("[data-cancel]").forEach(function(button){
-      button.addEventListener("click", async function(){
-        if(!confirm("Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.")) return;
-        button.disabled = true;
-        const result = await db.rpc("lacorte_cancel_queue_entry", {p_queue_id:button.dataset.cancel});
-        if(result.error){
-          alert("Não foi possível cancelar: " + result.error.message);
-          button.disabled = false;
-        } else {
-          renderQueueDashboard();
-        }
-      });
-    });
-  }).catch(function(error){
-    content.innerHTML = (admin ? adminNavigation() : professionalNavigation("queue")) +
-      '<section class="summary"><p class="muted">' + safe(error.message) + '</p></section>';
-    if(admin) bindAdminNavigation();
-    else bindProfessionalNavigation();
-  });
-}
-
-function openQueueCallDialog(queueId){
- const overlay=document.createElement("div");
- overlay.className="payment-dialog-backdrop";
- const declineAction=state.role==="barber"
-  ? '<button class="btn btn-secondary" data-decline title="Pular este cliente para outro barbeiro sem removê-lo da fila">NÃO ACEITOU / MANTER NA FILA</button>'
-  : "";
- overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3>'+
-  '<p>Confirme se o cliente aceita ser atendido por você. Ao pular, a senha continua aguardando outro profissional, sem sair da fila.</p>'+
-  '<div class="actions">'+declineAction+'<button class="btn btn-primary" data-accept>CLIENTE ACEITOU</button></div>'+
-  '<p class="muted" id="call-error" role="alert"></p></section>';
- content.append(overlay);
- const declineButton=overlay.querySelector("[data-decline]");
- if(declineButton){
-  declineButton.addEventListener("click",async function(){
-   this.disabled=true;
-   const result=await db.rpc("lacorte_decline_queue_entry",{p_queue_id:queueId});
-   if(result.error){
-    this.disabled=false;
-    overlay.querySelector("#call-error").textContent="Não foi possível pular o cliente: "+result.error.message;
-    return;
-   }
-   overlay.remove();
-   renderQueueDashboard();
-  });
- }
- overlay.querySelector("[data-accept]").addEventListener("click",async function(){
-  this.disabled=true;
-  const result=await db.rpc("lacorte_start_service",{p_queue_id:queueId});
-  if(result.error){
-   this.disabled=false;
-   overlay.querySelector("#call-error").textContent="Não foi possível iniciar: "+result.error.message;
-   return;
+function bindProfilePhotoEditor(form,settings,fallback = "B1"){
+  const {photo,zoom,cropX,cropY} = form.elements;
+  const preview = form.querySelector("[data-avatar-preview]");
+  const panel = form.querySelector("[data-avatar-crop]");
+  const status = form.querySelector("[role=status]");
+  const save = form.querySelector("[type=submit]");
+  let pendingPhoto = settings.photo || "";
+  let loading = false;
+  let version = 0;
+  const cropValues = () => ({zoom:Number(zoom.value),x:Number(cropX.value),y:Number(cropY.value)});
+  function updatePreview(){ preview.innerHTML = profileAvatar(pendingPhoto,cropValues(),fallback); }
+  function setCrop(crop = {}){
+    zoom.value = crop.zoom ?? 1;
+    cropX.value = crop.x ?? 50;
+    cropY.value = crop.y ?? 50;
+    updatePreview();
   }
-  renderQueueDashboard();
- });
+  function openCrop(open){
+    panel.hidden = !open;
+    preview.setAttribute("aria-expanded",String(open));
+  }
+  setCrop(settings.crop);
+  preview.addEventListener("click",()=>{
+    if(pendingPhoto) openCrop(panel.hidden);
+    else photo.click();
+  });
+  panel.addEventListener("input",updatePreview);
+  form.querySelector("[data-reset-crop]").addEventListener("click",()=>setCrop());
+  photo.addEventListener("change",async function(){
+    const currentVersion = ++version;
+    const file = photo.files[0];
+    loading = Boolean(file);
+    save.disabled = loading;
+    if(!file) return;
+    try{
+      const image = await prepareTotemImage(file,256);
+      if(currentVersion !== version) return;
+      pendingPhoto = image;
+      setCrop();
+      openCrop(true);
+      status.textContent = "";
+    }catch(error){
+      if(currentVersion === version) status.textContent = error.message;
+    }finally{
+      if(currentVersion === version){
+        loading = false;
+        save.disabled = false;
+      }
+    }
+  });
+  form.querySelector("[data-remove-avatar]").addEventListener("click",()=>{
+    version++;
+    photo.value = "";
+    pendingPhoto = "";
+    loading = false;
+    setCrop();
+    openCrop(false);
+    save.disabled = false;
+  });
+  return {
+    get photo(){ return pendingPhoto; },
+    get crop(){ return cropValues(); },
+    get busy(){ return loading; }
+  };
 }
-async function openPaymentMethodDialog(queueId){
+
+function openQueueCallDialog(queueId, target = content, refresh = renderQueueDashboard){
+ const overlay=document.createElement('div');overlay.className='payment-dialog-backdrop';overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3><p>Confirme o resultado da chamada. Se o cliente preferir outro barbeiro, mantenha a senha aguardando.</p><div class="actions"><button class="btn btn-secondary" data-decline>NÃO ACEITOU / MANTER NA FILA</button><button class="btn btn-primary" data-accept>CLIENTE ACEITOU</button></div><p class="muted" id="call-error"></p></section>';target.append(overlay);
+ overlay.querySelector('[data-decline]').addEventListener('click',function(){overlay.remove();});
+ overlay.querySelector('[data-accept]').addEventListener('click',async function(){this.disabled=true;const r=await db.rpc('lacorte_start_service',{p_queue_id:queueId});if(r.error){this.disabled=false;overlay.querySelector('#call-error').textContent='Não foi possível iniciar: '+r.error.message;return;}overlay.remove();refresh();});
+}
+async function openPaymentMethodDialog(queueId, target = content, refresh = renderQueueDashboard){
+ if(state.role === "barber") return renderBarberPayment(queueId);
  const queueResult=await db.from("lacorte_queue").select("gross_amount,total_amount,discount_amount").eq("id",queueId).single();
+ if(!target.isConnected || state.role === null) return;
  if(queueResult.error){alert("Não foi possível carregar o valor do atendimento: "+queueResult.error.message);return;}
  const queue=queueResult.data||{};
  const gross=Number(queue.gross_amount ?? queue.total_amount ?? 0);
@@ -736,7 +761,7 @@ async function openPaymentMethodDialog(queueId){
   '<p class="muted" id="payment-balance" aria-live="polite">Valores conferem.</p>'+
   '<div class="actions"><button class="btn btn-secondary" data-close>VOLTAR</button><button class="btn btn-primary" data-confirm>CONFIRMAR FINALIZAÇÃO</button></div>'+
   '<p class="muted" id="payment-error" role="alert"></p></section>';
- content.append(overlay);
+ target.append(overlay);
  const discountInput=overlay.querySelector("#payment-discount");
  const amountInputs=Array.from(overlay.querySelectorAll("[data-payment]"));
  const confirmButton=overlay.querySelector("[data-confirm]");
@@ -769,12 +794,14 @@ async function openPaymentMethodDialog(queueId){
   const result=await db.rpc("lacorte_finish_service_with_payments",{p_queue_id:queueId,p_discount_amount:discount,p_payments:payments});
   if(result.error){this.disabled=false;overlay.querySelector("#payment-error").textContent="Não foi possível finalizar: "+result.error.message;return;}
   overlay.remove();
-  renderQueueDashboard();
+  refresh();
  });
  updatePaymentPreview();
 }
 
 async function routeAuthenticatedUser(user){
+  barberProfile = {};
+  barberProfileError = "";
   state.user = user;
   state.customer = null;
   state.selectedServices = [];
@@ -811,6 +838,7 @@ async function routeAuthenticatedUser(user){
     state.barberId = roleResult.data.barber_id;
     try {
       await loadCatalogs();
+      if(state.role === "barber") await loadBarberProfile();
       subscribeToQueueRealtime();
     } catch (error) {
       setAppMode(true);
@@ -839,22 +867,29 @@ async function routeAuthenticatedUser(user){
 
 async function submitQueueEntry(){
   if(state.submitting) return;
-  if(!state.customer || !state.lookupToken || !state.selectedServices.length){
+  if(!state.customer || !state.lookupToken || !state.participants.length || state.participants.some(person=>!person.services.length)){
     showMessage("Confira seu cadastro e selecione ao menos um serviço.");
     return;
   }
-  state.submitting=true;showMessage("Registrando sua entrada na fila...");
+  state.submitting=true;
+  actions.querySelectorAll("button").forEach(button=>button.disabled=true);
+  showMessage("Registrando sua entrada na fila...");
   try{
     const result=await kioskRequest({
       action:"queue",
       lookup_token:state.lookupToken,
-      service_ids:state.selectedServices.map(function(service){return service.id;})
+      request_id:state.queueRequestId,
+      participants:state.participants.map(person=>({
+        name:person.name,service_ids:person.services.map(service=>service.id)
+      }))
     });
+    clearKioskSelection();
     state.queueTicket=result;
     state.submitting=false;
     renderQueueSuccess();
   }catch(error){
     state.submitting=false;
+    actions.querySelectorAll("button").forEach(button=>button.disabled=false);
     showMessage("Não foi possível entrar na fila: "+(error.message||"Falha de conexão."));
   }
 }
@@ -864,12 +899,19 @@ function renderQueueSuccess(){
   setHeader("ENTRADA CONFIRMADA","Você entrou na fila!","Sua senha está na fila única da LaCorte.");
   notice.textContent="Aguarde ser chamado por um dos profissionais.";
   const ticket=state.queueTicket;
-  content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div><div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
+  const people = ticket.participants || [];
+  const peopleHtml = people.length > 1 ? '<div class="summary">'+people.map(person=>
+    '<div class="summary-row"><span>'+safe(person.name)+'</span><strong>'+money(Number(person.total_amount))+
+    '</strong></div>').join("")+'</div>' : "";
+  content.innerHTML='<div class="waiting"><p class="muted">SUA SENHA</p><div class="ticket">#'+safe(ticket.ticket_number)+'</div>'+peopleHtml+'<div class="waiting-card"><div class="summary-row"><span>Cliente</span><strong>'+safe(state.customer.first_name+' '+(state.customer.last_name||''))+'</strong></div><div class="summary-row"><span>Total</span><strong>'+money(Number(ticket.total_amount))+'</strong></div><div class="summary-row"><span>Status</span><strong>Aguardando</strong></div></div><p class="muted">A equipe LaCorte chamará você. O barbeiro será definido no início do atendimento.</p></div>';
   function returnCustomerKioskToHome(){
     clearCustomerAutoLogout();
     state.customer=null;
     state.lookupToken=null;
     state.selectedServices=[];
+    state.participants=[];
+    state.activeParticipant=0;
+    state.queueRequestId=null;
     state.customerPlan=null;
     state.customerPlanBenefits=[];
     state.queueTicket=null;
@@ -890,9 +932,8 @@ function renderQueueSuccess(){
 
 // Calcula a prévia do benefício. O banco continua sendo a autoridade final
 // e valida os créditos reservados no momento da entrada na fila.
-function getCustomerPlanPreview(){
+function getCustomerPlanPreview(selected = state.selectedServices || []){
   const plan = state.customerPlan;
-  const selected = state.selectedServices || [];
   if (!plan || selected.length !== 1) return null;
 
   const today = localQueueDate();
@@ -936,6 +977,8 @@ function bindPasswordVisibility(form){
 }
 
 function renderStaffLogin(message){
+  barberProfile = {};
+  barberProfileError = "";
   state.role = null;
   state.user = null;
   state.barberId = null;
@@ -1016,7 +1059,7 @@ async function renderStaffPasswordReset(message){
 function renderStaffPasswordSetup(initialEmail,message){
   setAppMode(false);
   setHeader("PRIMEIRO ACESSO","Criar senha profissional","Confirme seu e-mail e defina a senha que usará nos próximos acessos.");
-  notice.textContent = "Enviaremos um código de confirmação para o e-mail cadastrado. Este procedimento é feito somente uma vez.";
+  notice.textContent = "Enviaremos a confirmação para o e-mail cadastrado. Use o código recebido ou abra o link do e-mail para criar sua senha.";
   content.innerHTML = '<form id="staff-password-setup" class="staff-login-form"><label for="staff-setup-email">E-mail profissional cadastrado</label><input id="staff-setup-email" type="email" autocomplete="email" value="'+safe(initialEmail||"")+'" placeholder="Seu e-mail cadastrado" required><p id="staff-setup-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">ENVIAR CÓDIGO DE CONFIRMAÇÃO</button><button class="btn btn-secondary" id="staff-setup-back" type="button">VOLTAR AO LOGIN</button></form>';
   actions.replaceChildren();
   const form=content.querySelector("#staff-password-setup");
@@ -1025,7 +1068,7 @@ function renderStaffPasswordSetup(initialEmail,message){
     const email=form.querySelector("#staff-setup-email").value.trim().toLowerCase();
     const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-setup-message");
     button.disabled=true;status.textContent="Enviando código para seu e-mail...";
-    const sent=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:false}});
+    const sent=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:new URL("barbeiros.html?setup=1",window.location.href).href}});
     if(sent.error){status.textContent="Não foi possível enviar o código. Confira o e-mail cadastrado e tente novamente. "+sent.error.message;button.disabled=false;return;}
     renderStaffPasswordVerification(email);
   });
@@ -1034,7 +1077,7 @@ function renderStaffPasswordSetup(initialEmail,message){
 
 function renderStaffPasswordVerification(email,message){
   setAppMode(false);
-  setHeader("CONFIRMAR E-MAIL","Definir sua senha","Digite o código recebido e escolha uma senha pessoal.");
+  setHeader("CONFIRMAR E-MAIL","Definir sua senha","Use o código recebido e escolha sua senha. Se o e-mail tiver um botão de confirmação, abra-o para criar a senha diretamente.");
   notice.textContent = "O código confirma que você tem acesso à caixa de e-mail profissional.";
   content.innerHTML = '<form id="staff-password-verify" class="staff-login-form"><label for="staff-otp">Código recebido por e-mail</label><input id="staff-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required><label for="staff-new-password">Criar senha (mínimo 8 caracteres)</label>'+passwordField("staff-new-password","Criar senha","new-password","Mínimo 8 caracteres")+'<label for="staff-confirm-password">Confirmar senha</label>'+passwordField("staff-confirm-password","Confirmar senha","new-password","Repita a senha")+'<p id="staff-verify-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR E SALVAR SENHA</button><button class="btn btn-secondary" id="staff-resend-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="staff-verify-back" type="button">VOLTAR AO LOGIN</button></form>';
   actions.replaceChildren();
@@ -1075,6 +1118,7 @@ function renderStaffPasswordOnly(message){
   setHeader("QUASE PRONTO","Salvar sua senha","Seu e-mail já foi confirmado. Agora finalize a criação da senha.");
   notice.textContent = "Escolha uma senha com pelo menos 8 caracteres.";
   content.innerHTML = '<form id="staff-password-only" class="staff-login-form"><label for="staff-password-only-new">Nova senha</label>'+passwordField("staff-password-only-new","Nova senha","new-password","Mínimo 8 caracteres")+'<label for="staff-password-only-confirm">Confirmar senha</label>'+passwordField("staff-password-only-confirm","Confirmar senha","new-password","Repita a senha")+'<p id="staff-password-only-message" class="muted" role="status">'+safe(message||"")+'</p><button class="btn btn-primary" type="submit">SALVAR SENHA</button></form>';
+  actions.replaceChildren();
   const form=content.querySelector("#staff-password-only");
   bindPasswordVisibility(form);
   form.addEventListener("submit",async function(event){
@@ -1090,6 +1134,39 @@ function renderStaffPasswordOnly(message){
   });
 }
 
+async function handleStaffAuthCallback(){
+  const hash=new URLSearchParams(window.location.hash.slice(1));
+  const query=new URLSearchParams(window.location.search);
+  const hasCallback=hash.has("access_token")||hash.has("error")||query.has("token_hash")||query.has("code")||query.has("error");
+  if(!hasCallback) return false;
+  // Remove credentials from the address before any asynchronous work or navigation.
+  window.history.replaceState({},document.title,window.location.pathname);
+  const invalid=function(){renderStaffLogin("A confirmação expirou ou já foi utilizada. Use PRIMEIRO ACESSO para solicitar outro e-mail.");};
+  if(hash.has("error")||query.has("error")){invalid();return true;}
+  let result;
+  const type=hash.get("type")||query.get("type")||"email";
+  try{
+    if(hash.get("access_token")&&hash.get("refresh_token")){
+      result=await db.auth.setSession({access_token:hash.get("access_token"),refresh_token:hash.get("refresh_token")});
+    }else if(query.get("token_hash")&&["email","signup","invite","magiclink","recovery","email_change"].includes(type)){
+      result=await db.auth.verifyOtp({token_hash:query.get("token_hash"),type:type});
+    }else if(query.get("code")){
+      result=await db.auth.exchangeCodeForSession(query.get("code"));
+    }else{invalid();return true;}
+    const user=result.data&&((result.data.session&&result.data.session.user)||result.data.user);
+    if(result.error||!user){invalid();return true;}
+    const role=await db.from("lacorte_user_roles").select("role,barber_id").eq("user_id",user.id).maybeSingle();
+    if(role.error||!role.data||!["admin","barber"].includes(role.data.role)){
+      await db.auth.signOut({scope:"local"});
+      renderStaffLogin("Este e-mail não está autorizado como conta profissional. Peça ao administrador para conferir o cadastro.");
+      return true;
+    }
+    if(type==="recovery") await renderStaffPasswordReset();
+    else renderStaffPasswordOnly();
+  }catch(error){invalid();}
+  return true;
+}
+
 async function initLaCorte(){
   setAppMode(false);
   if(!db){
@@ -1098,16 +1175,11 @@ async function initLaCorte(){
     return;
   }
   if(STAFF_PORTAL){
-    const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,""));
-    if(hashParams.get("type")==="recovery" && hashParams.get("access_token") && hashParams.get("refresh_token")){
-      const restored=await db.auth.setSession({access_token:hashParams.get("access_token"),refresh_token:hashParams.get("refresh_token")});
-      window.history.replaceState({},document.title,window.location.pathname+window.location.search);
-      if(restored.error){renderStaffLogin("O link de recuperação expirou ou já foi utilizado. Solicite outro.");return;}
-      await renderStaffPasswordReset();
-    }else{
+    if(!await handleStaffAuthCallback()){
       const staffSession=await db.auth.getSession();
       if(staffSession.error){renderStaffLogin("Não foi possível verificar a sessão. Entre novamente.");return;}
       if(staffSession.data&&staffSession.data.session) await routeAuthenticatedUser(staffSession.data.session.user);
+      else if(new URLSearchParams(window.location.search).get("setup")==="1") renderStaffPasswordSetup();
       else renderStaffLogin();
     }
     db.auth.onAuthStateChange(function(event){
@@ -1115,10 +1187,17 @@ async function initLaCorte(){
     });
     return;
   }
+  void applyTotemBackground();
+  void applyShopSettings();
   // Totem público: cadastro e identificação não usam conta Auth nem confirmação por e-mail.
   state.role="customer";
   state.user=null;
   try{
+    const selection = takeKioskSelectionForReload();
+    if(selection){
+      await continueKioskCustomer(selection, selection.selectedIds, selection);
+      return;
+    }
     await loadCatalogs();
     state.step=1;
     renderLogin();
@@ -1129,7 +1208,7 @@ async function initLaCorte(){
 }
 
 // ===== RELATÓRIOS ADMINISTRATIVOS LACORTE =====
-let adminReportFilters = { period: "month", start: "", end: "" };
+
 
 function reportShiftDate(dateText, days){
   const parts = dateText.split("-").map(Number);
@@ -1138,11 +1217,10 @@ function reportShiftDate(dateText, days){
   return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
 }
 
-function reportDateRange(){
+function reportDateRange(period = adminReportFilters.period || "month"){
   const today = localQueueDate();
-  const period = adminReportFilters.period || "month";
   if(period === "today") return {start:today,end:today,label:"Hoje"};
-  if(period === "fortnight") return {start:reportShiftDate(today,-13),end:today,label:"Últimos 14 dias"};
+  if(period === "fortnight") return {start:reportShiftDate(today,-14),end:today,label:"Últimos 15 dias"};
   if(period === "week"){
     const d = new Date(today+"T12:00:00");
     const weekday = d.getDay();
@@ -1155,8 +1233,7 @@ function reportDateRange(){
   return {start:start,end:end,label:"Período personalizado"};
 }
 
-function reportPieChart(items, valueFormatter, emptyMessage){
-  const palette=["#f58220","#f5b041","#d35400","#e67e22","#f39c12","#b94b12","#ff9f43","#8e3b0d","#ffc078","#c96b22"];
+function reportPieChart(items, valueFormatter, emptyMessage, palette=["#f58220","#f5b041","#d35400","#e67e22","#f39c12","#b94b12","#ff9f43","#8e3b0d","#ffc078","#c96b22"]){
   const valid=(items || []).map(function(item){return {label:String(item.label || "Não identificado"),value:Math.max(0,Number(item.value)||0)};}).filter(function(item){return item.value>0;});
   if(!valid.length) return '<p class="muted">'+(emptyMessage || "Sem dados para este período.")+'</p>';
   const total=valid.reduce(function(sum,item){return sum+item.value;},0);
@@ -1173,955 +1250,162 @@ function reportPieChart(items, valueFormatter, emptyMessage){
   return '<div class="report-pie-layout"><div class="report-pie" role="img" aria-label="Gráfico de pizza: '+valid.length+' categorias" style="background:conic-gradient('+stops.join(",")+')"><div class="report-pie-hole"><strong>'+valueFormatter(total)+'</strong><span>Total</span></div></div><div class="report-pie-legend">'+legend+'</div></div>';
 }
 
-async function renderBarberReports(){
- if(!(state.role==='barber' || (state.role==='admin' && state.barberId)))return renderQueueDashboard();professionalView='reports';setAppMode(true);setHeader('PAINEL DO PROFISSIONAL','Meus relatórios','Somente os seus atendimentos e valores.');notice.textContent='Relatórios individuais • Dados financeiros de atendimentos concluídos.';dashboardActions();actions.prepend(makeButton("VOLTAR À FILA",renderQueueDashboard,true));content.innerHTML='<p class="muted">Carregando seus relatórios...</p>';
- try{const range=reportDateRange(),r=await db.from('lacorte_queue').select('id,customer_id,status,total_amount,gross_amount,discount_amount,commission_amount,payment_method,queue_date,completed_at,queue_number').eq('barber_id',state.barberId).gte('queue_date',range.start).lte('queue_date',range.end);if(r.error)throw r.error;
- const rows=r.data||[],done=rows.filter(x=>x.status==='completed');const ids=Array.from(new Set(done.map(x=>x.customer_id).filter(Boolean))),queueIds=done.map(x=>x.id);const extra=await Promise.all([ids.length?db.from('customers').select('id,first_name,last_name').in('id',ids):Promise.resolve({data:[],error:null}),queueIds.length?db.from('lacorte_queue_items').select('queue_id,service_name').in('queue_id',queueIds):Promise.resolve({data:[],error:null}),queueIds.length?db.from('lacorte_queue_payments').select('queue_id,payment_method,amount').in('queue_id',queueIds):Promise.resolve({data:[],error:null})]);if(extra.some(x=>x.error))throw extra.find(x=>x.error).error;const customerNames={},serviceNames={},paymentsByQueue={};(extra[0].data||[]).forEach(c=>customerNames[c.id]=(c.first_name+' '+c.last_name).trim());(extra[1].data||[]).forEach(i=>(serviceNames[i.queue_id]||(serviceNames[i.queue_id]=[])).push(i.service_name));(extra[2].data||[]).forEach(p=>(paymentsByQueue[p.queue_id]||(paymentsByQueue[p.queue_id]=[])).push(p));const gross=done.reduce((s,x)=>s+Number(x.gross_amount??x.total_amount??0),0),discounts=done.reduce((s,x)=>s+Number(x.discount_amount||0),0),revenue=done.reduce((s,x)=>s+Number(x.total_amount||0),0),commission=done.reduce((s,x)=>s+Number(x.commission_amount||0),0),payments={pix:0,dinheiro:0,credito:0,debito:0},labels={pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'};
- done.forEach(x=>{const lines=paymentsByQueue[x.id]||[];if(lines.length)lines.forEach(p=>{if(payments[p.payment_method]!==undefined)payments[p.payment_method]+=Number(p.amount||0);});else if(payments[x.payment_method]!==undefined)payments[x.payment_method]+=Number(x.total_amount||0);});
- const paymentText=x=>{const lines=paymentsByQueue[x.id]||[];return lines.length?lines.map(p=>labels[p.payment_method]+' '+money(Number(p.amount))).join(' + '):(labels[x.payment_method]||'—');};
- const opts=['today','week','fortnight','month'].map(k=>'<option value="'+k+'" '+(adminReportFilters.period===k?'selected':'')+'>'+({today:'Hoje',week:'Semana',fortnight:'Quinzena',month:'Mês'}[k])+'</option>').join('');
- let html='<section class="summary"><label for="barber-report-period">PERÍODO</label><select id="barber-report-period">'+opts+'</select><div class="report-kpis"><article class="summary"><span>Atendimentos</span><strong>'+done.length+'</strong></article><article class="summary"><span>Faturamento bruto</span><strong>'+money(gross)+'</strong></article><article class="summary"><span>Descontos</span><strong>'+money(discounts)+'</strong></article><article class="summary"><span>Faturamento líquido</span><strong>'+money(revenue)+'</strong></article><article class="summary"><span>Minha comissão</span><strong>'+money(commission)+'</strong></article><article class="summary"><span>Saldo da barbearia</span><strong>'+money(revenue-commission)+'</strong></article></div></section><section class="summary"><h3>VALORES POR FORMA DE PAGAMENTO</h3>';
- Object.keys(payments).forEach(k=>{html+='<div class="summary-row"><span>'+labels[k]+'</span><strong>'+money(payments[k])+'</strong></div>';});html+='</section><section class="summary"><h3>ATENDIMENTOS CONCLUÍDOS</h3>';
- if(done.length){html+='<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Serviços</th><th>Desconto</th><th>Total</th><th>Pagamento</th><th>Comissão</th></tr></thead><tbody>';done.slice().sort((a,b)=>String(b.completed_at).localeCompare(String(a.completed_at))).forEach(x=>{html+='<tr><td>#'+x.queue_number+'</td><td>'+safe(customerNames[x.customer_id]||'Cliente')+'</td><td>'+safe((serviceNames[x.id]||[]).join(', ')||'—')+'</td><td>'+money(Number(x.discount_amount||0))+'</td><td>'+money(Number(x.total_amount))+'</td><td>'+safe(paymentText(x))+'</td><td>'+money(Number(x.commission_amount))+'</td></tr>';});html+='</tbody></table></div>';}else html+='<p class="muted">Nenhum atendimento concluído neste período.</p>';html+='</section>';content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+(state.role==='admin'?'':'<main class="professional-main">')+html+(state.role==='admin'?'':'</main>');
- if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();
- content.querySelector('#barber-report-period').addEventListener('change',function(){adminReportFilters.period=this.value;renderBarberReports();});
- }catch(error){content.innerHTML=(state.role==='admin'?adminNavigation():professionalNavigation('reports'))+(state.role==='admin'?'':'<main class="professional-main">')+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>'+(state.role==='admin'?'':'</main>');if(state.role==='admin')bindAdminNavigation();else bindProfessionalNavigation();}
-}
-async function renderAdminReports(view="reports"){
-  if(state.role !== "admin") return renderQueueDashboard();
-  adminView = view;
-  setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE",view === "history" ? "Histórico de atendimentos" : "Relatórios e faturamento",view === "history" ? "Consulte os registros de todos os atendimentos da barbearia." : "Acompanhe resultados, serviços e comissões por período.");
-  notice.textContent = "Relatórios exclusivos do administrador • Valores financeiros consideram somente atendimentos concluídos.";
-  dashboardActions();
-  content.innerHTML = adminNavigation() + '<p class="muted">Carregando relatórios...</p>';
-  let range;
-  try {
-    range = reportDateRange();
-    const queueResult = await db.from("lacorte_queue")
-      .select("id,customer_id,barber_id,queue_date,queue_number,status,total_amount,gross_amount,discount_amount,commission_percent,commission_amount,payment_method,created_at,completed_at")
-      .gte("queue_date",range.start).lte("queue_date",range.end)
-      .order("queue_date",{ascending:true}).order("created_at",{ascending:true});
-    if(queueResult.error) throw new Error("Não foi possível consultar os atendimentos: "+queueResult.error.message);
-    const rows = queueResult.data || [];
-    const completedRows = rows.filter(function(row){return row.status === "completed";});
-    const barberResult = await db.from("barbers").select("id,name,active").order("name");
-    if(barberResult.error) throw new Error("Não foi possível consultar os barbeiros: "+barberResult.error.message);
-    const customerIds = Array.from(new Set(rows.map(function(row){return row.customer_id;}).filter(Boolean)));
-    const queueIds = rows.map(function(row){return row.id;});
-    const lookups = await Promise.all([
-      customerIds.length ? db.from("customers").select("id,first_name,last_name,phone").in("id",customerIds) : Promise.resolve({data:[],error:null}),
-      queueIds.length ? db.from("lacorte_queue_items").select("queue_id,service_name,unit_price").in("queue_id",queueIds) : Promise.resolve({data:[],error:null}),
-      queueIds.length ? db.from("lacorte_queue_payments").select("queue_id,payment_method,amount").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
-    ]);
-    if(lookups[0].error) throw new Error("Não foi possível consultar os clientes: "+lookups[0].error.message);
-    if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);
-    if(lookups[2].error) throw new Error("Não foi possível consultar os pagamentos: "+lookups[2].error.message);
-    const barberById = {};
-    (barberResult.data || []).forEach(function(barber){barberById[barber.id]=barber.name;});
-    const customerById = {};
-    (lookups[0].data || []).forEach(function(customer){customerById[customer.id]=customer;});
-    const itemsByQueue = {};
-    (lookups[1].data || []).forEach(function(item){
-      if(!itemsByQueue[item.queue_id]) itemsByQueue[item.queue_id]=[];
-      itemsByQueue[item.queue_id].push(item);
-    });
-
-    const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);
-    const grossRevenue = completedRows.reduce(function(sum,row){return sum+Number(row.gross_amount ?? row.total_amount ?? 0);},0);
-    const discountTotal = completedRows.reduce(function(sum,row){return sum+Number(row.discount_amount || 0);},0);
-    const commissions = completedRows.reduce(function(sum,row){return sum+Number(row.commission_amount || 0);},0);
-    const net = revenue-commissions;
-    const paymentTotals = {pix:0,dinheiro:0,credito:0,debito:0};
-    const paymentLinesByQueue = {};
-    (lookups[2].data || []).forEach(function(line){(paymentLinesByQueue[line.queue_id]||(paymentLinesByQueue[line.queue_id]=[])).push(line);});
-    completedRows.forEach(function(row){
-      const lines=paymentLinesByQueue[row.id]||[];
-      if(lines.length) lines.forEach(function(line){if(paymentTotals[line.payment_method] !== undefined) paymentTotals[line.payment_method] += Number(line.amount||0);});
-      else if(paymentTotals[row.payment_method] !== undefined) paymentTotals[row.payment_method] += Number(row.total_amount||0);
-    });
-    const paymentLabelForRow=function(row){
-      const lines=paymentLinesByQueue[row.id]||[];
-      return lines.length?lines.map(function(line){return ({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"})[line.payment_method]+" "+money(Number(line.amount||0));}).join(" + "):(({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"})[row.payment_method] || row.payment_method || "—");
-    };
-    const counts = {
-      completed:completedRows.length,
-      waiting:rows.filter(function(row){return row.status==="waiting";}).length,
-      in_progress:rows.filter(function(row){return row.status==="in_progress";}).length,
-      cancelled:rows.filter(function(row){return row.status==="cancelled";}).length
-    };
-    const daily = {};
-    const cursorDates = [];
-    for(let date=range.start;date<=range.end;date=reportShiftDate(date,1)){
-      cursorDates.push(date);
-      if(cursorDates.length>370) break;
+function openRecordActionDialog({title,description,rpc,args,reason=false,refresh}){
+  if(content.querySelector('.payment-dialog-backdrop')) return;
+  const previousFocus=document.activeElement;
+  const overlay=document.createElement('div');
+  overlay.className='payment-dialog-backdrop';
+  overlay.innerHTML='<section class="payment-dialog" role="dialog" aria-modal="true" aria-labelledby="record-action-title"><h3 id="record-action-title">'+safe(title)+'</h3><p>'+safe(description)+'</p>'+
+    (reason?'<label for="record-action-reason">Motivo (opcional)</label><textarea id="record-action-reason" maxlength="300" rows="3"></textarea>':'')+
+    '<div class="actions"><button type="button" class="btn btn-secondary" data-close>Voltar</button><button type="button" class="btn btn-primary" data-confirm>Confirmar</button></div><p class="muted" role="alert" data-error></p></section>';
+  content.append(overlay);
+  const close=()=>{overlay.remove();if(previousFocus?.isConnected) previousFocus.focus();};
+  const confirmButton=overlay.querySelector('[data-confirm]');
+  const back=overlay.querySelector('[data-close]');
+  back.onclick=close;back.focus();
+  overlay.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!confirmButton.disabled){event.preventDefault();close();}
+    if(event.key==='Tab'){
+      const fields=Array.from(overlay.querySelectorAll('button,textarea')).filter(el=>!el.disabled);
+      const first=fields[0],last=fields[fields.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
     }
-    cursorDates.forEach(function(date){daily[date]=0;});
-    completedRows.forEach(function(row){
-      daily[row.queue_date]=(daily[row.queue_date] || 0)+Number(row.total_amount || 0);
-    });
-    const dailyItems = cursorDates.map(function(date){
-      return {label:date.slice(8,10)+"/"+date.slice(5,7),value:daily[date] || 0};
-    });
-    const commissionsByBarber = {};
-    completedRows.forEach(function(row){
-      const name=barberById[row.barber_id] || row.barber_id || "Não identificado";
-      commissionsByBarber[name]=(commissionsByBarber[name] || 0)+Number(row.commission_amount || 0);
-    });
-    const commissionItems = Object.keys(commissionsByBarber).map(function(name){
-      return {label:name,value:commissionsByBarber[name]};
-    }).sort(function(a,b){return b.value-a.value;});
-    const serviceCounts = {};
-    completedRows.forEach(function(row){
-      (itemsByQueue[row.id] || []).forEach(function(item){
-        serviceCounts[item.service_name]=(serviceCounts[item.service_name] || 0)+1;
-      });
-    });
-    const serviceItems = Object.keys(serviceCounts).map(function(name){
-      return {label:name,value:serviceCounts[name]};
-    }).sort(function(a,b){return b.value-a.value;}).slice(0,8);
-    const customerName = function(row){
-      const c=customerById[row.customer_id] || {};
-      return ((c.first_name || "Cliente")+" "+(c.last_name || "")).trim();
-    };
-    let history = "";
-    rows.slice().sort(function(a,b){
-      return String(b.created_at).localeCompare(String(a.created_at));
-    }).forEach(function(row){
-      const serviceText=(itemsByQueue[row.id] || []).map(function(item){
-        return safe(item.service_name)+" ("+money(Number(item.unit_price || 0))+")";
-      }).join(", ") || "—";
-      history += '<tr><td>#'+Number(row.queue_number)+'</td><td>'+safe(customerName(row))+'</td><td>'+safe(barberById[row.barber_id] || row.barber_id || 'Aguardando atribuição')+'</td><td>'+serviceText+'</td><td>'+money(Number(row.discount_amount || 0))+'</td><td>'+money(Number(row.total_amount || 0))+'</td><td>'+safe(paymentLabelForRow(row))+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+formatDateTime(row.completed_at || row.created_at)+'</td></tr>';
-    });
-
-    const periodOptions = '<option value="today" '+(adminReportFilters.period==="today"?"selected":"")+'>Hoje</option>'+
-      '<option value="week" '+(adminReportFilters.period==="week"?"selected":"")+'>Esta semana</option>'+
-      '<option value="fortnight" '+(adminReportFilters.period==="fortnight"?"selected":"")+'>Quinzena</option>'+
-      '<option value="month" '+(adminReportFilters.period==="month"?"selected":"")+'>Este mês</option>'+
-      '<option value="custom" '+(adminReportFilters.period==="custom"?"selected":"")+'>Personalizado</option>';
-    let html = adminNavigation();
-    const filterLabel = view === "history" ? "PERÍODO DO HISTÓRICO" : "PERÍODO DO RELATÓRIO";
-    html += '<form id="report-filter" class="summary report-filter"><label for="report-period">' + filterLabel + '</label><select id="report-period" name="period">'+periodOptions+'</select>'+
-      '<div class="report-date-fields"><label>Data inicial<input type="date" id="report-start" name="start" value="'+safe(adminReportFilters.start || range.start)+'"></label>'+
-      '<label>Data final<input type="date" id="report-end" name="end" value="'+safe(adminReportFilters.end || range.end)+'"></label></div>'+
-      '<button class="btn btn-primary" type="submit">APLICAR PERÍODO</button></form>';
-
-    if(view === "history"){
-      html += '<section class="summary admin-history-panel"><div class="admin-history-heading"><div><h3>REGISTROS DO PERÍODO</h3><p class="muted">Todos os atendimentos da barbearia, com status e responsável.</p></div><strong>'+rows.length+' registro(s)</strong></div>'+
-        (rows.length
-          ? '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Senha</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Desconto</th><th>Total líquido</th><th>Pagamento</th><th>Status</th><th>Data</th></tr></thead><tbody>'+history+'</tbody></table></div>'
-          : '<p class="muted">Nenhum atendimento encontrado neste período.</p>')+
-        '</section>';
-    } else {
-      html += '<div class="report-kpis">'+
-        '<article class="summary"><span class="muted">Faturamento bruto</span><strong>'+money(grossRevenue)+'</strong></article>'+
-        '<article class="summary"><span class="muted">Descontos</span><strong>'+money(discountTotal)+'</strong></article>'+
-        '<article class="summary"><span class="muted">Faturamento líquido</span><strong>'+money(revenue)+'</strong></article>'+
-        '<article class="summary"><span class="muted">Comissões</span><strong>'+money(commissions)+'</strong></article>'+
-        '<article class="summary"><span class="muted">Após comissões</span><strong>'+money(net)+'</strong></article>'+
-        '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
-      html += '<section class="summary"><h3>FORMAS DE PAGAMENTO</h3>'+Object.keys(paymentTotals).map(function(method){return '<div class="summary-row"><span>'+({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"}[method])+'</span><strong>'+money(paymentTotals[method])+'</strong></div>';}).join("")+'</section>';
-      html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+reportPieChart(dailyItems,money,"Sem faturamento concluído neste período.")+'</section>';
-      html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportPieChart(commissionItems,money)+'</section>'+
-        '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportPieChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
-      const statusItems=[
-        {label:"Aguardando",value:counts.waiting},
-        {label:"Em atendimento",value:counts.in_progress},
-        {label:"Concluídos",value:counts.completed},
-        {label:"Cancelados",value:counts.cancelled}
-      ];
-      html += '<section class="summary report-chart"><h3>STATUS DOS ATENDIMENTOS</h3>'+reportPieChart(statusItems,function(value){return String(value)+" atend.";})+'</section>';
-    }
-
-    if(state.role !== "admin" || adminView !== view) return;
-    content.innerHTML = html;
-    bindAdminNavigation();
-    const filter = content.querySelector("#report-filter");
-    filter.querySelector("#report-period").addEventListener("change",function(){
-      const custom=this.value==="custom";
-      filter.querySelector("#report-start").disabled=!custom;
-      filter.querySelector("#report-end").disabled=!custom;
-    });
-    const customFields=adminReportFilters.period==="custom";
-    filter.querySelector("#report-start").disabled=!customFields;
-    filter.querySelector("#report-end").disabled=!customFields;
-    filter.addEventListener("submit",function(event){
-      event.preventDefault();
-      const fd=new FormData(filter);
-      adminReportFilters.period=String(fd.get("period") || "month");
-      adminReportFilters.start=String(fd.get("start") || "");
-      adminReportFilters.end=String(fd.get("end") || "");
-      renderAdminReports(view);
-    });
-  } catch(error) {
-    if(state.role !== "admin" || adminView !== view) return;
-    content.innerHTML = adminNavigation() + '<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';
-    bindAdminNavigation();
-  }
-}
-
-
-// ===== GERENCIAMENTO ADMINISTRATIVO LACORTE =====
-let adminView = "queue";
-
-function adminNavigation(){
-  if(state.role !== "admin") return "";
-  const navItem=function(view,label,icon){
-    return '<button type="button" class="admin-nav-item '+(adminView===view?'active':'')+'" data-admin-view="'+view+'"><span class="admin-nav-icon">'+icon+'</span><span>'+label+'</span></button>';
+  });
+  confirmButton.onclick=async()=>{
+    confirmButton.disabled=back.disabled=true;
+    try{
+      const payload={...args};
+      if(reason) payload.p_reason=overlay.querySelector('textarea').value.trim()||null;
+      const result=await db.rpc(rpc,payload);
+      if(result.error) throw result.error;
+      close();refresh();
+    }catch(error){overlay.querySelector('[data-error]').textContent='Não foi possível concluir: '+error.message;confirmButton.disabled=back.disabled=false;}
   };
-  return '<aside class="admin-nav"><div class="admin-brand"><span class="admin-brand-mark">LC</span><span><strong>LA CORTE</strong><small>PAINEL ADMINISTRATIVO</small></span></div>'+
-    '<div class="admin-nav-caption">GESTÃO DA BARBEARIA</div>'+
-    navItem("queue","Painel Geral","▦")+
-    navItem("history","Histórico","◷")+
-    navItem("manage","Gestão","♙")+
-    navItem("customers","Clientes","♧")+
-    navItem("services","Serviços","✂")+
-    navItem("reports","Relatórios","▥")+
-    '<div class="admin-nav-footer"><span class="admin-online-dot"></span> Sistema operacional</div></aside>';
+}
+function openCancelAppointmentDialog(queueId,refresh){
+  openRecordActionDialog({title:'Cancelar atendimento',description:'O registro será marcado como cancelado e sairá dos totais de faturamento e comissão. Se houver corte de plano reservado ou utilizado, o crédito será devolvido. Um pagamento já recebido deve ser estornado separadamente.',rpc:'lacorte_cancel_appointment',args:{p_queue_id:queueId},reason:true,refresh});
+}
+function openDeleteCustomerDialog(customerId,refresh){
+  openRecordActionDialog({title:'Excluir cliente',description:'O cadastro sairá da lista e do autoatendimento. As entradas ativas deste cliente e acompanhantes serão canceladas e os planos ativos serão suspensos. O histórico de atendimentos será preservado.',rpc:'lacorte_delete_customer',args:{p_customer_id:customerId},refresh});
+}
+function profileAvatar(photo,crop = {},fallback = "B1"){
+  const validPhoto = /^data:image\/webp;base64,[a-z0-9+/]+={0,2}$/i.test(photo || "");
+  const zoom = Math.min(3,Math.max(1,Number(crop.zoom)||1));
+  const x = Math.min(100,Math.max(0,Number(crop.x ?? 50)||0));
+  const y = Math.min(100,Math.max(0,Number(crop.y ?? 50)||0));
+  const position = x+"% "+y+"%";
+  return '<span class="lc-admin-avatar" aria-hidden="true">'+
+    (validPhoto ? '<img src="'+safe(photo)+'" alt="" style="object-position:'+position+
+      ';transform-origin:'+position+';transform:scale('+zoom+')">' : safe(fallback))+'</span>';
 }
 
-function bindAdminNavigation(){
-  content.querySelectorAll("[data-admin-view]").forEach(function(button){
-    button.addEventListener("click", function(){
-      adminView = button.dataset.adminView;
-      if(adminView === "manage") renderAdminManagement();
-      else if(adminView === "history") renderAdminReports("history");
-      else if(adminView === "customers") renderAdminCustomers();
-      else if(adminView === "services") renderAdminManagement();
-      else if(adminView === "plans") renderAdminPlans();
-      else if(adminView === "reports") renderAdminReports();
-      else renderQueueDashboard();
-    });
-  });
-}
-
-
-async function renderAdminCustomers(){
-  if(state.role !== "admin") return renderQueueDashboard();
-  adminView = "customers";
-  setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE","Clientes cadastrados","Cadastro permanente e histórico de visitas da clientela.");
-  notice.textContent = "Dados pessoais e histórico completos • Acesso exclusivo do administrador.";
-  dashboardActions();
-  content.innerHTML = adminNavigation() + '<p class="muted">Carregando clientes e histórico...</p>';
-  try {
-    const results = await Promise.all([
-      db.from("customers").select("id,first_name,last_name,email,phone,birth_date,created_at").order("created_at",{ascending:false}).limit(500),
-      db.from("lacorte_queue").select("id,customer_id,queue_date,queue_number,status,total_amount,barber_id,payment_method,created_at,completed_at").order("created_at",{ascending:false}).limit(2000),
-      db.from("barbers").select("id,name")
-    ]);
-    if(results[0].error) throw new Error("Não foi possível carregar os clientes: "+results[0].error.message);
-    if(results[1].error) throw new Error("Não foi possível carregar o histórico: "+results[1].error.message);
-    if(results[2].error) throw new Error("Não foi possível carregar os barbeiros: "+results[2].error.message);
-    const customers = results[0].data || [];
-    const queueRows = results[1].data || [];
-    const barberNames = {};
-    (results[2].data || []).forEach(function(b){barberNames[b.id]=b.name;});
-    const history = {};
-    queueRows.forEach(function(row){
-      if(!history[row.customer_id]) history[row.customer_id]=[];
-      history[row.customer_id].push(row);
-    });
-    let html = adminNavigation();
-    html += '<section class="summary"><h3>BASE DE CLIENTES</h3><p class="muted">'+customers.length+' cadastro(s) carregado(s). Pesquise por nome, telefone ou e-mail.</p><label for="customer-admin-search">BUSCAR CLIENTE</label><input id="customer-admin-search" type="search" placeholder="Digite nome, telefone ou e-mail"></section>';
-    if(!customers.length) html += '<section class="summary"><p class="muted">Ainda não há clientes cadastrados.</p></section>';
-    customers.forEach(function(customer){
-      const fullName=(customer.first_name||"")+" "+(customer.last_name||"");
-      const rows=history[customer.id]||[];
-      const completed=rows.filter(function(row){return row.status==="completed";});
-      const spent=completed.reduce(function(sum,row){return sum+Number(row.total_amount||0);},0);
-      const lastVisit=rows.length?rows[0].created_at:null;
-      const searchText=(fullName+" "+(customer.phone||"")+" "+(customer.email||"")).toLocaleLowerCase("pt-BR");
-      html += '<details class="summary admin-customer-card" data-customer-card data-search="'+safe(searchText)+'"><summary><strong>'+safe(fullName.trim()||"Cliente sem nome")+'</strong><span class="admin-customer-chevron" aria-hidden="true">⌄</span></summary>';
-      html += '<div class="admin-customer-details"><div class="admin-customer-stats"><div><span>VISITAS</span><strong>'+rows.length+'</strong></div><div><span>VALOR CONCLUÍDO</span><strong>'+money(spent)+'</strong></div></div><div class="summary-row"><span>Telefone</span><strong>'+safe(customer.phone||"—")+'</strong></div><div class="summary-row"><span>E-mail</span><strong>'+safe(customer.email||"—")+'</strong></div><div class="summary-row"><span>Aniversário</span><strong>'+safe(customer.birth_date||"—")+'</strong></div><div class="summary-row"><span>Cadastro</span><strong>'+formatDateTime(customer.created_at)+'</strong></div><div class="summary-row"><span>Última entrada</span><strong>'+formatDateTime(lastVisit)+'</strong></div><form class="admin-form customer-edit-form" data-customer-form="' + safe(customer.id) + '"><h4>EDITAR CADASTRO</h4><label>Nome</label><input name="first_name" required maxlength="80" value="' + safe(customer.first_name||"") + '"><label>Sobrenome</label><input name="last_name" required maxlength="100" value="' + safe(customer.last_name||"") + '"><label>Telefone</label><input name="phone" type="tel" required maxlength="20" value="' + safe(customer.phone||"") + '"><label>E-mail</label><input name="email" type="email" value="' + safe(customer.email||"") + '"><label>Aniversário</label><input name="birth_date" type="date" value="' + safe(customer.birth_date||"") + '"><button class="btn btn-secondary" type="submit">SALVAR CADASTRO</button><p class="muted" data-customer-save-status role="status"></p></form><h4>HISTÓRICO DE ATENDIMENTOS</h4>';
-      if(!rows.length) html += '<p class="muted">Nenhuma entrada na fila registrada.</p>';
-      else {
-        html += '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Data</th><th>Senha</th><th>Status</th><th>Barbeiro</th><th>Valor</th></tr></thead><tbody>';
-        rows.slice(0,30).forEach(function(row){
-          html += '<tr><td>'+safe(row.queue_date||"—")+'</td><td>#'+safe(row.queue_number)+'</td><td>'+safe(statusLabel(row.status))+'</td><td>'+safe(barberNames[row.barber_id]||"—")+'</td><td>'+money(Number(row.total_amount||0))+'</td></tr>';
-        });
-        html += '</tbody></table></div>';
-        if(rows.length>30) html += '<p class="muted">Mostrando as 30 visitas mais recentes de '+rows.length+'.</p>';
-      }
-      html += '</div></details>';
-    });
-    content.innerHTML=html;
-    bindAdminNavigation();
-    const search=content.querySelector("#customer-admin-search");
-    if(search) search.addEventListener("input",function(){
-      const term=search.value.trim().toLocaleLowerCase("pt-BR");
-      content.querySelectorAll("[data-customer-card]").forEach(function(card){
-        card.hidden=!card.dataset.search.includes(term);
-      });
-    });
-    content.querySelectorAll("[data-customer-form]").forEach(function(form){
-      form.addEventListener("submit",async function(event){
-        event.preventDefault();
-        const fd=new FormData(form);
-        const phone=String(fd.get("phone")||"").replace(/\\D/g,"");
-        const status=form.querySelector("[data-customer-save-status]");
-        const button=form.querySelector('button[type="submit"]');
-        if(phone.length<10){status.textContent="Informe um telefone válido com DDD.";return;}
-        button.disabled=true;
-        status.textContent="Salvando cadastro...";
-        const result=await db.from("customers").update({
-          first_name:String(fd.get("first_name")||"").trim(),
-          last_name:String(fd.get("last_name")||"").trim(),
-          phone:phone,
-          email:String(fd.get("email")||"").trim().toLowerCase()||null,
-          birth_date:String(fd.get("birth_date")||"")||null,
-          updated_at:new Date().toISOString()
-        }).eq("id",form.dataset.customerForm);
-        if(result.error){
-          button.disabled=false;
-          status.textContent="Não foi possível salvar: "+result.error.message;
-          return;
-        }
-        status.textContent="Cadastro atualizado.";
-        renderAdminCustomers();
-      });
-    });
-  } catch(error) {
-    content.innerHTML=adminNavigation()+'<section class="summary"><p class="muted">'+safe(error.message)+'</p></section>';
-    bindAdminNavigation();
-  }
-}
-
-async function renderAdminManagement(){
-  if(state.role !== "admin") return renderQueueDashboard();
-  setAppMode(true);
-  const servicesOnly = adminView === "services";
-  setHeader(
-    "ADMINISTRAÇÃO LACORTE",
-    servicesOnly ? "Serviços e preços" : "Gestão da barbearia",
-    servicesOnly
-      ? "Consulte o catálogo ativo e os valores praticados."
-      : "Acessos, equipe e comissões da operação."
-  );
-  notice.textContent = "Área exclusiva do administrador. As alterações são salvas diretamente no Supabase.";
-  dashboardActions();
-  content.innerHTML = adminNavigation() + '<p class="muted">Carregando cadastros...</p>';
-  try {
-    const results = await Promise.all([
-      servicesOnly
-        ? Promise.resolve({data:[],error:null})
-        : db.from("barbers").select("id,name,active,commission_percent").order("name"),
-      servicesOnly
-        ? db.from("services").select("id,name,detail,price,active").order("name")
-        : Promise.resolve({data:[],error:null})
-    ]);
-    if(results[0].error) throw new Error("Erro ao carregar barbeiros: " + results[0].error.message);
-    if(results[1].error) throw new Error("Erro ao carregar serviços: " + results[1].error.message);
-    const barberRows = results[0].data || [];
-    const serviceRows = results[1].data || [];
-    let accessEmail = "";
-    if(!servicesOnly){
-      const accessLoad = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "get" } });
-      if(!accessLoad.error) accessEmail = accessLoad.data.current_email || "";
-    }
-    let html = adminNavigation();
-    const workspaceClass = servicesOnly ? "admin-workspace is-services" : "admin-workspace is-management";
-    const workspaceTitle = servicesOnly ? "Catálogo de serviços" : "Gestão da barbearia";
-    const workspaceDescription = servicesOnly
-      ? "Serviços disponíveis e seus preços atuais."
-      : "Acessos profissionais, equipe e comissões.";
-    const tabsMarkup = servicesOnly
-      ? '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="services">Catálogo</button>'
-      : '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos</button>' +
-        '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe</button>';
-    html += '<div class="' + workspaceClass + '"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>' +
-      workspaceTitle + '</h2><p class="muted">' + workspaceDescription +
-      '</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
-      tabsMarkup + '</nav>' +
-      (!servicesOnly ? '<div class="manage-secondary-action"><button type="button" class="btn btn-secondary" data-open-admin-plans>GERENCIAR PLANOS E ASSINATURAS</button></div>' : '');
-    if(!servicesOnly){
-      html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><h3>ACESSO DO BARBEIRO 2</h3><p class="muted">Atualize o e-mail profissional vinculado ao acesso do segundo barbeiro. O administrador permanece separado.</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><form id="barber-access-form" class="admin-form"><label for="barber-access-email">Novo e-mail profissional</label><input id="barber-access-email" name="email" type="email" required autocomplete="email" placeholder="barbeiro@exemplo.com"><button class="btn btn-primary" type="submit">ATUALIZAR ACESSO</button><p id="barber-access-message" class="muted" role="status"></p></form></section></div>';
-      html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome do barbeiro</label><input name="name" required maxlength="80" placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
-      barberRows.forEach(function(b){
-        html += '<form class="admin-form" data-barber-form="' + safe(b.id) + '"><h4>' + safe(b.name) + '</h4><label>Nome</label><input name="name" required maxlength="80" value="' + safe(b.name) + '"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="' + Number(b.commission_percent || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
-      });
-      if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
-      html += '</div></div></section></div>';
-    }
-    html += '<div class="manage-panel ' + (servicesOnly ? "active" : "") + '" role="tabpanel" data-manage-panel="services"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>SERVIÇOS E PREÇOS</h3><p class="muted">Catálogo disponível na LaCorte.</p></div><span class="manage-count">' + serviceRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-service-form">+ ADICIONAR CORTE / SERVIÇO</button><div id="new-service-form-wrap" class="admin-reveal-content" hidden><form id="new-service-form" class="admin-form"><label>Nome do serviço</label><input name="name" required maxlength="80" placeholder="Ex.: Corte"><label>Descrição</label><input name="detail" maxlength="160" placeholder="Descrição curta"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required placeholder="45,00"><button class="btn btn-primary" type="submit">CADASTRAR SERVIÇO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="service-list">VER SERVIÇOS CADASTRADOS</button><div id="service-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
-    serviceRows.forEach(function(s){
-      html += '<form class="admin-form" data-service-form="' + safe(s.id) + '"><h4>' + safe(s.name) + '</h4><label>Nome</label><input name="name" required maxlength="80" value="' + safe(s.name) + '"><label>Descrição</label><input name="detail" maxlength="160" value="' + safe(s.detail || '') + '"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" value="' + Number(s.price || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? 'checked' : '') + '> Serviço ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
-    });
-    if(!serviceRows.length) html += '<p class="muted">Nenhum serviço cadastrado.</p>';
-    html += '</div></div></section></div></div>';
-    content.innerHTML = html;
-    content.querySelectorAll('[data-reveal]').forEach(function(button){
-      button.addEventListener('click',function(){
-        const wrap = content.querySelector('#'+button.dataset.reveal+'-wrap');
-        if(!wrap) return;
-        const opening = wrap.hidden;
-        wrap.hidden = !opening;
-        button.textContent = opening ? 'FECHAR CADASTRO' : (button.dataset.reveal === 'new-service-form' ? '+ ADICIONAR CORTE / SERVIÇO' : '+ ADICIONAR BARBEIRO');
-        if(opening) wrap.querySelector('input')?.focus();
-      });
-    });
-    content.querySelectorAll('[data-list-toggle]').forEach(function(button){
-      button.addEventListener('click',function(){
-        const list = content.querySelector('#'+button.dataset.listToggle);
-        if(!list) return;
-        list.hidden = !list.hidden;
-        button.textContent = list.hidden ? (button.dataset.listToggle === 'service-list' ? 'VER SERVIÇOS CADASTRADOS' : 'VER EQUIPE CADASTRADA') : 'OCULTAR LISTA';
-      });
-    });
-    bindAdminNavigation();
-    const plansShortcut = content.querySelector("[data-open-admin-plans]");
-    if(plansShortcut) plansShortcut.addEventListener("click", function(){ adminView = "plans"; renderAdminPlans(); });
-    content.querySelectorAll("[data-manage-tab]").forEach(function(tab){
-      tab.addEventListener("click", function(){
-        const selected = tab.dataset.manageTab;
-        content.querySelectorAll("[data-manage-tab]").forEach(function(item){
-          const active = item === tab;
-          item.classList.toggle("active",active);
-          item.setAttribute("aria-selected",active ? "true" : "false");
-        });
-        content.querySelectorAll("[data-manage-panel]").forEach(function(panel){
-          panel.classList.toggle("active",panel.dataset.managePanel === selected);
-        });
-      });
-    });
-
-    const accessForm = content.querySelector("#barber-access-form");
-    if(accessForm) accessForm.addEventListener("submit", async function(e){
-      e.preventDefault();
-      const email = String(new FormData(accessForm).get("email") || "").trim().toLowerCase();
-      const button = accessForm.querySelector('button[type="submit"]');
-      const status = accessForm.querySelector("#barber-access-message");
-      if(!email) return;
-      button.disabled = true;
-      status.textContent = "Enviando solicitação segura...";
-      const result = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "update", email: email } });
-      button.disabled = false;
-      if(result.error || result.data?.error){
-        status.textContent = "Não foi possível solicitar a troca: " + (result.data?.error || result.error?.message || "Erro desconhecido.");
-        return;
-      }
-      status.textContent = result.data.message || "Solicitação enviada.";
-      accessForm.querySelector('input[name="email"]').value = "";
-    });
-
-    const newBarber = content.querySelector("#new-barber-form");
-    if(newBarber) newBarber.addEventListener("submit", async function(e){
-      e.preventDefault();
-      const fd = new FormData(newBarber);
-      const name = String(fd.get("name") || "").trim();
-      const id = "barbeiro-" + slugId(name);
-      const commission = Number(fd.get("commission"));
-      if(!name || !Number.isFinite(commission) || commission < 0 || commission > 100) return alert("Confira o nome e a comissão (0 a 100%).");
-      const result = await db.from("barbers").insert({id:id,name:name,active:true,commission_percent:commission});
-      if(result.error) return alert("Não foi possível cadastrar. Verifique se o ID já existe. " + result.error.message);
-      alert("Barbeiro cadastrado. Para acessar o painel, ainda será necessário criar a conta de acesso e vinculá-la ao perfil.");
-      renderAdminManagement();
-    });
-
-    content.querySelectorAll("[data-barber-form]").forEach(function(form){
-      form.addEventListener("submit", async function(e){
-        e.preventDefault();
-        const fd = new FormData(form);
-        const commission = Number(fd.get("commission"));
-        if(!Number.isFinite(commission) || commission < 0 || commission > 100) return alert("A comissão deve ficar entre 0 e 100%.");
-        const result = await db.from("barbers").update({
-          name:String(fd.get("name") || "").trim(),
-          commission_percent:commission,
-          active:fd.get("active") === "on"
-        }).eq("id",form.dataset.barberForm);
-        if(result.error) return alert("Erro ao salvar barbeiro: " + result.error.message);
-        alert("Barbeiro atualizado.");
-        renderAdminManagement();
-      });
-    });
-
-    const newService = content.querySelector("#new-service-form");
-    if(newService) newService.addEventListener("submit", async function(e){
-      e.preventDefault();
-      const fd = new FormData(newService);
-      const name = String(fd.get("name") || "").trim();
-      const price = Number(fd.get("price"));
-      if(!name || !Number.isFinite(price) || price < 0) return alert("Confira o nome e o preço.");
-      const id = slugId(name);
-      const result = await db.from("services").insert({
-        id:id,name:name,detail:String(fd.get("detail") || "").trim(),price:price,active:true
-      });
-      if(result.error) return alert("Não foi possível cadastrar. O identificador pode já existir. " + result.error.message);
-      alert("Serviço cadastrado.");
-      renderAdminManagement();
-    });
-
-    content.querySelectorAll("[data-service-form]").forEach(function(form){
-      form.addEventListener("submit", async function(e){
-        e.preventDefault();
-        const fd = new FormData(form);
-        const price = Number(fd.get("price"));
-        if(!Number.isFinite(price) || price < 0) return alert("Informe um preço válido.");
-        const result = await db.from("services").update({
-          name:String(fd.get("name") || "").trim(),
-          detail:String(fd.get("detail") || "").trim(),
-          price:price,
-          active:fd.get("active") === "on"
-        }).eq("id",form.dataset.serviceForm);
-        if(result.error) return alert("Erro ao salvar serviço: " + result.error.message);
-        alert("Serviço atualizado.");
-        renderAdminManagement();
-      });
-    });
-  } catch(error) {
-    content.innerHTML = adminNavigation() + '<p class="muted">' + safe(error.message) + '</p>';
-    bindAdminNavigation();
-  }
-}
-
-async function renderAdminPlans(){
-  if(state.role !== "admin") return renderQueueDashboard();
-  setAppMode(true);
-  setHeader("ADMINISTRAÇÃO LACORTE", "Planos e assinaturas", "Cadastre planos e controle as assinaturas dos clientes.");
-  notice.textContent = "Ativação manual após confirmar o pagamento fora do site. Nenhuma cobrança é feita aqui.";
-  dashboardActions();
-  content.innerHTML = adminNavigation() + '<p class="muted">Carregando planos e assinaturas...</p>';
-  try {
-    const results = await Promise.all([
-      db.from("lacorte_plans").select("id,name,description,monthly_price,benefits,active").order("created_at", {ascending:false}),
-      db.from("customers").select("id,first_name,last_name,phone,email").order("first_name"),
-      db.from("lacorte_customer_plans").select("*").order("created_at", {ascending:false})
-    ]);
-    results.forEach(function(r){ if(r.error) throw new Error(r.error.message); });
-    const rows = results[0].data || [];
-    const customers = results[1].data || [];
-    const subscriptions = results[2].data || [];
-    const localDateString = function(date){
-      return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
-    };
-    const todayString = localQueueDate();
-    const expiredSubscriptions = subscriptions.filter(function(sub){
-      return sub.status === "active" && sub.expires_at && sub.expires_at < todayString;
-    });
-    for(const expiredSub of expiredSubscriptions){
-      const expiryUpdate = await db.from("lacorte_customer_plans")
-        .update({status:"expired",updated_at:new Date().toISOString()})
-        .eq("id",expiredSub.id).eq("status","active");
-      if(expiryUpdate.error) console.warn("Não foi possível atualizar assinatura vencida:",expiryUpdate.error.message);
-      else expiredSub.status = "expired";
-    }
-    const customerById = {};
-    customers.forEach(function(c){ customerById[c.id] = c; });
-    let html = adminNavigation();
-    const sevenDaysDate = new Date();
-    sevenDaysDate.setDate(sevenDaysDate.getDate()+7);
-    const sevenDaysString = localDateString(sevenDaysDate);
-    const activeSubscriptions = subscriptions.filter(function(sub){
-      return sub.status === "active" && sub.expires_at && sub.expires_at >= todayString;
-    });
-    const expiringSoonCount = activeSubscriptions.filter(function(sub){
-      return sub.expires_at <= sevenDaysString;
-    }).length;
-    const expiredCount = subscriptions.filter(function(sub){
-      return sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
-    }).length;
-    html += '<section class="summary"><h3>RESUMO DAS ASSINATURAS</h3><div class="report-status-grid">' +
-      '<div><span>Assinaturas ativas</span><strong>'+activeSubscriptions.length+'</strong></div>' +
-      '<div><span>Vencendo em até 7 dias</span><strong>'+expiringSoonCount+'</strong></div>' +
-      '<div><span>Assinaturas vencidas</span><strong>'+expiredCount+'</strong></div>' +
-      '</div></section>';
-    html += '<section class="summary"><h3>ASSINATURAS</h3><p class="muted">Ative ou consulte assinaturas somente quando precisar.</p><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><div id="activate-plan-wrap" class="admin-reveal-content" hidden><p class="muted">Confirme o pagamento primeiro. Depois selecione o cliente, o plano e o período de validade.</p>';
-    if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
-    else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
-    else {
-      const today = new Date(localQueueDate()+"T12:00:00");
-      const dateValue = function(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
-      const nextMonth = new Date(today.getFullYear(),today.getMonth()+1,today.getDate());
-      html += '<form id="activate-customer-plan" class="admin-form">' +
-        '<label>Cliente</label><select name="customer_id" required><option value="">Selecione o cliente</option>' +
-        customers.map(function(c){return '<option value="'+safe(c.id)+'">'+safe(c.first_name+' '+c.last_name)+' • '+safe(c.phone || c.email || '')+'</option>';}).join('') +
-        '</select><label>Plano</label><select name="plan_id" required><option value="">Selecione o plano</option>' +
-        rows.filter(function(p){return p.active;}).map(function(p){return '<option value="'+safe(p.id)+'">'+safe(p.name)+' • '+money(p.monthly_price)+'</option>';}).join('') +
-        '</select><label>Início da assinatura</label><input name="start_date" type="date" required value="'+dateValue(today)+'">' +
-        '<label>Vencimento</label><input name="expires_at" type="date" required value="'+dateValue(nextMonth)+'">' +
-        '<label>Pagamento confirmado por</label><select name="payment_method" required><option value="">Selecione</option><option>InfinitePay</option><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Outro</option></select>' +
-        '<label>Observação (opcional)</label><input name="notes" maxlength="500" placeholder="Ex.: comprovante conferido">' +
-        '<button class="btn btn-primary" type="submit">ATIVAR ASSINATURA</button></form>';
-    }
-    html += '</div></section>';
-    html += '<section class="summary"><h3>HISTÓRICO DE ASSINATURAS</h3><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">CONSULTAR HISTÓRICO</button><div id="subscription-history" class="admin-reveal-content" hidden><p class="muted">Pesquise pelo nome, telefone ou plano.</p>';
-    html += '<label for="subscription-history-search">Buscar no histórico</label><input id="subscription-history-search" type="search" placeholder="Nome do cliente, telefone ou plano">';
-    if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
-    subscriptions.forEach(function(sub){
-      const c = customerById[sub.customer_id] || {};
-      const customerName = (c.first_name || "Cliente")+' '+(c.last_name || "");
-      const remaining = Math.max(0,Number(sub.included_cuts)-Number(sub.used_cuts));
-      const statusLabel = ({active:"Ativa",expired:"Vencida",exhausted:"Cortes esgotados",suspended:"Suspensa"})[sub.status] || sub.status;
-      const todayDate = new Date(todayString+"T00:00:00");
-      const expiryDate = sub.expires_at ? new Date(sub.expires_at+"T00:00:00") : null;
-      const daysRemaining = expiryDate ? Math.ceil((expiryDate-todayDate)/86400000) : null;
-      const isExpired = sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
-      const expiryNotice = isExpired
-        ? '<p class="notice"><strong>ASSINATURA VENCIDA:</strong> Esta assinatura passou da data de validade.</p>'
-        : sub.status === "active" && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7
-          ? '<p class="notice"><strong>ATENÇÃO:</strong> '+(daysRemaining === 0 ? "A assinatura vence hoje." : "A assinatura vence em "+daysRemaining+" dia(s).")+'</p>'
-          : "";
-      const searchText = [customerName,c.phone || "",c.email || "",sub.plan_name || "",statusLabel].join(" ").toLowerCase();
-      const paidDate = sub.paid_at ? new Date(sub.paid_at).toLocaleString("pt-BR") : "Não informado";
-      html += '<article class="summary admin-item" data-subscription-history-card data-search="'+safe(searchText)+'"><h3>'+safe(sub.plan_name)+'</h3><p><strong>Cliente:</strong> '+safe(customerName)+'</p><p><strong>Telefone:</strong> '+safe(c.phone || "—")+'</p><p><strong>Período:</strong> '+safe(sub.start_date)+' até '+safe(sub.expires_at)+'</p>'+expiryNotice+'<p><strong>Cortes:</strong> '+Number(sub.used_cuts)+' usados • '+remaining+' restantes de '+Number(sub.included_cuts)+'</p><p><strong>Valor:</strong> '+money(sub.monthly_price)+' • <strong>Pagamento:</strong> '+safe(sub.payment_method || "—")+'</p><p><strong>Pagamento registrado:</strong> '+safe(paidDate)+'</p><p><strong>Status:</strong> '+safe(statusLabel)+'</p>';
-      if(sub.notes) html += '<p><strong>Observação:</strong> '+safe(sub.notes)+'</p>';
-      if(sub.status === "active") html += '<button class="btn btn-secondary" type="button" data-suspend-plan="'+safe(sub.id)+'">SUSPENDER ASSINATURA</button>';
-      if(sub.status === "suspended") html += '<button class="btn btn-primary" type="button" data-reactivate-plan="'+safe(sub.id)+'">REATIVAR ASSINATURA</button>';
-      html += '</article>';
-    });
-    html += '</div></section>';
-    html += '<section class="summary"><h3>PLANOS</h3><p class="muted">Cadastre ou consulte os planos disponíveis.</p><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
-      '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
-      '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
-      '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
-      '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="4 cortes por mês&#10;Desconto em produtos"></textarea>' +
-      '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form>';
-    html += '<div id="plan-list-items" class="admin-reveal-content" hidden>';
-    if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
-    rows.forEach(function(p){
-      const benefits = Array.isArray(p.benefits) ? p.benefits.join("\n") : "";
-      html += '<form class="summary admin-item" data-plan-form="' + safe(p.id) + '">' +
-        '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(p.name) + '">' +
-        '<label>Descrição</label><textarea name="description" maxlength="500" rows="3">' + safe(p.description || "") + '</textarea>' +
-        '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required value="' + Number(p.monthly_price) + '">' +
-        '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4">' + safe(benefits) + '</textarea>' +
-        '<label class="admin-check"><input name="active" type="checkbox" ' + (p.active ? "checked" : "") + '> Disponível para venda</label>' +
-        '<button class="btn btn-primary" type="submit">SALVAR PLANO</button></form>';
-    });
-    html += '</section>';
-    content.innerHTML = html;
-    bindAdminNavigation();
-    content.querySelectorAll('[data-reveal],[data-list-toggle]').forEach(function(button){
-      button.addEventListener('click',function(){
-        const id=button.dataset.reveal ? button.dataset.reveal+'-wrap' : button.dataset.listToggle;
-        const target=content.querySelector('#'+id);
-        if(!target) return;
-        target.hidden=!target.hidden;
-        const open=!target.hidden;
-        if(button.dataset.reveal) button.textContent=open?'FECHAR':'+'+(button.dataset.reveal==='new-plan-form'?' ADICIONAR PLANO':' ATIVAR ASSINATURA');
-        else button.textContent=open?'OCULTAR':'VER '+(id==='plan-list-items'?'PLANOS CADASTRADOS':'HISTÓRICO');
-      });
-    });
-    const activationForm = content.querySelector("#activate-customer-plan");
-    if(activationForm) activationForm.addEventListener("submit", async function(e){
-      e.preventDefault();
-      const fd = new FormData(activationForm);
-      const customerId = String(fd.get("customer_id") || "");
-      const plan = rows.find(function(p){return p.id === String(fd.get("plan_id") || "");});
-      const startDate = String(fd.get("start_date") || "");
-      const expiresAt = String(fd.get("expires_at") || "");
-      if(!customerId || !plan || !startDate || !expiresAt || expiresAt < startDate) return alert("Confira cliente, plano e datas.");
-      const includedCuts = planIncludedCuts(plan);
-      if(!includedCuts) return alert("Informe a quantidade de cortes nos benefícios do plano (ex.: 4 cortes por mês) antes de ativar a assinatura.");
-      const existing = await db.from("lacorte_customer_plans").select("id").eq("customer_id",customerId).eq("status","active").limit(1);
-      if(existing.error) return alert("Não foi possível verificar assinaturas anteriores: "+existing.error.message);
-      if(existing.data && existing.data.length) return alert("Este cliente já possui uma assinatura ativa. Suspenda a anterior antes de ativar outra.");
-      const saved = await db.from("lacorte_customer_plans").insert({
-        customer_id:customerId,plan_id:plan.id,plan_name:plan.name,monthly_price:plan.monthly_price,
-        start_date:startDate,expires_at:expiresAt,included_cuts:includedCuts,used_cuts:0,status:"active",
-        paid_at:new Date().toISOString(),payment_method:String(fd.get("payment_method") || ""),
-        notes:String(fd.get("notes") || "").trim()
-      });
-      if(saved.error) return alert("Erro ao ativar assinatura: "+saved.error.message);
-      alert("Assinatura ativada. O pagamento foi registrado como confirmado manualmente.");
-      renderAdminPlans();
-    });
-    content.querySelectorAll("[data-suspend-plan]").forEach(function(button){
-      button.addEventListener("click", async function(){
-        if(!confirm("Deseja suspender esta assinatura?")) return;
-        const updated = await db.from("lacorte_customer_plans").update({status:"suspended",updated_at:new Date().toISOString()}).eq("id",button.dataset.suspendPlan);
-        if(updated.error) return alert("Erro ao suspender: "+updated.error.message);
-        renderAdminPlans();
-      });
-    });
-    content.querySelectorAll("[data-reactivate-plan]").forEach(function(button){
-      button.addEventListener("click", async function(){
-        const subscription = subscriptions.find(function(item){return item.id === button.dataset.reactivatePlan;});
-        if(!subscription) return alert("Assinatura não encontrada. Atualize a página.");
-        const today = localQueueDate();
-        if(subscription.expires_at < today) return alert("Esta assinatura está vencida. Cadastre uma nova assinatura após confirmar o pagamento.");
-        if(Number(subscription.used_cuts) >= Number(subscription.included_cuts)) return alert("Esta assinatura não possui cortes disponíveis. Não é possível reativar os benefícios.");
-        const otherActive = await db.from("lacorte_customer_plans").select("id").eq("customer_id",subscription.customer_id).eq("status","active").neq("id",subscription.id).limit(1);
-        if(otherActive.error) return alert("Não foi possível verificar outras assinaturas: "+otherActive.error.message);
-        if(otherActive.data && otherActive.data.length) return alert("Este cliente já possui outra assinatura ativa.");
-        if(!confirm("Deseja reativar esta assinatura mantendo os créditos e a validade atuais?")) return;
-        button.disabled = true;
-        const updated = await db.from("lacorte_customer_plans").update({status:"active",updated_at:new Date().toISOString()}).eq("id",subscription.id).eq("status","suspended");
-        if(updated.error) { button.disabled = false; return alert("Erro ao reativar: "+updated.error.message); }
-        alert("Assinatura reativada. Os créditos e a validade foram mantidos.");
-        renderAdminPlans();
-      });
-    });
-    content.querySelector("#new-plan-form").addEventListener("submit", async function(e){
-      e.preventDefault();
-      const form = e.currentTarget, fd = new FormData(form), name = String(fd.get("name") || "").trim(), price = Number(fd.get("monthly_price"));
-      if(!name || !Number.isFinite(price) || price < 0) return alert("Confira o nome e o valor mensal.");
-      const benefits = String(fd.get("benefits") || "").split("\n").map(x=>x.trim()).filter(Boolean);
-      const saved = await db.from("lacorte_plans").insert({name,description:String(fd.get("description") || "").trim(),monthly_price:price,benefits,active:true});
-      if(saved.error) return alert("Erro ao cadastrar: " + saved.error.message);
-      alert("Plano cadastrado."); renderAdminPlans();
-    });
-    content.querySelectorAll("[data-plan-form]").forEach(function(form){
-      form.addEventListener("submit", async function(e){
-        e.preventDefault();
-        const fd = new FormData(form), name = String(fd.get("name") || "").trim(), price = Number(fd.get("monthly_price"));
-        if(!name || !Number.isFinite(price) || price < 0) return alert("Confira o nome e o valor mensal.");
-        const benefits = String(fd.get("benefits") || "").split("\n").map(x=>x.trim()).filter(Boolean);
-        const saved = await db.from("lacorte_plans").update({name,description:String(fd.get("description") || "").trim(),monthly_price:price,benefits,active:fd.get("active") === "on",updated_at:new Date().toISOString()}).eq("id",form.dataset.planForm);
-        if(saved.error) return alert("Erro ao salvar plano: " + saved.error.message);
-        alert("Plano atualizado."); renderAdminPlans();
-      });
-    });
-  } catch(error) {
-    content.innerHTML = adminNavigation() + '<p class="muted">Erro ao carregar planos e assinaturas: ' + safe(error.message) + '</p>';
-    bindAdminNavigation();
-  }
-}
-
-function planIncludedCuts(plan){
-  const benefits = Array.isArray(plan && plan.benefits) ? plan.benefits.join(" ") : "";
-  const match = benefits.match(/(?:^|\D)(\d{1,3})\s+cortes?\b/i);
-  if(!match) return null;
-  const count = Number(match[1]);
-  return Number.isInteger(count) && count > 0 ? count : null;
-}
-function slugId(value){
-  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,45);
-}
-
-
-function lcAdminIcon(name){
-  const paths={
-    overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
-    history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
-    management:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 0-6l1.4-1.1-1.4-2.4-1.7.6a8 8 0 0 0-5.7-1.5L11.7 3H9l-.3 1.8a8 8 0 0 0-1.7 1l-1.7-.6-1.4 2.4L5.3 9a8 8 0 0 0 0 6l-1.4 1.1 1.4 2.4 1.7-.6a8 8 0 0 0 5.7 1.5l.3 1.8h2.7l.3-1.8a8 8 0 0 0 1.7-1l1.7.6 1.4-2.4z"/>',
-    clients:'<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>',
-    services:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m20 4-12 12m0-8 12 12"/>',
-    reports:'<path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 6-7"/>',
-    search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
-    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
-    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
-    plus:'<path d="M12 5v14M5 12h14"/>',
-    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
-    support:'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
-    settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a8 8 0 0 0 0-6l1.4-1.1-1.4-2.4-1.7.6a8 8 0 0 0-5.7-1.5L11.7 3H9l-.3 1.8a8 8 0 0 0-1.7 1l-1.7-.6-1.4 2.4L5.3 9a8 8 0 0 0 0 6l-1.4 1.1 1.4 2.4 1.7-.6a8 8 0 0 0 5.7 1.5l.3 1.8h2.7l.3-1.8a8 8 0 0 0 1.7-1l1.7.6 1.4-2.4z"/>'
-  };
-  return '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.overview)+'</svg>';
-}
-
-function lcAdminSidebar(){
-  const activeView=adminView==="plans"?"manage":adminView;
-  const owner=barbers.find(function(item){return item.id===state.barberId;});
-  const ownerName=owner?owner.name:"Barbeiro 1";
-  const item=function(view,label,icon){
-    return '<button type="button" class="lc-admin-nav-item '+(activeView===view?'active':'')+'" data-admin-view="'+view+'" '+(activeView===view?'aria-current="page"':'')+'>'+lcAdminIcon(icon)+'<span>'+label+'</span></button>';
-  };
-  return '<aside class="lc-admin-sidebar">'+
-    '<div class="lc-admin-brand"><span class="lc-admin-brand-mark">LC</span><span><strong>LaCorte</strong><small>BARBEARIA</small></span></div>'+
-    '<div class="lc-admin-nav-caption">MENU PRINCIPAL</div><nav class="lc-admin-nav" aria-label="Menu administrativo">'+
-    item("queue","Painel Geral","overview")+item("history","Histórico","history")+item("manage","Gestão","management")+
-    item("customers","Clientes","clients")+item("services","Serviços","services")+item("reports","Relatórios","reports")+
-    '</nav><div class="lc-admin-sidebar-bottom"><div class="lc-admin-system"><i></i><span>Sistema operacional</span></div>'+
-    '<div class="lc-admin-user"><span class="lc-admin-avatar">B1</span><span><strong>'+safe(ownerName)+'</strong><small>Administrador</small></span><i></i></div></div></aside>';
-}
-
-function lcAdminDateLabel(){
-  return new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"short",timeZone:"America/Sao_Paulo"}).format(new Date());
-}
-
-function lcAdminRevenueChart(values){
-  const max=Math.max(1,...values.map(Number));
-  const pts=values.map(function(v,i){
-    const x=18+(i*(564/Math.max(1,values.length-1)));
-    const y=166-(Number(v)/max)*132;
-    return x.toFixed(1)+","+y.toFixed(1);
-  }).join(" ");
-  const area="18,170 "+pts+" 582,170";
-  return '<svg class="lc-revenue-svg" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Faturamento diário do mês">'+
-    '<defs><linearGradient id="lcRevenueFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#f97316" stop-opacity=".32"/><stop offset="100%" stop-color="#f97316" stop-opacity="0"/></linearGradient></defs>'+
-    '<path d="M18 15H582 M18 65H582 M18 115H582 M18 165H582" stroke="#ffffff12" stroke-dasharray="4 5"/>'+
-    '<polygon points="'+area+'" fill="url(#lcRevenueFill)"/><polyline points="'+pts+'" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
-}
-
-async function renderAdminOverview(){
-  if(state.role!=="admin") return renderQueueDashboard();
-  adminView="queue";
-  setAppMode(true);
-  updateProgress();
-  setHeader("ADMINISTRAÇÃO LACORTE","Painel Geral","Resumo da operação e da fila compartilhada.");
-  notice.textContent="Visão administrativa • Dados carregados do Supabase.";
-  dashboardActions();
-  content.innerHTML='<div class="lc-admin-loading">Carregando painel administrativo...</div>';
-  try{
-    const results=await Promise.all([
-      loadQueueRows(),
-      db.from("barbers").select("id,name,active").order("name")
-    ]);
-    const rows=results[0]||[];
-    if(results[1].error) throw new Error("Equipe: "+results[1].error.message);
-    const barbers=results[1].data||[];
-    const waiting=rows.filter(r=>r.status==="waiting");
-    const inProgress=rows.filter(r=>r.status==="in_progress");
-    const completedToday=rows.filter(r=>r.status==="completed");
-    const visible=rows.filter(r=>r.status==="waiting"||r.status==="in_progress");
-    const queueHtml=visible.length?visible.map(function(row){
-      const customer=row.customer||{};
-      const name=((customer.first_name||"")+" "+(customer.last_name||"")).trim()||"Cliente";
-      const barber=barbers.find(b=>b.id===row.barber_id);
-      const barberName=barber?barber.name:(row.barber_id?"Profissional responsável":"Aguardando definição");
-      const service=(row.items||[]).map(i=>safe(i.service_name)).join(", ")||"Serviço não informado";
-      const time=formatDateTime(row.created_at);
-      const isProgress=row.status==="in_progress";
-      const canStart=row.status==="waiting"&&!row.barber_id;
-      const canFinish=isProgress&&row.barber_id===state.barberId;
-      const status=isProgress?"Em atendimento":"Aguardando";
-      const action=canStart
-        ? '<button type="button" class="is-primary" data-start="'+safe(row.id)+'">INICIAR ATENDIMENTO</button>'
-        : canFinish
-          ? '<button type="button" class="is-primary" data-finish="'+safe(row.id)+'">FINALIZAR ATENDIMENTO</button>'
-          : isProgress
-            ? '<span class="lc-queue-assigned">Em atendimento por '+safe(barberName)+'</span>'
-            : '<span class="lc-queue-assigned">Aguardando profissional</span>';
-      return '<article class="lc-queue-row"><div class="lc-queue-ticket">#'+safe(row.queue_number)+'</div><div class="lc-queue-details">'+
-        '<div class="lc-queue-primary"><strong>'+safe(name)+'</strong><span class="lc-queue-status '+(isProgress?"is-progress":"is-waiting")+'">'+status+'</span></div>'+
-        '<div class="lc-queue-meta">'+
-          '<span><small>TELEFONE</small>'+safe(customer.phone||"—")+'</span>'+
-          '<span><small>BARBEIRO</small>'+safe(barberName)+'</span>'+
-          '<span><small>SERVIÇOS</small>'+service+'</span>'+
-          '<span><small>VALOR</small>'+money(Number(row.total_amount||0))+'</span>'+
-        '</div>'+
-        '<div class="lc-queue-bottom"><span><small>ENTRADA</small>'+safe(time)+'</span><div class="lc-queue-actions">'+action+
-          (row.status==="waiting"?'<button type="button" class="is-secondary" data-cancel="'+safe(row.id)+'">CANCELAR</button>':'')+
-        '</div></div></div></article>';
-    }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
-    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<main class="lc-admin-main">'+
-      '<header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração <b>›</b> Painel Geral</span><h1>Painel Geral</h1></div>'+
-      '<div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair da conta">'+lcAdminIcon("logout")+'</button></div></header>'+
-      '<section class="lc-admin-summary-head"><div><span>VISÃO GERAL DOS ATENDIMENTOS DE HOJE</span><p>Fila compartilhada e operação dos dois profissionais.</p></div><span class="lc-admin-role">ADMINISTRADOR</span></section>'+
-      '<section class="lc-metric-grid lc-metric-grid-three">'+
-      '<article class="lc-metric-card"><div><span>AGUARDANDO</span><b class="lc-metric-icon">'+lcAdminIcon("history")+'</b></div><strong>'+waiting.length+'</strong><small>Na fila compartilhada</small></article>'+
-      '<article class="lc-metric-card"><div><span>EM ATENDIMENTO</span><b class="lc-metric-icon">'+lcAdminIcon("overview")+'</b></div><strong>'+inProgress.length+'</strong><small>Com os profissionais</small></article>'+
-      '<article class="lc-metric-card"><div><span>CONCLUÍDOS HOJE</span><b class="lc-metric-icon">'+lcAdminIcon("reports")+'</b></div><strong>'+completedToday.length+'</strong><small>Atendimentos finalizados</small></article></section>'+
-      '<section class="lc-admin-middle lc-admin-queue-only"><article class="lc-admin-card lc-queue-card"><div class="lc-card-heading"><div><h3>Atendimentos de hoje</h3><p>Senha, cliente, telefone, barbeiro, serviços, valor e horário de entrada.</p></div><button type="button" class="lc-text-action" data-refresh-admin>Atualizar fila</button></div><div class="lc-queue-list">'+queueHtml+'</div><button type="button" class="lc-view-all" data-admin-view="history">Abrir histórico completo <span>→</span></button></article></section>'+
-      '<footer class="lc-admin-footer"><span>© LaCorte Barbearia</span><span>Painel exclusivo do proprietário</span></footer></main></div>';
-    bindAdminNavigation();
-    lcBindAdminSidebarActions();
-    const refresh=content.querySelector("[data-refresh-admin]");
-    if(refresh) refresh.addEventListener("click",renderAdminOverview);
-    content.querySelectorAll("[data-start]").forEach(b=>b.addEventListener("click",()=>openQueueCallDialog(b.dataset.start)));
-    content.querySelectorAll("[data-finish]").forEach(b=>b.addEventListener("click",()=>openPaymentMethodDialog(b.dataset.finish)));
-    content.querySelectorAll("[data-cancel]").forEach(function(button){
-      button.addEventListener("click",async function(){
-        if(!confirm("Deseja cancelar este atendimento? Se houver crédito reservado, ele será devolvido.")) return;
-        button.disabled=true;
-        const result=await db.rpc("lacorte_cancel_queue_entry",{p_queue_id:button.dataset.cancel});
-        if(result.error){alert("Não foi possível cancelar: "+result.error.message);button.disabled=false;}
-        else renderAdminOverview();
-      });
-    });
-  }catch(error){
-    content.innerHTML='<div class="lc-admin-app">'+lcAdminSidebar()+'<main class="lc-admin-main"><header class="lc-admin-header"><div><span class="lc-admin-breadcrumb">Administração</span><h1>Painel Geral</h1></div><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta">'+lcAdminIcon("logout")+'</button></header><section class="lc-admin-card"><h3>Não foi possível carregar o painel</h3><p>'+safe(error.message)+'</p><button type="button" data-refresh-admin class="lc-text-action">Tentar novamente</button></section></main></div>';
-    bindAdminNavigation();
-    lcBindAdminSidebarActions();
-    const retry=content.querySelector("[data-refresh-admin]");
-    if(retry) retry.addEventListener("click",renderAdminOverview);
-  }
-}
-
-function lcBindAdminSidebarActions(){
-  content.querySelectorAll("[data-admin-logout]").forEach(function(button){
-    if(button.dataset.lcAdminActionBound) return;
-    button.dataset.lcAdminActionBound="1";
-    button.addEventListener("click",async function(){
-      button.disabled=true;
-      await db.auth.signOut();
-    });
-  });
-}
-
-bindAdminNavigation = function(){
-  content.querySelectorAll("[data-admin-view]").forEach(function(button){
-    if(button.dataset.lcAdminNavigationBound) return;
-    button.dataset.lcAdminNavigationBound="1";
-    button.addEventListener("click",function(){
-      const view=button.dataset.adminView;
-      adminView=view;
-      if(view==="manage") renderAdminManagement();
-      else if(view==="history") renderAdminReports("history");
-      else if(view==="customers") renderAdminCustomers();
-      else if(view==="services") renderAdminManagement();
-      else if(view==="reports") renderAdminReports();
-      else renderAdminOverview();
-    });
-  });
-};
-
-function lcMountAdminWorkspace(){
-  if(state.role!=="admin"||!content) return;
-  const titleNode=document.querySelector("#step-title");
-  const title=titleNode&&titleNode.textContent.trim()?titleNode.textContent.trim():"Painel administrativo";
-  const oldNodes=Array.from(content.childNodes).filter(function(node){
-    return !(node.nodeType===1&&node.matches(".admin-nav"));
-  });
-  const appShell=document.createElement("div");
-  appShell.className="lc-admin-app";
-  const sidebarHolder=document.createElement("div");
-  sidebarHolder.innerHTML=lcAdminSidebar();
-  const main=document.createElement("main");
-  main.className="lc-admin-main";
-  const header=document.createElement("header");
-  header.className="lc-admin-header";
-  header.innerHTML='<div><span class="lc-admin-breadcrumb">Administração <b>›</b> '+safe(title)+'</span><h1>'+safe(title)+'</h1></div><div class="lc-admin-header-tools"><span class="lc-admin-date">'+lcAdminIcon("calendar")+' '+lcAdminDateLabel()+'</span><button class="lc-admin-icon-btn" type="button" data-admin-logout aria-label="Sair da conta" title="Sair da conta">'+lcAdminIcon("logout")+'</button></div>';
-  main.appendChild(header);
-  oldNodes.forEach(function(node){main.appendChild(node);});
-  if(adminView==="manage"){
-    const plansCard=document.createElement("section");
-    plansCard.className="summary lc-management-plans-link";
-    plansCard.innerHTML='<div><span class="eyebrow">SERVIÇOS RECORRENTES</span><h3>Planos e assinaturas</h3><p class="muted">Consulte os planos cadastrados e gerencie as assinaturas dos clientes.</p></div><button type="button" class="btn btn-secondary" data-open-admin-plans>GERENCIAR PLANOS</button>';
-    main.appendChild(plansCard);
-    plansCard.querySelector("[data-open-admin-plans]").addEventListener("click",function(){adminView="plans";renderAdminPlans();});
-  }
-  appShell.appendChild(sidebarHolder.firstElementChild);
-  appShell.appendChild(main);
-  content.replaceChildren(appShell);
-  bindAdminNavigation();
-  lcBindAdminSidebarActions();
-}
-
-const originalRenderAdminCustomers = renderAdminCustomers;
-renderAdminCustomers = async function(){
-  await originalRenderAdminCustomers();
-  lcMountAdminWorkspace();
-};
-const originalRenderAdminManagement = renderAdminManagement;
-renderAdminManagement = async function(){
-  await originalRenderAdminManagement();
-  lcMountAdminWorkspace();
-};
-const originalRenderAdminReports = renderAdminReports;
-renderAdminReports = async function(view="reports"){
-  await originalRenderAdminReports(view);
-  lcMountAdminWorkspace();
-};
-const originalRenderAdminPlans = renderAdminPlans;
-renderAdminPlans = async function(){
-  adminView="plans";
-  await originalRenderAdminPlans();
-  lcMountAdminWorkspace();
-};
-
-const originalRenderQueueDashboard = renderQueueDashboard;
-renderQueueDashboard = function(){
+function renderQueueDashboard(){
   if(state.role === "admin" && adminView === "manage") return renderAdminManagement();
   if(state.role === "admin" && adminView === "plans") return renderAdminPlans();
   if(state.role === "admin" && adminView === "reports") return renderAdminReports();
   if(state.role === "admin" && adminView === "history") return renderAdminReports("history");
   if(state.role === "admin" && adminView === "customers") return renderAdminCustomers();
   if(state.role === "admin" && adminView === "services") return renderAdminManagement();
+  if(state.role === "admin" && adminView === "visual") return renderAdminTotemVisual();
+  if(state.role === "admin" && adminView === "settings") return renderAdminDisplaySettings();
   if(state.role === "admin") return renderAdminOverview();
-  originalRenderQueueDashboard();
-};
+  renderBarberQueue();
+}
+
+async function loadTotemBackground(){
+  const { data, error } = await db.from("lacorte_totem_visual")
+    .select("background_image").eq("id", 1).maybeSingle();
+  if(error) throw error;
+  return data?.background_image || "";
+}
+
+async function applyTotemBackground(){
+  try{
+    const image = await loadTotemBackground();
+    if(!/^data:image\/webp;base64,[a-z0-9+/]+={0,2}$/i.test(image)) return;
+    const totem = document.getElementById("entry-choice");
+    totem.style.setProperty("--totem-background", 'url("' + image + '")');
+    totem.classList.add("custom-totem-background");
+  }catch(error){
+    console.warn("Não foi possível carregar o fundo do totem.", error.message);
+  }
+}
+
+async function prepareTotemImage(file, maxDimension = 1920){
+  if(!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 12 * 1024 * 1024){
+    throw new Error("Escolha um JPG, PNG ou WebP de até 12 MB.");
+  }
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const image = canvas.toDataURL("image/webp", 0.78);
+  if(!image.startsWith("data:image/webp;base64,") || image.length > 1400000){
+    throw new Error("A imagem ficou grande demais. Escolha uma foto menor.");
+  }
+  return image;
+}
+
+let totemPromotions = [];
+
+async function loadTotemPromotions(onlyActive = false){
+  let query = db.from("lacorte_totem_promotions").select("id,message,image,active").order("id");
+  if(onlyActive) query = query.eq("active", true);
+  const { data, error } = await query;
+  if(error) throw error;
+  return data;
+}
+
+function makeTotemPromotionStrip(){
+  const strip = document.createElement("section");
+  strip.className = "totem-promotion";
+  strip.setAttribute("aria-label", "Promoções da LaCorte");
+  const message = document.createElement("strong");
+  const image = document.createElement("img");
+  image.alt = "Anúncio da LaCorte";
+  strip.append(image, message);
+  let index = 0;
+
+  function showPromotion(){
+    const promotion = totemPromotions[index];
+    message.textContent = promotion.message;
+    message.hidden = !promotion.message;
+    image.hidden = !promotion.image;
+    if(promotion.image) image.src = promotion.image;
+  }
+
+  showPromotion();
+  if(totemPromotions.length > 1){
+    const timer = setInterval(function(){
+      if(!strip.isConnected){ clearInterval(timer); return; }
+      index = (index + 1) % totemPromotions.length;
+      showPromotion();
+    }, 3000);
+  }
+  return strip;
+}
+
+async function applyShopSettings(){
+  try{
+    const result=await db.from("lacorte_shop_settings").select("display_name,slogan,opening_days,opening_time,closing_time,whatsapp,instagram").eq("id",1).single();
+    if(result.error || !result.data) return;
+    const shop=result.data;
+    const title=document.querySelector("#welcome-title em");if(title) title.textContent=shop.display_name;
+    const slogan=document.querySelector(".hero-pretitle");if(slogan) slogan.textContent=shop.slogan;
+    const days=document.querySelector(".contact-strip>div:first-child strong");if(days)days.textContent=shop.opening_days;
+    const hours=document.querySelector(".contact-strip>div:first-child b");
+    const time=value=>value.slice(0,5).replace(":00","h");if(hours)hours.textContent=time(shop.opening_time)+" às "+time(shop.closing_time);
+    for(const [selector,url,label] of [["#instagram-qr","https://instagram.com/"+shop.instagram,"@"+shop.instagram],["#whatsapp-qr","https://wa.me/"+shop.whatsapp,shop.whatsapp.replace(/^55(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3")]]){
+      const qr=document.querySelector(selector),anchor=qr?.closest("a");if(!anchor)continue;
+      anchor.href=url;const text=anchor.querySelector("strong");if(text)text.textContent=label;
+      if(window.QRCode){qr.replaceChildren();new window.QRCode(qr,{text:url,width:96,height:96,colorDark:"#111111",colorLight:"#ffffff",correctLevel:window.QRCode.CorrectLevel.M});}
+    }
+  }catch(error){console.warn("Não foi possível carregar os dados da barbearia.");}
+}
 
 window.__LACORTE_APP_STARTED__ = true;
 initLaCorte();
