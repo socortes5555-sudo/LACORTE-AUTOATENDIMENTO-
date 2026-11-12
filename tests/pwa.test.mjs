@@ -35,3 +35,26 @@ test('PWA: nenhuma informação operacional é armazenada offline', () => {
   assert.doesNotMatch(sw, /caches\.open|cache\.put|fetch\(/i);
   assert.match(load('pwa.js').toString('utf8'), /serviceWorker\.register/);
 });
+
+test('PWA: instalações independentes em /cliente/ e /equipe/', () => {
+  const cliente = manifest('cliente/manifest.webmanifest');
+  const equipe = manifest('equipe/manifest.webmanifest');
+  assert.equal(cliente.start_url, './');
+  assert.equal(equipe.start_url, './');
+  assert.equal(cliente.scope, './');
+  assert.equal(equipe.scope, './');
+  assert.notEqual(new URL(cliente.id, 'https://example.com/cliente/').href, new URL(equipe.id, 'https://example.com/equipe/').href);
+  for (const [name, m] of [['cliente', cliente], ['equipe', equipe]]) {
+    const html = load(name + '/index.html').toString('utf8');
+    assert.match(html, /<base href="\.\.\/"/);
+    assert.match(html, new RegExp('rel="manifest" href="' + name + '/manifest.webmanifest"'));
+    assert.match(html, /pwa\.js/);
+    assert.match(load(name + '/service-worker.js').toString('utf8'), /skipWaiting/);
+    for (const icon of m.icons) {
+      const file = new URL(icon.src, 'https://example.com/' + name + '/').pathname;
+      assert.ok(file.startsWith('/assets/'), 'Ícone fora da pasta correta');
+      assert.ok(load(file.slice(1)).length > 100);
+    }
+  }
+  assert.match(load('app.js').toString('utf8'), /equipe/);
+});

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="connect-src https://xwctsfpqwugygxpsrcfw.supabase.co; form-action 'none'">
+  <meta charset="utf-8">
+  <base href="../">
+  <script src="auth-route.js?v=scoped-apps-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090909">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="LaCorte Cliente">
+  <link rel="manifest" href="cliente/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/lacorte-app-v5-192.png">
+  <meta name="description" content="Autoatendimento La Corte Barbearia. Identifique-se, escolha seus serviços e entre na fila.">
+  <title>LaCorte | Autoatendimento</title>
+  <link rel="stylesheet" href="customer-layout.css?v=totem-mobile-jacare-fundo-5">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="LaCorte início">
+      <img class="brand-logo" src="assets/lacorte-logo.svg?v=barbearia-1" alt="La Corte Barbearia">
+    </a>
+    <span class="top-label">AUTOATENDIMENTO</span>
+  </header>
+
+  <main id="entry-choice" class="shell">
+    <section class="hero hero-home" aria-labelledby="welcome-title">
+      <div class="reference-art"><span class="reference-logo" role="img" aria-label="LaCorte Barbearia"></span></div>
+      <div class="hero-copy">
+        <p class="hero-pretitle">SEU ESTILO, NOSSA PRIORIDADE</p>
+        <h1 id="welcome-title">Bem-vindo à <em>La Corte</em> Barbearia!</h1>
+      </div>
+    </section>
+
+    <nav class="progress" aria-label="Etapas do atendimento">
+      <div class="progress-step active" data-progress="1"><span>1</span><small>Identificação</small></div>
+      <i aria-hidden="true"></i>
+      <div class="progress-step" data-progress="2"><span>2</span><small>Cadastro</small></div>
+      <i aria-hidden="true"></i>
+      <div class="progress-step" data-progress="3"><span>3</span><small>Serviços</small></div>
+      <i aria-hidden="true"></i>
+      <div class="progress-step" data-progress="4"><span>4</span><small>Revisão</small></div>
+      <i aria-hidden="true"></i>
+      <div class="progress-step" data-progress="5"><span>5</span><small>Fila</small></div>
+    </nav>
+
+    <section class="panel" aria-label="Atendimento ao cliente">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow" id="step-kicker">ETAPA 01</p>
+          <h2 id="step-title">Acesse sua conta</h2>
+          <p class="muted" id="step-description">Cadastre-se uma única vez ou localize seu cadastro.</p>
+        </div>
+      </div>
+
+      <div id="step-content" aria-live="polite" aria-busy="false">
+        <p class="muted">Carregando o autoatendimento LaCorte...</p>
+      </div>
+
+      <div class="notice" id="demo-notice">
+        Fila presencial • Sem pagamento online.
+      </div>
+
+      <div class="actions" id="step-actions"></div>
+    </section>
+
+    <section class="experience-showcase" aria-label="Informações e contatos LaCorte">
+      <div class="showcase-side">
+        <div class="membership-highlight">
+          <p>Planos mensais a partir de <strong>R$ 80,00</strong></p>
+        </div>
+
+        <div class="contact-strip">
+          <div>
+            <span>HORÁRIO</span>
+            <strong>Segunda a sábado</strong>
+            <b>09h às 20h</b>
+          </div>
+          <a href="https://instagram.com/la_corte_oficial" target="_blank" rel="noopener noreferrer">
+            <span class="contact-qr" id="instagram-qr" aria-label="QR Code do Instagram LaCorte"></span>
+            <div class="connection-copy">
+              <span class="connection-kicker">INSTAGRAM</span>
+              <strong>@la_corte_oficial</strong>
+            </div>
+          </a>
+          <a href="https://wa.me/5548999426466" target="_blank" rel="noopener noreferrer">
+            <span class="contact-qr" id="whatsapp-qr" aria-label="QR Code do WhatsApp LaCorte"></span>
+            <div class="connection-copy">
+              <span class="connection-kicker">WHATSAPP</span>
+              <strong>(48) 99942-6466</strong>
+            </div>
+          </a>
+          <div class="connection-card">
+            <a class="wifi-qr-frame" href="assets/wifi-lacorte.png" target="_blank" rel="noopener" aria-label="Ampliar QR Code da rede Lacorte_5G"><img src="assets/wifi-lacorte.png" alt="" width="390" height="390"></a>
+            <div class="connection-copy">
+              <span class="connection-kicker">CONECTE-SE</span>
+              <strong>Wi-Fi LaCorte</strong>
+              <small>Clique no QR para ampliar.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-meta">
+        <span>© LaCorte</span>
+      </div>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
+  <script>
+    if (!window.supabase) {
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.119.0"><\/script>');
+    }
+  </script>
+  <script src="app.js?v=scoped-apps-2"></script>
+  <script src="pwa.js?v=pwa-scoped-2" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script>
+    window.addEventListener("load", function () {
+      if (!window.QRCode) return;
+      const makeQr = (id, value, size) => {
+        const node = document.getElementById(id);
+        if (!node) return;
+        new QRCode(node, {
+          text: value,
+          width: size,
+          height: size,
+          colorDark: "#111111",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      };
+      makeQr("instagram-qr", "https://instagram.com/la_corte_oficial", 96);
+      makeQr("whatsapp-qr", "https://wa.me/5548999426466", 96);
+    });
+  </script>
+</body>
+</html>

@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://xwctsfpqwugygxpsrcfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_L274hUI6sbyDGFe7u40U-Q_tK28Oh5s";
 
 const db = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false, flowType: "implicit" } }) : null;
-const STAFF_PORTAL = /\/barbeiros(?:\.html)?\/?$/i.test(window.location.pathname);
+const STAFF_PORTAL = /\/(?:barbeiros(?:\.html)?|equipe(?:\/index\.html|\/)?)\/?$/i.test(window.location.pathname);
 
 const services = [
   {id:"corte",name:"Corte",detail:"Corte tradicional ou degradê",price:45},
@@ -981,7 +981,7 @@ function renderStaffPasswordSetup(initialEmail,message){
     const email=form.querySelector("#staff-setup-email").value.trim().toLowerCase();
     const button=form.querySelector('button[type="submit"]'),status=form.querySelector("#staff-setup-message");
     button.disabled=true;status.textContent="Enviando confirmação para seu e-mail...";
-    const sent=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:new URL("barbeiros.html?setup=1",window.location.href).href}});
+    const sent=await db.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:new URL("barbeiros.html?setup=1",document.baseURI).href}});
     if(sent.error){status.textContent="Não foi possível enviar a confirmação. Confira o e-mail cadastrado e tente novamente. "+sent.error.message;button.disabled=false;return;}
     renderStaffPasswordVerification(email);
   });
