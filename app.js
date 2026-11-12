@@ -538,10 +538,29 @@ async function loadQueueRows(){
  const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,group_ticket_number,group_id,participant_index,participant_name,status,total_amount,commission_percent,commission_amount,payment_method,created_at,started_at,completed_at').in('status',['waiting','in_progress']).order('queue_date',{ascending:true}).order('queue_number',{ascending:true});
  if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);const rows=result.data||[];if(!rows.length)return [];
  const customerIds=Array.from(new Set(rows.map(r=>r.customer_id))),queueIds=rows.map(r=>r.id);
- const lookups=await Promise.all([db.from('customers').select('id,first_name,last_name').in('id',customerIds),db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds)]);
- if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
- const customers={},items={};(lookups[0].data||[]).forEach(c=>customers[c.id]=c);(lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
- return rows.map(r=>Object.assign({},r,{customer:customers[r.customer_id]||null,items:items[r.id]||[]}));
+ const lookups=await Promise.all([
+  db.from('customers').select('id,first_name,last_name').in('id',customerIds),
+  db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds),
+  db.from('lacorte_queue_declines').select('queue_id,barber_id,declined_at').in('queue_id',queueIds)
+ ]);
+ if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);
+ if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
+ if(lookups[2].error)throw new Error('Erro ao consultar preferências da fila: '+lookups[2].error.message);
+ const customers={},items={},declines={};
+ (lookups[0].data||[]).forEach(c=>customers[c.id]=c);
+ (lookups[1].data||[]).forEach(i=>(items[i.queue_id]||(items[i.queue_id]=[])).push(i));
+ (lookups[2].data||[]).forEach(d=>(declines[d.queue_id]||(declines[d.queue_id]=[])).push(d));
+ const barberNames=new Map((barbers||[]).map(b=>[String(b.id),b.name]));
+ return rows.map(r=>{
+  const rowDeclines=declines[r.id]||[];
+  return Object.assign({},r,{
+   customer:customers[r.customer_id]||null,
+   items:items[r.id]||[],
+   declines:rowDeclines,
+   declinedBarberIds:rowDeclines.map(d=>String(d.barber_id)),
+   declinedBarberNames:rowDeclines.map(d=>barberNames.get(String(d.barber_id))||'Profissional')
+  });
+ });
 }
 
 let queueRealtimeChannel = null;
@@ -573,6 +592,7 @@ function subscribeToQueueRealtime(){
   queueRealtimeChannel = db.channel("lacorte-shared-queue-live")
     .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue"},refreshActiveStaffView)
     .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_items"},refreshActiveStaffView)
+    .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_declines"},refreshActiveStaffView)
     .subscribe();
 }
 
@@ -644,9 +664,42 @@ function bindProfilePhotoEditor(form,settings,fallback = "B1"){
 }
 
 function openQueueCallDialog(queueId, target = content, refresh = renderQueueDashboard){
- const overlay=document.createElement('div');overlay.className='payment-dialog-backdrop';overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3><p>Confirme o resultado da chamada. Se o cliente preferir outro barbeiro, mantenha a senha aguardando.</p><div class="actions"><button class="btn btn-secondary" data-decline>NÃO ACEITOU / MANTER NA FILA</button><button class="btn btn-primary" data-accept>CLIENTE ACEITOU</button></div><p class="muted" id="call-error"></p></section>';target.append(overlay);
- overlay.querySelector('[data-decline]').addEventListener('click',function(){overlay.remove();});
- overlay.querySelector('[data-accept]').addEventListener('click',async function(){this.disabled=true;const r=await db.rpc('lacorte_start_service',{p_queue_id:queueId});if(r.error){this.disabled=false;overlay.querySelector('#call-error').textContent='Não foi possível iniciar: '+r.error.message;return;}overlay.remove();refresh();});
+ const canDecline=state.role==="barber";
+ const overlay=document.createElement('div');
+ overlay.className='payment-dialog-backdrop';
+ overlay.innerHTML='<section class="payment-dialog"><h3>CHAMAR CLIENTE</h3><p>'+(canDecline?'Confirme o resultado da chamada. Se o cliente preferir outro barbeiro, registre a preferência e mantenha a senha aguardando.':'Confirme se o cliente aceita iniciar o atendimento.')+'</p><div class="actions">'+(canDecline?'<button class="btn btn-secondary" data-decline>NÃO ACEITOU / MANTER NA FILA</button>':'')+'<button class="btn btn-primary" data-accept>CLIENTE ACEITOU</button></div><p class="muted" id="call-error" role="alert"></p></section>';
+ target.append(overlay);
+ const error=overlay.querySelector('#call-error');
+ const accept=overlay.querySelector('[data-accept]');
+ const decline=overlay.querySelector('[data-decline]');
+ if(decline) decline.addEventListener('click',async function(){
+  this.disabled=true;
+  accept.disabled=true;
+  error.textContent='Registrando preferência...';
+  const result=await db.rpc("lacorte_decline_queue_entry",{p_queue_id:queueId});
+  if(result.error){
+   this.disabled=false;
+   accept.disabled=false;
+   error.textContent='Não foi possível manter a senha aguardando: '+result.error.message;
+   return;
+  }
+  overlay.remove();
+  refresh();
+ });
+ accept.addEventListener('click',async function(){
+  this.disabled=true;
+  if(decline) decline.disabled=true;
+  error.textContent='Iniciando atendimento...';
+  const result=await db.rpc('lacorte_start_service',{p_queue_id:queueId});
+  if(result.error){
+   this.disabled=false;
+   if(decline) decline.disabled=false;
+   error.textContent='Não foi possível iniciar: '+result.error.message;
+   return;
+  }
+  overlay.remove();
+  refresh();
+ });
 }
 async function openPaymentMethodDialog(queueId, target = content, refresh = renderQueueDashboard){
  if(state.role === "barber") return renderBarberPayment(queueId);
