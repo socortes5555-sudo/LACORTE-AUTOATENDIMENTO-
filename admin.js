@@ -330,7 +330,7 @@ async function renderAdminManagement(view=adminView, target){
 
       html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers" class="manage-panel active"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome</label><input name="first_name" required maxlength="80"><label>Sobrenome</label><input name="last_name" required maxlength="80"><label>Idade</label><input name="age" type="number" min="16" max="110" required><label>E-mail</label><input name="email" type="email" required><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
       barberRows.forEach(function(b){
-        html += '<form class="admin-form" data-barber-form="' + safe(b.id) + '"><h4>' + safe(b.name) + '</h4><label>Nome</label><input name="first_name" required value="' + safe(b.first_name || b.name.split(" ")[0]) + '"><label>Sobrenome</label><input name="last_name" required value="' + safe(b.last_name || b.name.split(" ").slice(1).join(" ")) + '"><label>Idade</label><input name="age" type="number" min="16" max="110" required value="' + safe(b.age || "") + '"><label>E-mail</label><input type="email" readonly value="' + safe(b.email || "") + '"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="' + Number(b.commission_percent || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
+        html += '<form class="admin-form" data-barber-form="' + safe(b.id) + '"><h4>' + safe(b.name) + '</h4><label>Nome</label><input name="first_name" required value="' + safe(b.first_name || b.name.split(" ")[0]) + '"><label>Sobrenome</label><input name="last_name" required value="' + safe(b.last_name || b.name.split(" ").slice(1).join(" ")) + '"><label>Idade</label><input name="age" type="number" min="16" max="110" required value="' + safe(b.age || "") + '"><label>E-mail</label><input type="email" readonly value="' + safe(b.email || "") + '"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="' + Number(b.commission_percent || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button><button class="btn btn-secondary" type="button" data-delete-barber="' + safe(b.id) + '">EXCLUIR BARBEIRO</button></form>';
       });
       if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
       html += '</div></div></section></div>';
@@ -379,6 +379,17 @@ async function renderAdminManagement(view=adminView, target){
       target.querySelector('[data-manage-tab="'+selectedTab+'"]')?.click();
     }
 
+    target.querySelectorAll("[data-delete-barber]").forEach(button=>{
+      button.addEventListener("click",async()=>{
+        const id=button.dataset.deleteBarber;
+        if(!confirm("Excluir definitivamente este barbeiro? Profissionais com histórico ou conta vinculada não podem ser excluídos."))return;
+        button.disabled=true;
+        const result=await db.functions.invoke("lacorte-admin-team",{body:{action:"delete",id}});
+        if(result.error||result.data?.error){alert(result.data?.error||result.error?.message||"Não foi possível excluir.");button.disabled=false;return;}
+        alert(result.data?.message||"Barbeiro excluído.");
+        if(target.isConnected)renderAdminManagement(view,embedded);
+      });
+    });
     const newBarber = target.querySelector("#new-barber-form");
     if(newBarber) newBarber.addEventListener("submit", async function(e){
       e.preventDefault();
