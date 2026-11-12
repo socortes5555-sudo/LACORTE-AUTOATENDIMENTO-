@@ -26,7 +26,10 @@ jobs:
           node-version: 20
 
       - name: Verificar sintaxe JavaScript
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check admin.js
+          node --check barber.js
 
       - name: Executar testes de fumaça
         run: node --test tests/*.test.mjs

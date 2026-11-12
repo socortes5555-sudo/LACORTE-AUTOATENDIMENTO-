@@ -816,6 +816,11 @@ async function renderAdminQueue(target){
       const customer=row.customer||{};
       const name=((customer.first_name||"")+" "+(customer.last_name||"")).trim()||"Cliente";
       const service=(row.items||[]).map(i=>safe(i.service_name)).join(", ")||"Serviço não informado";
+      const declinedIds=row.declinedBarberIds||[];
+      const declinedNames=row.declinedBarberNames||[];
+      const declinedBy=declinedIds.length
+        ? '<small class="muted lc-queue-declines">Já pulada por '+declinedIds.length+' profissional(is): '+safe(declinedNames.join(", "))+'</small>'
+        : '';
       const isProgress=row.status==="in_progress";
       const canStart=row.status==="waiting"&&!row.barber_id;
       const canFinish=isProgress&&row.barber_id===state.barberId;
@@ -825,7 +830,7 @@ async function renderAdminQueue(target){
           ? '<button type="button" class="is-primary" data-finish="'+safe(row.id)+'">Finalizar</button>'
           : isProgress ? '<span class="lc-queue-assigned">Em atendimento</span>' : '';
       return '<article class="lc-queue-row"><div class="lc-queue-ticket">#'+safe(queueTicketNumber(row))+'</div>'+
-        '<div class="lc-queue-details"><strong>'+safe(queuePersonLabel(row,name))+'</strong><span>'+service+'</span></div>'+
+        '<div class="lc-queue-details"><strong>'+safe(queuePersonLabel(row,name))+'</strong><span>'+service+'</span>'+declinedBy+'</div>'+
         '<div class="lc-queue-actions"><strong class="lc-queue-value">'+money(Number(row.total_amount||0))+'</strong>'+action+
         '<button type="button" class="is-secondary" data-cancel="'+safe(row.id)+'">'+(row.status==="waiting"?'Excluir da fila':'Cancelar atendimento')+'</button>'+
         '</div></article>';
