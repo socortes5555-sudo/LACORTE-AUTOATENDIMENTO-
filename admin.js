@@ -297,7 +297,7 @@ async function renderAdminManagement(view=adminView, target){
   const selectedTab = target?.querySelector("[data-manage-tab].active")?.dataset.manageTab;
   const embedded = target;
   target = openAdminSection(target, view, servicesOnly ? "Serviços e preços" : "Gestão da barbearia",
-    servicesOnly ? "Consulte o catálogo ativo e os valores praticados." : "Acessos, equipe e comissões da operação.",
+    servicesOnly ? "Consulte o catálogo ativo e os valores praticados." : "Equipe e comissões da operação.",
     "Área exclusiva do administrador. As alterações são salvas diretamente no Supabase.");
   const isCurrent = showAdminLoading(target, "Carregando cadastros...");
   try {
@@ -313,11 +313,6 @@ async function renderAdminManagement(view=adminView, target){
     if(results[1].error) throw new Error("Erro ao carregar serviços: " + results[1].error.message);
     const barberRows = results[0].data || [];
     const serviceRows = results[1].data || [];
-    let accessEmail = "";
-    if(!servicesOnly){
-      const accessLoad = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "get" } });
-      if(!accessLoad.error) accessEmail = accessLoad.data.current_email || "";
-    }
     let html = "";
     const workspaceClass = servicesOnly ? "admin-workspace is-services" : "admin-workspace is-management";
     const workspaceTitle = servicesOnly ? "Catálogo de serviços" : "Gestão da barbearia";
@@ -326,15 +321,14 @@ async function renderAdminManagement(view=adminView, target){
       : "Acessos profissionais, equipe e comissões.";
     const tabsMarkup = servicesOnly
       ? '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="services">Catálogo</button>'
-      : '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="access">Acessos</button>' +
-        '<button type="button" class="manage-tab" role="tab" aria-selected="false" data-manage-tab="barbers">Equipe</button>';
+      : '<button type="button" class="manage-tab active" role="tab" aria-selected="true" data-manage-tab="barbers">Equipe</button>';
     html += '<div class="' + workspaceClass + '"><div class="admin-section-heading"><span class="eyebrow">CONFIGURAÇÕES</span><h2>' +
       workspaceTitle + '</h2><p class="muted">' + workspaceDescription +
       '</p></div><nav class="manage-tabs" role="tablist" aria-label="Configurações da barbearia">' +
       tabsMarkup + '</nav>';
     if(!servicesOnly){
-      html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><h3>ACESSO DO BARBEIRO 2</h3><p class="muted">Atualize o e-mail profissional vinculado ao acesso do segundo barbeiro. O administrador permanece separado.</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><form id="barber-access-form" class="admin-form"><label for="barber-access-email">Novo e-mail profissional</label><input id="barber-access-email" name="email" type="email" required autocomplete="email" placeholder="barbeiro@exemplo.com"><button class="btn btn-primary" type="submit">ATUALIZAR ACESSO</button><p id="barber-access-message" class="muted" role="status"></p></form></section></div>';
-      html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome</label><input name="first_name" required maxlength="80"><label>Sobrenome</label><input name="last_name" required maxlength="80"><label>Idade</label><input name="age" type="number" min="16" max="110" required><label>E-mail</label><input name="email" type="email" required><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
+
+      html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers" class="manage-panel active"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome</label><input name="first_name" required maxlength="80"><label>Sobrenome</label><input name="last_name" required maxlength="80"><label>Idade</label><input name="age" type="number" min="16" max="110" required><label>E-mail</label><input name="email" type="email" required><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
       barberRows.forEach(function(b){
         html += '<form class="admin-form" data-barber-form="' + safe(b.id) + '"><h4>' + safe(b.name) + '</h4><label>Nome</label><input name="first_name" required value="' + safe(b.first_name || b.name.split(" ")[0]) + '"><label>Sobrenome</label><input name="last_name" required value="' + safe(b.last_name || b.name.split(" ").slice(1).join(" ")) + '"><label>Idade</label><input name="age" type="number" min="16" max="110" required value="' + safe(b.age || "") + '"><label>E-mail</label><input type="email" readonly value="' + safe(b.email || "") + '"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="' + Number(b.commission_percent || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
       });
@@ -384,25 +378,6 @@ async function renderAdminManagement(view=adminView, target){
     if(selectedTab){
       target.querySelector('[data-manage-tab="'+selectedTab+'"]')?.click();
     }
-
-    const accessForm = target.querySelector("#barber-access-form");
-    if(accessForm) accessForm.addEventListener("submit", async function(e){
-      e.preventDefault();
-      const email = String(new FormData(accessForm).get("email") || "").trim().toLowerCase();
-      const button = accessForm.querySelector('button[type="submit"]');
-      const status = accessForm.querySelector("#barber-access-message");
-      if(!email) return;
-      button.disabled = true;
-      status.textContent = "Enviando solicitação segura...";
-      const result = await db.functions.invoke("lacorte-admin-barber-email", { body: { action: "update", email: email } });
-      button.disabled = false;
-      if(result.error || result.data?.error){
-        status.textContent = "Não foi possível solicitar a troca: " + (result.data?.error || result.error?.message || "Erro desconhecido.");
-        return;
-      }
-      status.textContent = result.data.message || "Solicitação enviada.";
-      accessForm.querySelector('input[name="email"]').value = "";
-    });
 
     const newBarber = target.querySelector("#new-barber-form");
     if(newBarber) newBarber.addEventListener("submit", async function(e){
