@@ -644,7 +644,7 @@ body:has(#entry-choice) #entry-choice:has(#entry-choice-options)>.progress{displ
     aspect-ratio:auto;
     transform:none;
     margin-inline:auto;
-    background-image:url("assets/lacorte-logo.svg");
+    background-image:url("assets/lacorte-logo.svg?v=barbearia-1");
     background-position:center center;
     background-size:contain;
     background-repeat:no-repeat;
