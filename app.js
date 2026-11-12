@@ -746,6 +746,13 @@ async function routeAuthenticatedUser(user){
   }
 
   if (isStaffRole) {
+    const profileCheck=await db.from("barbers").select("active").eq("id",roleResult.data.barber_id).maybeSingle();
+    if(profileCheck.error||!profileCheck.data||profileCheck.data.active!==true){
+      await db.auth.signOut({scope:"local"});
+      state.user=null;state.role=null;state.barberId=null;
+      renderStaffLogin("Seu acesso profissional está desativado. Procure o administrador.");
+      return;
+    }
     state.role = roleResult.data.role;
     state.barberId = roleResult.data.barber_id;
     try {
