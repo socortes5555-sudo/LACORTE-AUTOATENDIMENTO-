@@ -73,7 +73,7 @@ async function renderBarberQueue(){
     const [rows,done]=await Promise.all([loadQueueRows(),loadBarberReportRows({start:today,end:today})]);
     if(!main.isConnected) return;
     barberQueueRows=rows.filter(row=>row.queue_date===today);
-    const waiting=barberQueueRows.filter(row=>row.status==='waiting');
+    const waiting=barberQueueRows.filter(row=>row.status==='waiting'&&!(row.declinedBarberIds||[]).includes(String(state.barberId)));
     const active=barberQueueRows.filter(row=>row.status==='in_progress'&&row.barber_id===state.barberId);
     main.innerHTML='<div class="barber-greeting"><h1>Olá, '+safe(barberDisplayName().split(' ')[0])+'</h1><p>'+safe(barberDateLabel(today,true))+'</p></div>'+
       '<div class="barber-day-stats"><article>'+barberIcon('users')+'<div><span>Aguardando</span><strong>'+waiting.length+'</strong></div></article><article>'+barberIcon('check')+'<div><span>Concluídos</span><strong>'+done.length+'</strong></div></article></div>'+
