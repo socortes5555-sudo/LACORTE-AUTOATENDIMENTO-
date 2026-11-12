@@ -304,7 +304,7 @@ async function renderAdminManagement(view=adminView, target){
     const results = await Promise.all([
       servicesOnly
         ? Promise.resolve({data:[],error:null})
-        : db.from("barbers").select("id,name,active,commission_percent").order("name"),
+        : db.from("barbers").select("id,name,first_name,last_name,age,email,active,commission_percent").order("name"),
       servicesOnly
         ? db.from("services").select("id,name,detail,price,active").order("name")
         : Promise.resolve({data:[],error:null})
@@ -334,9 +334,9 @@ async function renderAdminManagement(view=adminView, target){
       tabsMarkup + '</nav>';
     if(!servicesOnly){
       html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="access"><section class="summary manage-overview-card"><h3>ACESSO DO BARBEIRO 2</h3><p class="muted">Atualize o e-mail profissional vinculado ao acesso do segundo barbeiro. O administrador permanece separado.</p><strong class="manage-highlight">' + safe(accessEmail || "E-mail não disponível") + '</strong><form id="barber-access-form" class="admin-form"><label for="barber-access-email">Novo e-mail profissional</label><input id="barber-access-email" name="email" type="email" required autocomplete="email" placeholder="barbeiro@exemplo.com"><button class="btn btn-primary" type="submit">ATUALIZAR ACESSO</button><p id="barber-access-message" class="muted" role="status"></p></form></section></div>';
-      html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome do barbeiro</label><input name="name" required maxlength="80" placeholder="Nome do profissional"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
+      html += '<div class="manage-panel" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE E COMISSÕES</h3><p class="muted">Cadastre profissionais e ajuste comissão e situação.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form"><label>Nome</label><input name="first_name" required maxlength="80"><label>Sobrenome</label><input name="last_name" required maxlength="80"><label>Idade</label><input name="age" type="number" min="16" max="110" required><label>E-mail</label><input name="email" type="email" required><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="50" required><button class="btn btn-primary" type="submit">CADASTRAR BARBEIRO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER EQUIPE CADASTRADA</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
       barberRows.forEach(function(b){
-        html += '<form class="admin-form" data-barber-form="' + safe(b.id) + '"><h4>' + safe(b.name) + '</h4><label>Nome</label><input name="name" required maxlength="80" value="' + safe(b.name) + '"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="' + Number(b.commission_percent || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
+        html += '<form class="admin-form" data-barber-form="' + safe(b.id) + '"><h4>' + safe(b.name) + '</h4><label>Nome</label><input name="first_name" required value="' + safe(b.first_name || b.name.split(" ")[0]) + '"><label>Sobrenome</label><input name="last_name" required value="' + safe(b.last_name || b.name.split(" ").slice(1).join(" ")) + '"><label>Idade</label><input name="age" type="number" min="16" max="110" required value="' + safe(b.age || "") + '"><label>E-mail</label><input type="email" readonly value="' + safe(b.email || "") + '"><label>Comissão (%)</label><input name="commission" type="number" min="0" max="100" step="0.01" value="' + Number(b.commission_percent || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
       });
       if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
       html += '</div></div></section></div>';
@@ -408,37 +408,20 @@ async function renderAdminManagement(view=adminView, target){
     if(newBarber) newBarber.addEventListener("submit", async function(e){
       e.preventDefault();
       const fd = new FormData(newBarber);
-      const name = String(fd.get("name") || "").trim();
-      const id = "barbeiro-" + slugId(name);
-      const commission = Number(fd.get("commission"));
-      if(!name || !Number.isFinite(commission) || commission < 0 || commission > 100) return alert("Confira o nome e a comissão (0 a 100%).");
-      const result = await db.from("barbers").insert({id:id,name:name,active:true,commission_percent:commission});
-      if(result.error) return alert("Não foi possível cadastrar. Verifique se o ID já existe. " + result.error.message);
-      alert("Barbeiro cadastrado. Para acessar o painel, ainda será necessário criar a conta de acesso e vinculá-la ao perfil.");
-      if(target.isConnected) renderAdminManagement(view, embedded);
+      const result=await db.functions.invoke("lacorte-admin-team",{body:{action:"create",first_name:String(fd.get("first_name")||"").trim(),last_name:String(fd.get("last_name")||"").trim(),age:Number(fd.get("age")),email:String(fd.get("email")||"").trim(),commission:Number(fd.get("commission"))}});
+      if(result.error||result.data?.error)return alert(result.data?.error||result.error?.message);
+      alert(result.data?.message||"Convite enviado.");
+      if(target.isConnected)renderAdminManagement(view,embedded);
     });
 
     target.querySelectorAll("[data-barber-form]").forEach(function(form){
       form.addEventListener("submit", async function(e){
         e.preventDefault();
         const fd = new FormData(form);
-        const commission = Number(fd.get("commission"));
-        if(!Number.isFinite(commission) || commission < 0 || commission > 100) return alert("A comissão deve ficar entre 0 e 100%.");
-        const name = String(fd.get("name") || "").trim();
-        const result = await db.from("barbers").update({
-          name,
-          commission_percent:commission,
-          active:fd.get("active") === "on"
-        }).eq("id",form.dataset.barberForm);
-        if(result.error) return alert("Erro ao salvar barbeiro: " + result.error.message);
-        const barber = barbers.find(item => item.id === form.dataset.barberForm);
-        if(barber) barber.name = name;
-        if(form.dataset.barberForm === state.barberId){
-          const label = content.querySelector(".lc-admin-user strong");
-          if(label) label.textContent = name;
-        }
-        alert("Barbeiro atualizado.");
-        if(target.isConnected) renderAdminManagement(view, embedded);
+        const result=await db.functions.invoke("lacorte-admin-team",{body:{action:"update",id:form.dataset.barberForm,first_name:String(fd.get("first_name")||"").trim(),last_name:String(fd.get("last_name")||"").trim(),age:Number(fd.get("age")),commission:Number(fd.get("commission")),active:fd.get("active")==="on"}});
+        if(result.error||result.data?.error)return alert(result.data?.error||result.error?.message);
+        alert(result.data?.message||"Atualizado.");
+        if(target.isConnected)renderAdminManagement(view,embedded);
       });
     });
 
