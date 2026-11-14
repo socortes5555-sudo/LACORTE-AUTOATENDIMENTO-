@@ -120,7 +120,7 @@ begin
         resolved_at = null,
         resolved_by = null,
         resolution_reason = null
-    where public.lacorte_queue_declines.resolved_at is not null;
+    where lacorte_queue_declines.resolved_at is not null;
 end;
 $function$;
 
