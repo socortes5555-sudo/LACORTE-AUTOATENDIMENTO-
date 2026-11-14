@@ -541,7 +541,7 @@ async function loadQueueRows(){
  const lookups=await Promise.all([
   db.from('customers').select('id,first_name,last_name').in('id',customerIds),
   db.from('lacorte_queue_items').select('queue_id,service_name,unit_price').in('queue_id',queueIds),
-  db.from('lacorte_queue_declines').select('queue_id,barber_id,declined_at').in('queue_id',queueIds)
+  db.from('lacorte_queue_declines').select('queue_id,barber_id,declined_at,resolved_at,resolved_by,resolution_reason').in('queue_id',queueIds)
  ]);
  if(lookups[0].error)throw new Error('Erro ao consultar clientes: '+lookups[0].error.message);
  if(lookups[1].error)throw new Error('Erro ao consultar serviços: '+lookups[1].error.message);
@@ -553,12 +553,16 @@ async function loadQueueRows(){
  const barberNames=new Map((barbers||[]).map(b=>[String(b.id),b.name]));
  return rows.map(r=>{
   const rowDeclines=declines[r.id]||[];
+  const pendingDeclines=rowDeclines.filter(d=>!d.resolved_at);
+  const resolvedDeclines=rowDeclines.filter(d=>Boolean(d.resolved_at));
   return Object.assign({},r,{
    customer:customers[r.customer_id]||null,
    items:items[r.id]||[],
    declines:rowDeclines,
-   declinedBarberIds:rowDeclines.map(d=>String(d.barber_id)),
-   declinedBarberNames:rowDeclines.map(d=>barberNames.get(String(d.barber_id))||'Profissional')
+   declinedBarberIds:pendingDeclines.map(d=>String(d.barber_id)),
+   declinedBarberNames:pendingDeclines.map(d=>barberNames.get(String(d.barber_id))||'Profissional'),
+   resolvedDeclines,
+   resolvedBarberNames:resolvedDeclines.map(d=>barberNames.get(String(d.barber_id))||'Profissional')
   });
  });
 }
