@@ -34,7 +34,7 @@ test('as atualizações de recusa renovam os painéis em tempo real', () => {
 });
 
 
-const resolutionMigration = readFileSync('supabase/migrations/20261114140724_admin_queue_decline_resolution.sql', 'utf8');
+const resolutionMigration = readFileSync('supabase/migrations/20261114171424_admin_queue_decline_resolution.sql', 'utf8');
 
 test('a administração identifica quando todos os profissionais ativos pularam a senha', () => {
   assert.ok(admin.includes('allActiveBarbersDeclined'));
