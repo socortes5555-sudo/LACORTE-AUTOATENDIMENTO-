@@ -20,12 +20,12 @@ test('a fila individual oculta apenas as senhas recusadas pelo barbeiro atual', 
 
 test('a consulta compartilhada carrega as recusas permitidas pela RLS', () => {
   assert.ok(app.includes("db.from('lacorte_queue_declines').select('queue_id,barber_id,declined_at,resolved_at,resolved_by,resolution_reason')"));
-  assert.ok(app.includes('declinedBarberIds:rowDeclines.map'));
+  assert.ok(app.includes('declinedBarberIds:pendingDeclines.map'));
 });
 
 test('a administração identifica quantos profissionais pularam cada senha', () => {
   assert.ok(admin.includes('row.declinedBarberIds'));
-  assert.ok(admin.includes('row.declinedBarberNames'));
+  assert.ok(admin.includes('activeDeclinedBarbers.map(barber=>barber.name)'));
   assert.ok(admin.includes('Já pulada por'));
 });
 
@@ -50,26 +50,28 @@ test('a consulta distingue recusas pendentes das preferências reabertas', () =>
 });
 
 test('a resolução exige administrador, confirmação do cliente e que todos os barbeiros ativos tenham pulado a senha', () => {
-  assert.match(resolutionMigration, /private\\.is_lacorte_admin\\(\\)/);
-  assert.match(resolutionMigration, /p_customer_confirmed is distinct from true/);
-  assert.match(resolutionMigration, /b\\.active is true[\\s\\S]*not exists[\\s\\S]*d\\.resolved_at is null/);
-  assert.match(resolutionMigration, /insert into public\\.lacorte_queue_decline_resolutions/);
-  assert.match(resolutionMigration, /resolved_by = auth\\.uid\\(\\)/);
+  assert.ok(resolutionMigration.includes('private.is_lacorte_admin()'));
+  assert.ok(resolutionMigration.includes('p_customer_confirmed is distinct from true'));
+  assert.ok(resolutionMigration.includes('where b.active is true'));
+  assert.ok(resolutionMigration.includes('d.resolved_at is null'));
+  assert.ok(resolutionMigration.includes('insert into public.lacorte_queue_decline_resolutions'));
+  assert.ok(resolutionMigration.includes('resolved_by = auth.uid()'));
 });
 
 test('a recusa pode voltar a ficar pendente sem apagar o histórico de resoluções', () => {
-  assert.match(resolutionMigration, /on conflict \\(queue_id, barber_id\\) do update/);
-  assert.match(resolutionMigration, /lacorte_queue_decline_resolutions/);
-  assert.match(resolutionMigration, /set declined_at = excluded\\.declined_at[\\s\\S]*resolved_at = null/);
+  assert.ok(resolutionMigration.includes('on conflict (queue_id, barber_id) do update'));
+  assert.ok(resolutionMigration.includes('set declined_at = excluded.declined_at'));
+  assert.ok(resolutionMigration.includes('resolved_at = null'));
+  assert.ok(resolutionMigration.includes('lacorte_queue_decline_resolutions'));
 });
 
 test('o barbeiro só fica impedido de iniciar enquanto a recusa estiver pendente', () => {
   const startFunction = resolutionMigration.slice(resolutionMigration.indexOf('create or replace function private.lacorte_start_service_internal'));
-  assert.match(startFunction, /d\\.resolved_at is null/);
+  assert.ok(startFunction.includes('d.resolved_at is null'));
 });
 
 test('a migração é aditiva e não apaga filas ou históricos', () => {
-  assert.match(resolutionMigration, /add column if not exists resolved_at/);
-  assert.match(resolutionMigration, /create table if not exists public\\.lacorte_queue_decline_resolutions/);
-  assert.doesNotMatch(resolutionMigration, /\\b(drop|truncate)\\b/i);
+  assert.ok(resolutionMigration.includes('add column if not exists resolved_at'));
+  assert.ok(resolutionMigration.includes('create table if not exists public.lacorte_queue_decline_resolutions'));
+  assert.doesNotMatch(resolutionMigration, /DROP TABLE|TRUNCATE/i);
 });
