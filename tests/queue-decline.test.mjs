@@ -39,7 +39,7 @@ const resolutionMigration = readFileSync('supabase/migrations/20261114140724_adm
 test('a administração identifica quando todos os profissionais ativos pularam a senha', () => {
   assert.ok(admin.includes('allActiveBarbersDeclined'));
   assert.ok(admin.includes('data-resolve-declines'));
-  assert.ok(admin.includes('Cliente confirmou que aceita ser atendido por este profissional'));
+  assert.ok(admin.includes('O cliente confirmou que aceita ser atendido por este profissional.'));
   assert.ok(admin.includes('lacorte_admin_resolve_queue_decline'));
 });
 
