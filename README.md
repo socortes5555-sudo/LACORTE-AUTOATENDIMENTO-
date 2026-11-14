@@ -56,6 +56,8 @@ O painel administrativo é destinado ao proprietário e reúne:
 - Gerenciamento de barbeiros e comissões.
 - Gerenciamento de serviços e preços.
 - Acompanhamento e gerenciamento dos atendimentos.
+- Sinalização de senhas puladas por todos os profissionais ativos.
+- Reabertura de uma preferência somente após confirmação do cliente, com registro administrativo e preservação do número e da posição da senha.
 - Gerenciamento e consulta de assinaturas.
 - Relatórios por período, serviços, barbeiros e situação dos atendimentos.
 - Indicadores financeiros e gráficos.

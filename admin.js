@@ -800,6 +800,59 @@ let adminOverviewBarber = "all";
 
 
 
+function openAdminQueueResolutionDialog(queueId, eligibleBarbers, target, refresh){
+  const options=(eligibleBarbers||[]).filter(barber=>barber&&barber.id&&barber.name);
+  if(!options.length) return;
+  const overlay=document.createElement("div");
+  overlay.className="payment-dialog-backdrop";
+  overlay.innerHTML='<section class="payment-dialog" role="dialog" aria-modal="true" aria-labelledby="queue-resolution-title">'+
+    '<h3 id="queue-resolution-title">REVISAR PREFERÊNCIA DO CLIENTE</h3>'+
+    '<p>Todos os profissionais ativos já pularam esta senha. Só reabra a preferência para um deles se o cliente confirmar pessoalmente que aceita o atendimento.</p>'+
+    '<label for="queue-resolution-barber">Profissional escolhido</label>'+
+    '<select id="queue-resolution-barber">'+options.map(barber=>'<option value="'+safe(barber.id)+'">'+safe(barber.name)+'</option>').join("")+'</select>'+
+    '<label class="queue-resolution-confirm"><input id="queue-resolution-customer-confirmed" type="checkbox"> O cliente confirmou que aceita ser atendido por este profissional.</label>'+
+    '<div class="actions"><button type="button" class="btn btn-secondary" data-close>VOLTAR</button><button type="button" class="btn btn-primary" data-confirm disabled>REGISTRAR CONFIRMAÇÃO</button></div>'+
+    '<p class="muted" id="queue-resolution-error" role="alert"></p></section>';
+  target.append(overlay);
+  const select=overlay.querySelector("#queue-resolution-barber");
+  const checkbox=overlay.querySelector("#queue-resolution-customer-confirmed");
+  const confirmButton=overlay.querySelector("[data-confirm]");
+  const closeButton=overlay.querySelector("[data-close]");
+  const error=overlay.querySelector("#queue-resolution-error");
+  checkbox.addEventListener("change",()=>{confirmButton.disabled=!checkbox.checked;});
+  closeButton.addEventListener("click",()=>overlay.remove());
+  overlay.addEventListener("click",event=>{if(event.target===overlay) overlay.remove();});
+  confirmButton.addEventListener("click",async function(){
+    if(!checkbox.checked||!select.value) return;
+    this.disabled=true;
+    closeButton.disabled=true;
+    select.disabled=true;
+    checkbox.disabled=true;
+    error.textContent="Registrando confirmação...";
+    let result;
+    try{
+      result=await db.rpc("lacorte_admin_resolve_queue_decline",{
+        p_queue_id:queueId,
+        p_barber_id:select.value,
+        p_customer_confirmed:true
+      });
+    }catch(requestError){
+      result={error:requestError};
+    }
+    if(result.error){
+      this.disabled=!checkbox.checked;
+      closeButton.disabled=false;
+      select.disabled=false;
+      checkbox.disabled=false;
+      error.textContent="Não foi possível registrar a confirmação: "+result.error.message;
+      return;
+    }
+    overlay.remove();
+    refresh();
+  });
+}
+
+
 async function renderAdminQueue(target){
   if(state.role !== "admin") return;
   const embedded = Boolean(target);
@@ -811,18 +864,31 @@ async function renderAdminQueue(target){
   try{
     const queueRows = await loadQueueRows();
     if(!isCurrent()) return;
+    const activeBarbers = Array.isArray(barbers) ? barbers.filter(barber=>barber&&barber.id&&barber.name) : [];
     const visible = queueRows.filter(row => ["waiting","in_progress"].includes(row.status));
     const queueHtml=visible.length?visible.map(function(row){
       const customer=row.customer||{};
       const name=((customer.first_name||"")+" "+(customer.last_name||"")).trim()||"Cliente";
       const service=(row.items||[]).map(i=>safe(i.service_name)).join(", ")||"Serviço não informado";
       const declinedIds=row.declinedBarberIds||[];
-      const declinedNames=row.declinedBarberNames||[];
-      const declinedBy=declinedIds.length
-        ? '<small class="muted lc-queue-declines">Já pulada por '+declinedIds.length+' profissional(is): '+safe(declinedNames.join(", "))+'</small>'
+      const activeDeclinedBarbers=activeBarbers.filter(barber=>declinedIds.includes(String(barber.id)));
+      const allActiveBarbersDeclined=activeBarbers.length>0&&activeDeclinedBarbers.length===activeBarbers.length;
+      const needsAdminResolution=row.status==="waiting"&&!row.barber_id&&allActiveBarbersDeclined;
+      const declinedBy=activeDeclinedBarbers.length
+        ? '<small class="muted lc-queue-declines">Já pulada por '+activeDeclinedBarbers.length+' profissional(is): '+safe(activeDeclinedBarbers.map(barber=>barber.name).join(", "))+'</small>'
+        : '';
+      const resolutionNotice=needsAdminResolution
+        ? '<small class="lc-queue-resolution-alert">Todos os profissionais ativos já pularam esta senha. Confirme a preferência com o cliente.</small>'
+        : '';
+      const resolvedNames=row.resolvedBarberNames||[];
+      const resolvedBy=resolvedNames.length
+        ? '<small class="muted lc-queue-resolved">Preferência reaberta após confirmação: '+safe(resolvedNames.join(", "))+'</small>'
+        : '';
+      const resolutionAction=needsAdminResolution
+        ? '<button type="button" class="is-secondary" data-resolve-declines="'+safe(row.id)+'">Revisar preferência</button>'
         : '';
       const isProgress=row.status==="in_progress";
-      const canStart=row.status==="waiting"&&!row.barber_id;
+      const canStart=row.status==="waiting"&&!row.barber_id&&!needsAdminResolution;
       const canFinish=isProgress&&row.barber_id===state.barberId;
       const action=canStart
         ? '<button type="button" class="is-primary" data-start="'+safe(row.id)+'">Iniciar</button>'
@@ -830,8 +896,8 @@ async function renderAdminQueue(target){
           ? '<button type="button" class="is-primary" data-finish="'+safe(row.id)+'">Finalizar</button>'
           : isProgress ? '<span class="lc-queue-assigned">Em atendimento</span>' : '';
       return '<article class="lc-queue-row"><div class="lc-queue-ticket">#'+safe(queueTicketNumber(row))+'</div>'+
-        '<div class="lc-queue-details"><strong>'+safe(queuePersonLabel(row,name))+'</strong><span>'+service+'</span>'+declinedBy+'</div>'+
-        '<div class="lc-queue-actions"><strong class="lc-queue-value">'+money(Number(row.total_amount||0))+'</strong>'+action+
+        '<div class="lc-queue-details"><strong>'+safe(queuePersonLabel(row,name))+'</strong><span>'+service+'</span>'+declinedBy+resolutionNotice+resolvedBy+'</div>'+
+        '<div class="lc-queue-actions"><strong class="lc-queue-value">'+money(Number(row.total_amount||0))+'</strong>'+action+resolutionAction+
         '<button type="button" class="is-secondary" data-cancel="'+safe(row.id)+'">'+(row.status==="waiting"?'Excluir da fila':'Cancelar atendimento')+'</button>'+
         '</div></article>';
     }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
@@ -842,6 +908,11 @@ async function renderAdminQueue(target){
     target.querySelector("[data-refresh-admin]").addEventListener("click",refresh);
     target.querySelectorAll("[data-start]").forEach(button => {
       button.addEventListener("click",()=>openQueueCallDialog(button.dataset.start, target, refresh));
+    });
+    target.querySelectorAll("[data-resolve-declines]").forEach(button=>{
+      const row=visible.find(item=>String(item.id)===button.dataset.resolveDeclines);
+      const eligible=activeBarbers.filter(barber=>(row?.declinedBarberIds||[]).includes(String(barber.id)));
+      button.addEventListener("click",()=>openAdminQueueResolutionDialog(button.dataset.resolveDeclines,eligible,target,refresh));
     });
     target.querySelectorAll("[data-finish]").forEach(button => {
       button.addEventListener("click",()=>openPaymentMethodDialog(button.dataset.finish, target, refresh));
