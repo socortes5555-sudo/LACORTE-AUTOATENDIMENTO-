@@ -113,14 +113,14 @@ begin
     raise exception 'Este atendimento não está mais disponível para ser pulado.';
   end if;
 
-  insert into public.lacorte_queue_declines (queue_id, barber_id)
+  insert into public.lacorte_queue_declines as existing_decline (queue_id, barber_id)
   values (p_queue_id, v_barber_id)
   on conflict (queue_id, barber_id) do update
     set declined_at = excluded.declined_at,
         resolved_at = null,
         resolved_by = null,
         resolution_reason = null
-    where lacorte_queue_declines.resolved_at is not null;
+    where existing_decline.resolved_at is not null;
 end;
 $function$;
 
