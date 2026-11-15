@@ -450,6 +450,189 @@ async function renderAdminManagement(view=adminView, target){
   }
 }
 
+async function renderAdminProducts(target){
+  if(state.role !== "admin") return;
+  const embedded = target;
+  target = openAdminSection(target, "products", "Produtos e estoque",
+    "Cadastre produtos, acompanhe quantidades e registre entradas ou saídas.",
+    "O estoque é alterado somente por uma operação administrativa registrada no histórico.");
+  const isCurrent = showAdminLoading(target, "Carregando produtos e movimentações...");
+  try {
+    const results = await Promise.all([
+      db.from("lacorte_products").select("id,name,description,sku,price,stock_quantity,active,created_at,updated_at").order("name"),
+      db.from("lacorte_product_stock_movements").select("id,product_id,quantity_delta,reason,created_at").order("created_at", {ascending:false}).limit(50)
+    ]);
+    if(results[0].error) throw new Error("Não foi possível carregar os produtos: " + results[0].error.message);
+    if(results[1].error) throw new Error("Não foi possível carregar o histórico de estoque: " + results[1].error.message);
+    const products = results[0].data || [];
+    const movements = results[1].data || [];
+    const productById = {};
+    products.forEach(function(product){ productById[product.id] = product; });
+    const activeCount = products.filter(function(product){ return product.active; }).length;
+    const lowStockCount = products.filter(function(product){ return product.active && Number(product.stock_quantity) <= 3; }).length;
+    const inventoryValue = products.reduce(function(total,product){
+      return total + Number(product.price || 0) * Number(product.stock_quantity || 0);
+    },0);
+
+    let html = '<div class="report-kpis">' +
+      '<article class="summary"><span class="muted">Produtos cadastrados</span><strong>' + products.length + '</strong></article>' +
+      '<article class="summary"><span class="muted">Produtos ativos</span><strong>' + activeCount + '</strong></article>' +
+      '<article class="summary"><span class="muted">Estoque baixo (até 3)</span><strong>' + lowStockCount + '</strong></article>' +
+      '<article class="summary"><span class="muted">Valor estimado em estoque</span><strong>' + money(inventoryValue) + '</strong></article>' +
+      '</div>';
+
+    html += '<section class="summary"><h3>NOVO PRODUTO</h3>' +
+      '<p class="muted">Cadastre nome, código opcional e preço. Depois registre a quantidade inicial na movimentação de estoque.</p>' +
+      '<form id="lc-new-product-form" class="admin-form">' +
+      '<label>Nome do produto</label><input name="name" maxlength="100" required placeholder="Ex.: Pomada modeladora">' +
+      '<label>Descrição</label><textarea name="description" maxlength="240" rows="2" placeholder="Detalhes do produto (opcional)"></textarea>' +
+      '<label>SKU / código (opcional)</label><input name="sku" maxlength="40" placeholder="Código interno">' +
+      '<label>Preço de venda (R$)</label><input name="price" type="number" min="0" step="0.01" required placeholder="0,00">' +
+      '<button class="btn btn-primary" type="submit">CADASTRAR PRODUTO</button></form></section>';
+
+    html += '<section class="summary"><div class="manage-panel-heading"><div><h3>CATÁLOGO E ESTOQUE</h3>' +
+      '<p class="muted">Desative produtos que não são mais vendidos; o histórico permanece preservado.</p></div>' +
+      '<span class="manage-count">' + products.length + '</span></div>';
+    if(!products.length) {
+      html += '<p class="muted">Nenhum produto cadastrado. Use o formulário acima para começar.</p>';
+    } else {
+      html += '<div class="manage-overview-list">';
+      products.forEach(function(product){
+        html += '<article class="summary admin-item"><form class="admin-form" data-product-form="' + safe(product.id) + '">' +
+          '<h4>' + safe(product.name) + '</h4>' +
+          '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(product.name) + '">' +
+          '<label>Descrição</label><textarea name="description" maxlength="240" rows="2">' + safe(product.description || '') + '</textarea>' +
+          '<label>SKU / código</label><input name="sku" maxlength="40" value="' + safe(product.sku || '') + '">' +
+          '<label>Preço de venda (R$)</label><input name="price" type="number" min="0" step="0.01" required value="' + Number(product.price || 0).toFixed(2) + '">' +
+          '<label class="admin-check"><input name="active" type="checkbox" ' + (product.active ? 'checked' : '') + '> Produto ativo</label>' +
+          '<p><strong>Estoque atual:</strong> ' + Number(product.stock_quantity || 0) + ' unidade(s)</p>' +
+          '<button class="btn btn-secondary" type="submit">SALVAR PRODUTO</button></form>' +
+          '<form class="admin-form" data-stock-form="' + safe(product.id) + '">' +
+          '<h4>MOVIMENTAR ESTOQUE</h4>' +
+          '<label>Quantidade (positivo para entrada, negativo para saída)</label>' +
+          '<input name="quantity_delta" type="number" step="1" min="-100000" max="100000" required placeholder="Ex.: 10 ou -2">' +
+          '<label>Motivo da movimentação</label><input name="reason" maxlength="200" required placeholder="Ex.: Compra de mercadoria">' +
+          '<button class="btn btn-primary" type="submit">REGISTRAR MOVIMENTAÇÃO</button></form></article>';
+      });
+      html += '</div>';
+    }
+    html += '</section>';
+
+    html += '<section class="summary"><h3>HISTÓRICO DE MOVIMENTAÇÕES</h3>' +
+      '<p class="muted">Últimas 50 entradas e saídas registradas no estoque.</p>';
+    if(!movements.length) {
+      html += '<p class="muted">Nenhuma movimentação registrada ainda.</p>';
+    } else {
+      html += '<div class="admin-history-records">';
+      movements.forEach(function(movement){
+        const product = productById[movement.product_id];
+        const delta = Number(movement.quantity_delta || 0);
+        const stamp = movement.created_at ? new Date(movement.created_at).toLocaleString("pt-BR") : "Data não informada";
+        html += '<article class="admin-history-record"><div class="admin-history-row">' +
+          '<strong>' + (delta > 0 ? '+' : '') + delta + ' un.</strong>' +
+          '<div><strong>' + safe(product?.name || "Produto não encontrado") + '</strong><small>' + safe(movement.reason) + '</small></div>' +
+          '<span>' + safe(stamp) + '</span></div></article>';
+      });
+      html += '</div>';
+    }
+    html += '</section>';
+
+    if(!isCurrent()) return;
+    target.innerHTML = html;
+
+    const newProductForm = target.querySelector("#lc-new-product-form");
+    if(newProductForm) newProductForm.addEventListener("submit", async function(event){
+      event.preventDefault();
+      const fd = new FormData(newProductForm);
+      const name = String(fd.get("name") || "").trim();
+      const description = String(fd.get("description") || "").trim();
+      const sku = String(fd.get("sku") || "").trim();
+      const price = Number(fd.get("price"));
+      if(!name || name.length > 100 || !Number.isFinite(price) || price < 0) {
+        alert("Confira o nome e o preço do produto.");
+        return;
+      }
+      const button = newProductForm.querySelector("button[type=submit]");
+      button.disabled = true;
+      const result = await db.from("lacorte_products").insert({
+        name:name,
+        description:description || null,
+        sku:sku || null,
+        price:price,
+        active:true
+      });
+      if(result.error) {
+        alert("Não foi possível cadastrar o produto. Confira se o SKU já está em uso. " + result.error.message);
+        button.disabled = false;
+        return;
+      }
+      alert("Produto cadastrado. Registre a quantidade inicial na seção de movimentação de estoque.");
+      if(target.isConnected) renderAdminProducts(embedded);
+    });
+
+    target.querySelectorAll("[data-product-form]").forEach(function(form){
+      form.addEventListener("submit", async function(event){
+        event.preventDefault();
+        const fd = new FormData(form);
+        const name = String(fd.get("name") || "").trim();
+        const description = String(fd.get("description") || "").trim();
+        const sku = String(fd.get("sku") || "").trim();
+        const price = Number(fd.get("price"));
+        if(!name || name.length > 100 || !Number.isFinite(price) || price < 0) {
+          alert("Confira o nome e o preço do produto.");
+          return;
+        }
+        const button = form.querySelector("button[type=submit]");
+        button.disabled = true;
+        const result = await db.from("lacorte_products").update({
+          name:name,
+          description:description || null,
+          sku:sku || null,
+          price:price,
+          active:fd.get("active") === "on"
+        }).eq("id",form.dataset.productForm);
+        if(result.error) {
+          alert("Não foi possível salvar o produto: " + result.error.message);
+          button.disabled = false;
+          return;
+        }
+        alert("Produto atualizado.");
+        if(target.isConnected) renderAdminProducts(embedded);
+      });
+    });
+
+    target.querySelectorAll("[data-stock-form]").forEach(function(form){
+      form.addEventListener("submit", async function(event){
+        event.preventDefault();
+        const fd = new FormData(form);
+        const delta = Number(fd.get("quantity_delta"));
+        const reason = String(fd.get("reason") || "").trim();
+        if(!Number.isInteger(delta) || delta === 0 || delta < -100000 || delta > 100000 || reason.length < 3) {
+          alert("Informe uma quantidade inteira diferente de zero e um motivo com pelo menos 3 caracteres.");
+          return;
+        }
+        const button = form.querySelector("button[type=submit]");
+        button.disabled = true;
+        const result = await db.rpc("lacorte_admin_adjust_product_stock",{
+          p_product_id:form.dataset.stockForm,
+          p_quantity_delta:delta,
+          p_reason:reason
+        });
+        if(result.error) {
+          alert("Não foi possível movimentar o estoque: " + result.error.message);
+          button.disabled = false;
+          return;
+        }
+        alert("Estoque atualizado. Saldo atual: " + Number(result.data) + " unidade(s).");
+        if(target.isConnected) renderAdminProducts(embedded);
+      });
+    });
+  } catch(error) {
+    if(!isCurrent()) return;
+    target.innerHTML = '<section class="summary"><p class="muted">' + safe(error.message) + '</p></section>';
+  }
+}
+
 async function renderAdminPlans(target){
   if(state.role !== "admin") return;
   const embedded = target;
@@ -718,6 +901,7 @@ function renderAdminDisplaySettings(){
     "Dados da barbearia": renderAdminShopSettings,
     "Equipe e acessos": target => renderAdminManagement("manage", target),
     "Serviços": target => renderAdminManagement("services", target),
+    "Produtos e estoque": renderAdminProducts,
     "Clientes": renderAdminCustomers,
     "Planos e assinaturas": renderAdminPlans,
     "Visual do totem": renderAdminTotemVisual,
