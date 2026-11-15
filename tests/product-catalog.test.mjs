@@ -47,7 +47,7 @@ test('movimentações são append-only e registradas pela função administrativ
   assert.match(migration, /revoke all on table public\.lacorte_product_stock_movements from public, anon, authenticated/i);
   assert.match(migration, /grant select on table public\.lacorte_product_stock_movements to authenticated/i);
   assert.match(migration, /insert into public\.lacorte_product_stock_movements/i);
-  assert.match(migration, /created_by, created_at/i.test(migration) ? /created_by/ : /created_by/);
+  assert.match(migration, /created_by uuid not null references auth\.users\(id\) on delete restrict/i);
   assert.match(migration, /for update/i);
   assert.match(migration, /v_new_stock < 0/i);
   assert.match(migration, /private\.is_lacorte_admin\(\)/i);
