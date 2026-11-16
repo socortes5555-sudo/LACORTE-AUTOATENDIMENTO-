@@ -85,3 +85,17 @@ label{display:grid;gap:6px;min-width:0;color:#ccc;font-size:11px}fieldset{min-wi
 .payment-dialog .queue-resolution-confirm{display:flex;align-items:flex-start;gap:10px;margin:14px 0;padding:12px;border:1px solid #5d4431;border-radius:10px;background:#17120f;color:#f0e4d8;font-size:12px;line-height:1.5}
 .payment-dialog .queue-resolution-confirm input{flex:0 0 auto;margin-top:2px;accent-color:#f58220}
 .payment-dialog #queue-resolution-barber{width:100%;min-height:44px;padding:10px;border:1px solid #68503c;border-radius:8px;background:#111;color:#fff}
+
+/* Equipe: cartões compactos e edição sob demanda. */
+.lacorte-team-list{display:grid;gap:12px}
+.lacorte-team-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface)}
+.lacorte-team-card-head,.lacorte-team-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lacorte-team-card-head{margin-bottom:10px}
+.lacorte-team-card-head span{color:var(--muted)}
+.lacorte-team-actions{justify-content:flex-start}
+.lacorte-team-compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;max-width:620px}
+.lacorte-team-compact label{display:grid;gap:4px;min-width:0}
+.lacorte-team-compact input{min-width:0;width:100%}
+.lacorte-team-compact button,.lacorte-team-compact .admin-check{grid-column:1/-1}
+.lacorte-team-compact[hidden],.admin-reveal-content[hidden]{display:none!important}
+@media(max-width:520px){.lacorte-team-compact{grid-template-columns:1fr}}
