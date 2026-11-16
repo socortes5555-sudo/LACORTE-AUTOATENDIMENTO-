@@ -224,10 +224,11 @@ async function renderAdminCustomers(target){
       if(!history[row.customer_id]) history[row.customer_id]=[];
       history[row.customer_id].push(row);
     });
+    const attendedCustomers = customers.filter(function(customer){return (history[customer.id] || []).some(function(row){return row.status==="completed";});});
     let html = "";
-    html += '<section class="summary"><h3>BASE DE CLIENTES</h3><p class="muted">'+customers.length+' cadastro(s) carregado(s). Pesquise por nome, telefone ou e-mail.</p><label for="customer-admin-search">BUSCAR CLIENTE</label><input id="customer-admin-search" type="search" placeholder="Digite nome, telefone ou e-mail"></section>';
-    if(!customers.length) html += '<section class="summary"><p class="muted">Ainda não há clientes cadastrados.</p></section>';
-    customers.forEach(function(customer){
+    html += '<section class="summary"><h3>BASE DE CLIENTES</h3><p class="muted">'+attendedCustomers.length+' cadastro(s) carregado(s). Pesquise por nome, telefone ou e-mail.</p><label for="customer-admin-search">BUSCAR CLIENTE</label><input id="customer-admin-search" type="search" placeholder="Digite nome, telefone ou e-mail"></section>';
+    if(!attendedCustomers.length) html += '<section class="summary"><p class="muted">Nenhum cliente com atendimento finalizado.</p></section>';
+    attendedCustomers.forEach(function(customer){
       const fullName=(customer.first_name||"")+" "+(customer.last_name||"");
       const rows=history[customer.id]||[];
       const completed=rows.filter(function(row){return row.status==="completed";});
