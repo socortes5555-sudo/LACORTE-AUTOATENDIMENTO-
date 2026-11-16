@@ -715,7 +715,7 @@ async function renderAdminPlans(target){
     const expiredCount = subscriptions.filter(function(sub){
       return sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
     }).length;
-    html += '<section class="summary"><h3>PLANOS E ASSINATURAS</h3><p class="muted">Escolha o que deseja consultar ou gerenciar.</p><div class="lc-plan-actions"><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="plan-list-items">VER PLANOS CADASTRADOS</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">VER CLIENTES COM PLANO</button></div></section><div id="activate-plan-wrap" class="admin-reveal-content" hidden><section class="summary"><h3>ATIVAR ASSINATURA</h3><p class="muted">Confirme o pagamento antes de ativar.</p>';
+    html += '<section class="summary"><div class="lc-plan-actions"><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="plan-list-items">VER PLANOS CADASTRADOS</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">VER CLIENTES COM PLANO</button></div></section><div id="activate-plan-wrap" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>ATIVAR ASSINATURA</h3><p class="muted">Confirme o pagamento antes de ativar.</p>';
     if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
     else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
     else {
@@ -734,7 +734,7 @@ async function renderAdminPlans(target){
         '<button class="btn btn-primary" type="submit">ATIVAR ASSINATURA</button></form>';
     }
     html += '</section></div>';
-    html += '<div id="subscription-history" class="admin-reveal-content" hidden><section class="summary"><h3>CLIENTES COM PLANO</h3><p class="muted">Assinaturas ativas e histórico de assinaturas.</p>';
+    html += '<div id="subscription-history" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>CLIENTES COM PLANO</h3><p class="muted">Assinaturas ativas e histórico de assinaturas.</p>';
     html += '<label for="subscription-history-search">Buscar no histórico</label><input id="subscription-history-search" type="search" placeholder="Nome do cliente, telefone ou plano">';
     if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
     subscriptions.forEach(function(sub){
@@ -760,7 +760,7 @@ async function renderAdminPlans(target){
       html += '</article>';
     });
     html += '</section></div>';
-    html += '<div id="plan-list-items" class="admin-reveal-content" hidden><section class="summary"><h3>PLANOS CADASTRADOS</h3><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
+    html += '<div id="plan-list-items" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>PLANOS CADASTRADOS</h3><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
       '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
       '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
       '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
@@ -786,6 +786,7 @@ async function renderAdminPlans(target){
         const section=target.querySelector('#'+id);
         if(!section) return;
         section.hidden=!section.hidden;
+        section.style.display=section.hidden?"none":"block";
         const open=!section.hidden;
         if(button.dataset.reveal) button.textContent=open?'FECHAR':'+'+(button.dataset.reveal==='new-plan-form'?' ADICIONAR PLANO':' ATIVAR ASSINATURA');
         else button.textContent=open?'FECHAR':(id==='plan-list-items'?'VER PLANOS CADASTRADOS':'VER CLIENTES COM PLANO');
