@@ -1258,6 +1258,9 @@ function openRecordActionDialog({title,description,rpc,args,reason=false,refresh
 function openCancelAppointmentDialog(queueId,refresh){
   openRecordActionDialog({title:'Cancelar atendimento',description:'O registro será marcado como cancelado e sairá dos totais de faturamento e comissão. Se houver corte de plano reservado ou utilizado, o crédito será devolvido. Um pagamento já recebido deve ser estornado separadamente.',rpc:'lacorte_cancel_appointment',args:{p_queue_id:queueId},reason:true,refresh});
 }
+function openMarkCustomerAbsentDialog(queueId,refresh){
+  openRecordActionDialog({title:'Cliente ausente',description:'Confirmar ausência? A senha sairá da fila sem atendimento, faturamento ou comissão. O cadastro pelo telefone será preservado.',rpc:'lacorte_mark_customer_absent',args:{p_queue_id:queueId},refresh});
+}
 function openDeleteCustomerDialog(customerId,refresh){
   openRecordActionDialog({title:'Excluir cliente',description:'O cadastro sairá da lista e do autoatendimento. As entradas ativas deste cliente e acompanhantes serão canceladas e os planos ativos serão suspensos. O histórico de atendimentos será preservado.',rpc:'lacorte_delete_customer',args:{p_customer_id:customerId},refresh});
 }
