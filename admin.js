@@ -671,7 +671,7 @@ async function renderAdminPlans(target){
   const isCurrent = showAdminLoading(target, "Carregando planos e assinaturas...");
   try {
     const results = await Promise.all([
-      db.from("lacorte_plans").select("id,name,description,monthly_price,benefits,active").order("created_at", {ascending:false}),
+      db.from("lacorte_plans").select("id,name,description,monthly_price,benefits,active").eq("active",true).order("created_at", {ascending:false}),
       db.from("customers").select("id,first_name,last_name,phone,email,deleted_at").order("first_name"),
       db.from("lacorte_customer_plans").select("*").order("created_at", {ascending:false})
     ]);
@@ -768,14 +768,14 @@ async function renderAdminPlans(target){
     html += '<div id="plan-list-items" class="admin-reveal-content" hidden>';
     if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
     rows.forEach(function(p){
-      const benefits = Array.isArray(p.benefits) ? p.benefits.join("\n") : "";
-      html += '<form class="summary admin-item" data-plan-form="' + safe(p.id) + '">' +
+      const benefits = Array.isArray(p.benefits) ? p.benefits.join("\\n") : "";
+      html += '<article class="summary admin-item lc-plan-item"><div class="manage-panel-heading"><div><strong>' + safe(p.name) + '</strong><p class="muted">' + money(Number(p.monthly_price || 0)) + ' / mês</p></div><div class="lc-plan-actions"><button class="btn btn-secondary" type="button" data-edit-plan="' + safe(p.id) + '">EDITAR</button><button class="btn btn-secondary" type="button" data-retire-plan="' + safe(p.id) + '">EXCLUIR</button></div></div><form class="admin-form" data-plan-form="' + safe(p.id) + '" hidden>' +
         '<label>Nome</label><input name="name" maxlength="100" required value="' + safe(p.name) + '">' +
         '<label>Descrição</label><textarea name="description" maxlength="500" rows="3">' + safe(p.description || "") + '</textarea>' +
         '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required value="' + Number(p.monthly_price) + '">' +
         '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4">' + safe(benefits) + '</textarea>' +
-        '<label class="admin-check"><input name="active" type="checkbox" ' + (p.active ? "checked" : "") + '> Disponível para venda</label>' +
-        '<button class="btn btn-primary" type="submit">SALVAR PLANO</button>' + (p.active ? '<button class="btn btn-secondary" type="button" data-retire-plan="' + safe(p.id) + '">EXCLUIR PLANO</button>' : '') + '</form>';
+        '<label class="admin-check"><input name="active" type="checkbox" checked> Disponível para venda</label>' +
+        '<button class="btn btn-primary" type="submit">SALVAR PLANO</button></form></article>';
     });
     html += '</div></section>';
     if(!isCurrent()) return;
@@ -849,6 +849,15 @@ async function renderAdminPlans(target){
       const saved = await db.from("lacorte_plans").insert({name,description:String(fd.get("description") || "").trim(),monthly_price:price,benefits,active:true});
       if(saved.error) return alert("Erro ao cadastrar: " + saved.error.message);
       alert("Plano cadastrado."); if(target.isConnected) renderAdminPlans(embedded);
+    });
+    target.querySelectorAll("[data-edit-plan]").forEach(function(button){
+      button.addEventListener("click",function(){
+        const card=button.closest(".lc-plan-item");
+        const form=card && card.querySelector("[data-plan-form]");
+        if(!form) return;
+        form.hidden=!form.hidden;
+        button.textContent=form.hidden?"EDITAR":"FECHAR";
+      });
     });
     target.querySelectorAll("[data-retire-plan]").forEach(function(button){
       button.addEventListener("click",async function(){
