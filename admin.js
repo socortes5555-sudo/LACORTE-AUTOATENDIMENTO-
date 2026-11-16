@@ -715,7 +715,7 @@ async function renderAdminPlans(target){
     const expiredCount = subscriptions.filter(function(sub){
       return sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
     }).length;
-    html += '<section class="summary"><div class="lc-plan-actions"><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="plan-list-items">VER PLANOS CADASTRADOS</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">VER CLIENTES COM PLANO</button></div></section><div id="activate-plan-wrap" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>ATIVAR ASSINATURA</h3><p class="muted">Confirme o pagamento antes de ativar.</p>';
+    html += '<section class="summary"><div class="lc-plan-actions"><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><button type="button" class="btn btn-secondary" data-create-subscription>+ CRIAR ASSINATURA</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="plan-list-items">VER PLANOS CADASTRADOS</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">VER CLIENTES COM PLANO</button></div></section><div id="activate-plan-wrap" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>ATIVAR ASSINATURA</h3><p class="muted">Confirme o pagamento antes de ativar.</p>';
     if(!customers.length) html += '<p class="muted" role="status">Nenhum cliente cadastrado. Cadastre um cliente antes de ativar uma assinatura.</p>';
     else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
     else {
@@ -791,6 +791,20 @@ async function renderAdminPlans(target){
         if(button.dataset.reveal) button.textContent=open?'FECHAR':'+'+(button.dataset.reveal==='new-plan-form'?' ADICIONAR PLANO':' ATIVAR ASSINATURA');
         else button.textContent=open?'FECHAR':(id==='plan-list-items'?'VER PLANOS CADASTRADOS':'VER CLIENTES COM PLANO');
       });
+    });
+    const createSubscriptionButton = target.querySelector('[data-create-subscription]');
+    if(createSubscriptionButton) createSubscriptionButton.addEventListener('click',function(){
+      const plans = target.querySelector('#plan-list-items');
+      const form = target.querySelector('#new-plan-form-wrap');
+      if(!plans || !form) return;
+      plans.hidden = false; plans.style.display = 'block';
+      form.hidden = false; form.style.display = 'block';
+      const listButton = target.querySelector('[data-list-toggle="plan-list-items"]');
+      if(listButton) listButton.textContent = 'FECHAR';
+      const formButton = target.querySelector('[data-reveal="new-plan-form"]');
+      if(formButton) formButton.textContent = 'FECHAR';
+      form.scrollIntoView({behavior:'smooth',block:'nearest'});
+      form.querySelector('input[name="name"]')?.focus();
     });
     const activationForm = target.querySelector("#activate-customer-plan");
     if(activationForm) activationForm.addEventListener("submit", async function(e){
