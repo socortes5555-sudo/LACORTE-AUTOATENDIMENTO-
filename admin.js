@@ -1092,7 +1092,7 @@ async function renderAdminQueue(target){
       return '<article class="lc-queue-row"><div class="lc-queue-ticket">#'+safe(queueTicketNumber(row))+'</div>'+
         '<div class="lc-queue-details"><strong>'+safe(queuePersonLabel(row,name))+'</strong><span>'+service+'</span>'+declinedBy+resolutionNotice+resolvedBy+'</div>'+
         '<div class="lc-queue-actions"><strong class="lc-queue-value">'+money(Number(row.total_amount||0))+'</strong>'+action+resolutionAction+
-        (row.status==='waiting' ? '<button type="button" class="is-secondary" data-absent="'+safe(row.id)+'">Cliente ausente</button>' : '')+
+        (row.status==='waiting' ? '<button type="button" class="is-secondary" data-absent="'+safe(row.id)+'">Retirar da fila</button>' : '')+
         '<button type="button" class="is-secondary" data-cancel="'+safe(row.id)+'">'+(row.status==="waiting"?'Excluir da fila':'Cancelar atendimento')+'</button>'+
         '</div></article>';
     }).join(""):'<div class="lc-empty-queue">Nenhum cliente aguardando ou em atendimento agora.</div>';
