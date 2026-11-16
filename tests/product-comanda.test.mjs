@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migration = readFileSync('supabase/migrations/20261116172905_lacorte_product_comanda.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261116173900_lacorte_product_comanda.sql', 'utf8');
 const barber = readFileSync('barber.js', 'utf8');
 const admin = readFileSync('admin.js', 'utf8');
 const equipe = readFileSync('equipe/index.html', 'utf8');
