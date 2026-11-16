@@ -102,11 +102,13 @@ async function loadBarberHistoryDetails(rows){
     const customers=customerIds.slice(offset,offset+50),entries=ids.slice(offset,offset+50);
     const result=await Promise.all([
       customers.length?db.from('customers').select('id,first_name,last_name').in('id',customers):{data:[]},
-      entries.length?db.from('lacorte_queue_items').select('queue_id,service_name').in('queue_id',entries):{data:[]}
+      entries.length?db.from('lacorte_queue_items').select('queue_id,service_name').in('queue_id',entries):{data:[]},
+      entries.length?db.from('lacorte_queue_product_items').select('queue_id,product_name_snapshot,quantity').in('queue_id',entries):{data:[]}
     ]);
     result.forEach(r=>{if(r.error) throw r.error;});
     result[0].data.forEach(row=>names[row.id]=[row.first_name,row.last_name].filter(Boolean).join(' '));
     result[1].data.forEach(row=>(services[row.queue_id]||=[]).push(row.service_name));
+    result[2].data.forEach(row=>(services[row.queue_id]||=[]).push(Number(row.quantity)+'× '+row.product_name_snapshot));
   }
   return {names,services};
 }
@@ -160,13 +162,24 @@ async function renderBarberPayment(queueId){
     const row=result.data;
     if(row.status!=='in_progress'||row.barber_id!==state.barberId) throw new Error('Este atendimento não está em andamento no seu perfil.');
     const {names,services}=await loadBarberHistoryDetails([row]);
+    const productResult=await db.from('lacorte_products').select('id,name,sku,price,stock_quantity,commission_percent').eq('active',true).gt('stock_quantity',0).order('name');
+    if(productResult.error) throw productResult.error;
     if(!main.isConnected) return;
-    const gross=Number(row.gross_amount??row.total_amount);
-    let selected='pix',split=false;
-    main.innerHTML='<h1>Finalizar atendimento</h1><section class="barber-payment-customer"><div><h2>#'+safe(queueTicketNumber(row))+' • '+safe(row.participant_name||names[row.customer_id]||'Cliente')+'</h2><p>'+safe((services[row.id]||[]).join(' + ')||'Serviço não informado')+'</p></div><div><span>Total</span><strong data-payment-total>'+money(gross)+'</strong></div></section><form class="barber-payment-form"><h2>Forma de pagamento</h2><div class="barber-payment-methods">'+
+    const products=productResult.data||[];
+    const serviceGross=Number(row.gross_amount??row.total_amount);
+    let cart=[],gross=serviceGross,selected='pix',split=false;
+    const productOptions=products.map(product=>'<option value="'+safe(product.id)+'">'+safe(product.name)+' • '+money(Number(product.price))+' • '+Number(product.stock_quantity)+' em estoque</option>').join('');
+    const productSection='<section class="barber-comanda-products"><div><h2>Produtos na comanda</h2><p>Adicione os produtos vendidos neste atendimento. O estoque será atualizado junto com a confirmação do pagamento.</p></div><div class="barber-comanda-subtotals"><span>Serviços: <strong>'+money(serviceGross)+'</strong></span><span>Produtos: <strong data-product-subtotal>'+money(0)+'</strong></span></div>'+(products.length?'<form class="barber-comanda-add" data-add-product><label>Produto<select name="product" required><option value="">Selecione um produto</option>'+productOptions+'</select></label><label>Quantidade<input name="quantity" type="number" min="1" max="99" value="1" step="1" required></label><button class="btn btn-outline" type="submit">Adicionar</button></form>':'<p class="muted">Nenhum produto ativo com estoque disponível.</p>')+'<div class="barber-comanda-cart" data-product-cart><p class="muted">Nenhum produto adicionado.</p></div><p class="barber-comanda-error" data-product-error role="alert"></p></section>';
+    main.innerHTML='<h1>Finalizar atendimento</h1><section class="barber-payment-customer"><div><h2>#'+safe(queueTicketNumber(row))+' • '+safe(row.participant_name||names[row.customer_id]||'Cliente')+'</h2><p>'+safe((services[row.id]||[]).join(' + ')||'Serviço não informado')+'</p></div><div><span>Total</span><strong data-payment-total>'+money(gross)+'</strong></div></section>'+productSection+'<form class="barber-payment-form"><h2>Forma de pagamento</h2><div class="barber-payment-methods">'+
       Object.entries({pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'}).map(([key,label])=>'<button type="button" data-method="'+key+'" aria-pressed="'+(key===selected)+'">'+barberIcon(key==='pix'?'pix':key==='dinheiro'?'cash':'card')+'<span>'+label+'</span><span class="barber-method-check">✓</span></button>').join('')+'</div><button type="button" class="barber-split-toggle" aria-expanded="false">Dividir pagamento</button><div class="payment-split-fields" hidden>'+Object.entries({pix:'PIX',dinheiro:'Dinheiro',credito:'Crédito',debito:'Débito'}).map(([key,label])=>'<label>'+label+' (R$)<input type="number" min="0" step="0.01" inputmode="decimal" data-payment="'+key+'" aria-label="Valor em '+label+'"></label>').join('')+'</div><div class="barber-payment-extras"><label>Desconto (R$)<input name="discount" type="number" min="0" max="'+gross+'" step="0.01" inputmode="decimal" value="'+Number(row.discount_amount||0)+'"></label><label>Observação<input name="observation" maxlength="300" placeholder="Opcional" value="'+safe(row.observation||'')+'"></label></div><div class="barber-payment-totals"><div><span>Valor recebido</span><strong data-net></strong></div><div><span>Sua comissão'+safe(barberCommissionLabel([row]))+'</span><strong data-commission></strong></div></div><p class="barber-payment-balance" role="status" aria-live="polite"></p><button class="btn btn-primary" type="submit">Confirmar e concluir</button><button class="barber-payment-back" type="button">Voltar ao atendimento</button><p role="alert" data-error></p></form>';
-    const form=main.querySelector('form'),discount=form.elements.discount,parts=[...form.querySelectorAll('[data-payment]')],submit=form.querySelector('[type=submit]'),balance=form.querySelector('[role=status]');
+    const form=main.querySelector('.barber-payment-form');
+    const addForm=main.querySelector('[data-add-product]');
+    const cartContainer=main.querySelector('[data-product-cart]');
+    const discount=form.elements.discount,parts=[...form.querySelectorAll('[data-payment]')],submit=form.querySelector('[type=submit]'),balance=form.querySelector('[role=status]');
+    const productError=main.querySelector('[data-product-error]');
     const cents=value=>Math.round(Number(value)*100);
+    function productSubtotal(){return cart.reduce((sum,item)=>sum+cents(item.price)*item.quantity,0)/100;}
+    function productCommission(){return cart.reduce((sum,item)=>sum+(Number(item.price)*item.quantity*Number(item.commissionPercent||0)/100),0);}
     function paymentState(){
       const discountCents=cents(discount.value||0),net=cents(gross)-discountCents;
       const values=split?parts.map(input=>({method:input.dataset.payment,amount:cents(input.value||0)/100})).filter(p=>p.amount>0):net>0?[{method:selected,amount:net/100}]:[];
@@ -175,15 +188,52 @@ async function renderBarberPayment(queueId){
       return {discount:discountCents/100,net:net/100,values,entered:entered/100,valid};
     }
     function update(){
+      gross=serviceGross+productSubtotal();
+      discount.max=gross.toFixed(2);
       const p=paymentState();
       main.querySelector('[data-payment-total]').textContent=money(Math.max(0,p.net));
       form.querySelector('[data-net]').textContent=money(Math.max(0,p.net));
-      form.querySelector('[data-commission]').textContent=money(Math.max(0,p.net)*Number(row.commission_percent||0)/100);
+      const commissionBase=serviceGross*Number(row.commission_percent||0)/100+productCommission();
+      const commissionFactor=gross>0?Math.max(0,p.net)/gross:0;
+      form.querySelector('[data-commission]').textContent=money(Math.max(0,commissionBase*commissionFactor));
       const missing=Math.round((p.net-p.entered)*100)/100;
       balance.textContent=split?(p.valid?'Valores conferem.':missing>0?'Falta receber '+money(missing):missing<0?'Há '+money(-missing)+' a mais que o total.':'Confira os valores informados.') : '';
       submit.disabled=!p.valid;
       form.querySelectorAll('[data-method]').forEach(button=>button.setAttribute('aria-pressed',String(!split&&button.dataset.method===selected)));
     }
+    function renderCart(){
+      cartContainer.innerHTML=cart.length?cart.map(item=>'<article class="barber-comanda-line"><div><strong>'+Number(item.quantity)+'× '+safe(item.name)+'</strong><small>'+money(Number(item.price))+' cada</small></div><strong>'+money(Number(item.price)*Number(item.quantity))+'</strong><button type="button" data-remove-cart="'+safe(item.id)+'">Remover</button></article>').join(''):'<p class="muted">Nenhum produto adicionado.</p>';
+      main.querySelector('[data-product-subtotal]').textContent=money(productSubtotal());
+      update();
+    }
+    if(addForm){
+      const productSelect=addForm.elements.product,quantityInput=addForm.elements.quantity;
+      productSelect.onchange=function(){
+        const product=products.find(item=>item.id===productSelect.value);
+        quantityInput.max=String(Math.min(99,Number(product?.stock_quantity||99)));
+        quantityInput.value='1';
+      };
+      addForm.onsubmit=function(event){
+        event.preventDefault();productError.textContent='';
+        const product=products.find(item=>item.id===productSelect.value);
+        const quantity=Number(quantityInput.value);
+        if(!product||!Number.isInteger(quantity)||quantity<1||quantity>99){productError.textContent='Selecione um produto e uma quantidade válida.';return;}
+        const existing=cart.find(item=>item.id===product.id);
+        const nextQuantity=(existing?.quantity||0)+quantity;
+        if(nextQuantity>Number(product.stock_quantity)){productError.textContent='A quantidade supera o estoque disponível.';return;}
+        if(existing) existing.quantity=nextQuantity;
+        else cart.push({id:product.id,name:product.name,sku:product.sku,price:Number(product.price),commissionPercent:Number(product.commission_percent||0),stock:Number(product.stock_quantity),quantity:quantity});
+        quantityInput.value='1';
+        renderCart();
+      };
+    }
+    cartContainer.addEventListener('click',function(event){
+      const button=event.target.closest('[data-remove-cart]');
+      if(!button)return;
+      cart=cart.filter(item=>item.id!==button.dataset.removeCart);
+      productError.textContent='';
+      renderCart();
+    });
     form.querySelectorAll('[data-method]').forEach(button=>button.onclick=()=>{selected=button.dataset.method;if(split){split=false;form.querySelector('.payment-split-fields').hidden=true;form.querySelector('.barber-split-toggle').setAttribute('aria-expanded','false');}update();});
     form.querySelector('.barber-split-toggle').onclick=function(){split=!split;form.querySelector('.payment-split-fields').hidden=!split;this.setAttribute('aria-expanded',String(split));if(split&&parts.every(input=>!input.value)) parts.find(input=>input.dataset.payment===selected).value=paymentState().net.toFixed(2);update();};
     discount.oninput=update;parts.forEach(input=>input.oninput=update);
@@ -192,13 +242,21 @@ async function renderBarberPayment(queueId){
       event.preventDefault();if(form.dataset.saving) return;
       const p=paymentState();if(!p.valid) return;
       form.dataset.saving='1';[...form.elements].forEach(e=>e.disabled=true);
+      if(addForm) [...addForm.elements].forEach(e=>e.disabled=true);
       const error=form.querySelector('[data-error]');error.textContent='';
       try{
-        const result=await db.rpc('lacorte_finish_service_details',{p_queue_id:queueId,p_discount_amount:p.discount,p_payments:p.values,p_observation:form.elements.observation.value.trim()||null});
+        const result=await db.rpc('lacorte_finish_service_details_with_products',{p_queue_id:queueId,p_discount_amount:p.discount,p_payments:p.values,p_observation:form.elements.observation.value.trim()||null,p_products:cart.map(item=>({product_id:item.id,quantity:item.quantity}))});
         if(result.error) throw result.error;
         if(main.isConnected) renderBarberQueue();
-      }catch(e){error.textContent='Não foi possível concluir. '+e.message;delete form.dataset.saving;[...form.elements].forEach(el=>el.disabled=false);update();}
+      }catch(e){
+        error.textContent='Não foi possível concluir. '+e.message;
+        delete form.dataset.saving;
+        [...form.elements].forEach(el=>el.disabled=false);
+        if(addForm) [...addForm.elements].forEach(el=>el.disabled=false);
+        update();
+      }
     };
+    renderCart();
     update();
   }catch(error){barberError(main,error.message,()=>renderBarberPayment(queueId));}
 }

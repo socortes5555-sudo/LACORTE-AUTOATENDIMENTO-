@@ -488,7 +488,7 @@ async function renderAdminProducts(target){
   const isCurrent = showAdminLoading(target, "Carregando produtos e movimentações...");
   try {
     const results = await Promise.all([
-      db.from("lacorte_products").select("id,name,description,sku,price,stock_quantity,active,created_at,updated_at").order("name"),
+      db.from("lacorte_products").select("id,name,description,sku,price,commission_percent,stock_quantity,active,created_at,updated_at").order("name"),
       db.from("lacorte_product_stock_movements").select("id,product_id,quantity_delta,reason,created_at").order("created_at", {ascending:false}).limit(50)
     ]);
     if(results[0].error) throw new Error("Não foi possível carregar os produtos: " + results[0].error.message);
@@ -511,12 +511,13 @@ async function renderAdminProducts(target){
       '</div>';
 
     html += '<section class="summary"><h3>NOVO PRODUTO</h3>' +
-      '<p class="muted">Cadastre nome, código opcional e preço. Depois registre a quantidade inicial na movimentação de estoque.</p>' +
+      '<p class="muted">Cadastre nome, preço e a comissão opcional do profissional na venda. O padrão é 0%. Depois registre a quantidade inicial no estoque.</p>' +
       '<form id="lc-new-product-form" class="admin-form">' +
       '<label>Nome do produto</label><input name="name" maxlength="100" required placeholder="Ex.: Pomada modeladora">' +
       '<label>Descrição</label><textarea name="description" maxlength="240" rows="2" placeholder="Detalhes do produto (opcional)"></textarea>' +
       '<label>SKU / código (opcional)</label><input name="sku" maxlength="40" placeholder="Código interno">' +
       '<label>Preço de venda (R$)</label><input name="price" type="number" min="0" step="0.01" required placeholder="0,00">' +
+      '<label>Comissão do profissional na venda (%)</label><input name="commission_percent" type="number" min="0" max="100" step="0.01" value="0" required>' +
       '<button class="btn btn-primary" type="submit">CADASTRAR PRODUTO</button></form></section>';
 
     html += '<section class="summary"><div class="manage-panel-heading"><div><h3>CATÁLOGO E ESTOQUE</h3>' +
@@ -533,6 +534,7 @@ async function renderAdminProducts(target){
           '<label>Descrição</label><textarea name="description" maxlength="240" rows="2">' + safe(product.description || '') + '</textarea>' +
           '<label>SKU / código</label><input name="sku" maxlength="40" value="' + safe(product.sku || '') + '">' +
           '<label>Preço de venda (R$)</label><input name="price" type="number" min="0" step="0.01" required value="' + Number(product.price || 0).toFixed(2) + '">' +
+          '<label>Comissão do profissional na venda (%)</label><input name="commission_percent" type="number" min="0" max="100" step="0.01" required value="' + Number(product.commission_percent || 0).toFixed(2) + '">' +
           '<label class="admin-check"><input name="active" type="checkbox" ' + (product.active ? 'checked' : '') + '> Produto ativo</label>' +
           '<p><strong>Estoque atual:</strong> ' + Number(product.stock_quantity || 0) + ' unidade(s)</p>' +
           '<button class="btn btn-secondary" type="submit">SALVAR PRODUTO</button></form>' +
@@ -577,8 +579,9 @@ async function renderAdminProducts(target){
       const description = String(fd.get("description") || "").trim();
       const sku = String(fd.get("sku") || "").trim();
       const price = Number(fd.get("price"));
-      if(!name || name.length > 100 || !Number.isFinite(price) || price < 0) {
-        alert("Confira o nome e o preço do produto.");
+      const commissionPercent = Number(fd.get("commission_percent") || 0);
+      if(!name || name.length > 100 || !Number.isFinite(price) || price < 0 || !Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 100) {
+        alert("Confira o nome, preço e comissão (0 a 100%) do produto.");
         return;
       }
       const button = newProductForm.querySelector("button[type=submit]");
@@ -588,6 +591,7 @@ async function renderAdminProducts(target){
         description:description || null,
         sku:sku || null,
         price:price,
+        commission_percent:commissionPercent,
         active:true
       });
       if(result.error) {
@@ -607,8 +611,9 @@ async function renderAdminProducts(target){
         const description = String(fd.get("description") || "").trim();
         const sku = String(fd.get("sku") || "").trim();
         const price = Number(fd.get("price"));
-        if(!name || name.length > 100 || !Number.isFinite(price) || price < 0) {
-          alert("Confira o nome e o preço do produto.");
+        const commissionPercent = Number(fd.get("commission_percent") || 0);
+        if(!name || name.length > 100 || !Number.isFinite(price) || price < 0 || !Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 100) {
+          alert("Confira o nome, preço e comissão (0 a 100%) do produto.");
           return;
         }
         const button = form.querySelector("button[type=submit]");
@@ -618,6 +623,7 @@ async function renderAdminProducts(target){
           description:description || null,
           sku:sku || null,
           price:price,
+          commission_percent:commissionPercent,
           active:fd.get("active") === "on"
         }).eq("id",form.dataset.productForm);
         if(result.error) {
