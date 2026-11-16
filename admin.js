@@ -338,7 +338,7 @@ async function renderAdminManagement(view=adminView, target){
     }
     html += '<div class="manage-panel ' + (servicesOnly ? "active" : "") + '" role="tabpanel" data-manage-panel="services"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>SERVIÇOS E PREÇOS</h3><p class="muted">Catálogo disponível na LaCorte.</p></div><span class="manage-count">' + serviceRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-service-form">+ ADICIONAR CORTE / SERVIÇO</button><div id="new-service-form-wrap" class="admin-reveal-content" hidden><form id="new-service-form" class="admin-form"><label>Nome do serviço</label><input name="name" required maxlength="80" placeholder="Ex.: Corte"><label>Descrição</label><input name="detail" maxlength="160" placeholder="Descrição curta"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required placeholder="45,00"><button class="btn btn-primary" type="submit">CADASTRAR SERVIÇO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="service-list">VER SERVIÇOS CADASTRADOS</button><div id="service-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
     serviceRows.forEach(function(s){
-      html += '<form class="admin-form" data-service-form="' + safe(s.id) + '"><h4>' + safe(s.name) + '</h4><label>Nome</label><input name="name" required maxlength="80" value="' + safe(s.name) + '"><label>Descrição</label><input name="detail" maxlength="160" value="' + safe(s.detail || '') + '"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" value="' + Number(s.price || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? 'checked' : '') + '> Serviço ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button>' + (s.active ? '<button class="btn btn-secondary" type="button" data-retire-service="' + safe(s.id) + '">EXCLUIR SERVIÇO</button>' : '') + '</form>';
+      html += '<article class="summary admin-item lc-service-item"><div class="manage-panel-heading"><div><strong>' + safe(s.name) + '</strong><p class="muted">' + money(Number(s.price || 0)) + (s.active ? '' : ' · Inativo') + '</p></div><div class="lc-service-actions"><button class="btn btn-secondary" type="button" data-edit-service="' + safe(s.id) + '">EDITAR</button>' + (s.active ? '<button class="btn btn-secondary" type="button" data-retire-service="' + safe(s.id) + '">EXCLUIR</button>' : '') + '</div></div><form class="admin-form" data-service-form="' + safe(s.id) + '" hidden><label>Nome</label><input name="name" required maxlength="80" value="' + safe(s.name) + '"><label>Descrição</label><input name="detail" maxlength="160" value="' + safe(s.detail || '') + '"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" value="' + Number(s.price || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? 'checked' : '') + '> Serviço ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form></article>';
     });
     if(!serviceRows.length) html += '<p class="muted">Nenhum serviço cadastrado.</p>';
     html += '</div></div></section></div></div>';
@@ -437,6 +437,15 @@ async function renderAdminManagement(view=adminView, target){
       if(target.isConnected) renderAdminManagement(view, embedded);
     });
 
+    target.querySelectorAll("[data-edit-service]").forEach(function(button){
+      button.addEventListener("click",function(){
+        const card=button.closest(".lc-service-item");
+        const form=card && card.querySelector("[data-service-form]");
+        if(!form) return;
+        form.hidden=!form.hidden;
+        button.textContent=form.hidden?"EDITAR":"FECHAR";
+      });
+    });
     target.querySelectorAll("[data-retire-service]").forEach(function(button){
       button.addEventListener("click",async function(){
         if(!confirm("Retirar este serviço do catálogo? O histórico de atendimentos será preservado.")) return;
