@@ -716,7 +716,7 @@ async function renderAdminPlans(target){
       return sub.status === "expired" || (sub.expires_at && sub.expires_at < todayString);
     }).length;
     html += '<section class="summary"><div class="lc-plan-actions"><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="activate-plan">+ ATIVAR ASSINATURA</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="plan-list-items">VER PLANOS CADASTRADOS</button><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="subscription-history">VER CLIENTES COM PLANO</button></div></section><div id="activate-plan-wrap" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>ATIVAR ASSINATURA</h3><p class="muted">Confirme o pagamento antes de ativar.</p>';
-    if(!customers.length) html += '<p class="muted">Nenhum cliente cadastrado ainda.</p>';
+    if(!customers.length) html += '<p class="muted" role="status">Nenhum cliente cadastrado. Cadastre um cliente antes de ativar uma assinatura.</p>';
     else if(!rows.some(function(p){return p.active;})) html += '<p class="muted">Cadastre e ative pelo menos um plano antes de ativar assinaturas.</p>';
     else {
       const today = new Date(localQueueDate()+"T12:00:00");
@@ -736,7 +736,7 @@ async function renderAdminPlans(target){
     html += '</section></div>';
     html += '<div id="subscription-history" class="admin-reveal-content" hidden style="display:none"><section class="summary"><h3>CLIENTES COM PLANO</h3><p class="muted">Assinaturas ativas e histórico de assinaturas.</p>';
     html += '<label for="subscription-history-search">Buscar no histórico</label><input id="subscription-history-search" type="search" placeholder="Nome do cliente, telefone ou plano">';
-    if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
+    if(!subscriptions.length) html += '<p class="muted" role="status">Nenhum cliente com assinatura cadastrada. Para cadastrar uma, clique em ATIVAR ASSINATURA.</p>';
     subscriptions.forEach(function(sub){
       const c = customerById[sub.customer_id] || {};
       const customerName = (c.first_name || "Cliente")+' '+(c.last_name || "");
