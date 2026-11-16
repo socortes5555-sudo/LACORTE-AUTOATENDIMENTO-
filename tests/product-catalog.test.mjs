@@ -58,6 +58,6 @@ test('a migração é aditiva e não apaga dados ou estruturas', () => {
 });
 
 test('as duas entradas da equipe carregam a versão atualizada do painel administrativo', () => {
-  assert.match(equipe, /admin\.js\?v=admin-products-20261115-1/);
-  assert.match(barbeiros, /admin\.js\?v=admin-products-20261115-1/);
+  assert.match(equipe, /admin\.js\?v=admin-comanda-20261116-1/);
+  assert.match(barbeiros, /admin\.js\?v=admin-comanda-20261116-1/);
 });

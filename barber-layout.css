@@ -109,3 +109,20 @@ input::placeholder{color:#909090}
 @media(min-width:900px){.topbar{padding-top:24px}.staff-shell{padding-top:12px}.professional-main{gap:22px}}
 @media(max-width:360px){.staff-shell{padding-inline:12px}.topbar{min-height:108px}.barber-day-stats article{gap:9px;padding:12px}.barber-waiting{gap:8px;padding:10px}.barber-waiting>svg{width:20px}.barber-waiting h3{font-size:12px}.barber-waiting .btn{padding:8px}.barber-result-card{gap:8px;padding:12px 9px}.barber-result-card h3{font-size:12px}.barber-result-card>strong{font-size:14px;padding:8px}.barber-history-record>strong{font-size:12px}.barber-payment-customer h2{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+.barber-comanda-products{display:grid;gap:12px;padding:16px;border:1px solid #60452f;border-radius:14px;background:linear-gradient(135deg,#24201d,#171717)}
+.barber-comanda-products h2{margin:0;font-size:18px}
+.barber-comanda-products>div:first-child p{margin-top:5px;color:#bbb;font-size:12px;line-height:1.5}
+.barber-comanda-subtotals{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:#ccc;font-size:12px}
+.barber-comanda-subtotals strong{color:#ffad65}
+.barber-comanda-add{display:grid;grid-template-columns:minmax(0,1fr) 100px auto;gap:10px;align-items:end}
+.barber-comanda-add button{min-height:44px}
+.barber-comanda-cart{display:grid;gap:8px}
+.barber-comanda-line{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff18}
+.barber-comanda-line>div{display:grid;gap:3px;min-width:0}
+.barber-comanda-line strong{overflow-wrap:anywhere}
+.barber-comanda-line small{color:#aaa;font-size:11px}
+.barber-comanda-line>button{border:0;background:transparent;color:#ffad65;text-decoration:underline;text-underline-offset:3px}
+.barber-comanda-error:empty{display:none}
+.barber-comanda-error{color:#ffae8b;font-size:12px}
+@media(max-width:520px){.barber-comanda-add{grid-template-columns:minmax(0,1fr) 88px}.barber-comanda-add button{grid-column:1/-1}.barber-comanda-line{grid-template-columns:minmax(0,1fr) auto}.barber-comanda-line>button{grid-column:1/-1;justify-self:end}}
