@@ -338,7 +338,7 @@ async function renderAdminManagement(view=adminView, target){
     }
     html += '<div class="manage-panel ' + (servicesOnly ? "active" : "") + '" role="tabpanel" data-manage-panel="services"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>SERVIÇOS E PREÇOS</h3><p class="muted">Catálogo disponível na LaCorte.</p></div><span class="manage-count">' + serviceRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-service-form">+ ADICIONAR CORTE / SERVIÇO</button><div id="new-service-form-wrap" class="admin-reveal-content" hidden><form id="new-service-form" class="admin-form"><label>Nome do serviço</label><input name="name" required maxlength="80" placeholder="Ex.: Corte"><label>Descrição</label><input name="detail" maxlength="160" placeholder="Descrição curta"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" required placeholder="45,00"><button class="btn btn-primary" type="submit">CADASTRAR SERVIÇO</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="service-list">VER SERVIÇOS CADASTRADOS</button><div id="service-list" class="admin-reveal-content" hidden><div class="manage-overview-list">';
     serviceRows.forEach(function(s){
-      html += '<form class="admin-form" data-service-form="' + safe(s.id) + '"><h4>' + safe(s.name) + '</h4><label>Nome</label><input name="name" required maxlength="80" value="' + safe(s.name) + '"><label>Descrição</label><input name="detail" maxlength="160" value="' + safe(s.detail || '') + '"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" value="' + Number(s.price || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? 'checked' : '') + '> Serviço ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button></form>';
+      html += '<form class="admin-form" data-service-form="' + safe(s.id) + '"><h4>' + safe(s.name) + '</h4><label>Nome</label><input name="name" required maxlength="80" value="' + safe(s.name) + '"><label>Descrição</label><input name="detail" maxlength="160" value="' + safe(s.detail || '') + '"><label>Preço (R$)</label><input name="price" type="number" min="0" step="0.01" value="' + Number(s.price || 0) + '" required><label class="admin-check"><input name="active" type="checkbox" ' + (s.active ? 'checked' : '') + '> Serviço ativo</label><button class="btn btn-secondary" type="submit">SALVAR ALTERAÇÕES</button>' + (s.active ? '<button class="btn btn-secondary" type="button" data-retire-service="' + safe(s.id) + '">EXCLUIR SERVIÇO</button>' : '') + '</form>';
     });
     if(!serviceRows.length) html += '<p class="muted">Nenhum serviço cadastrado.</p>';
     html += '</div></div></section></div></div>';
@@ -437,6 +437,16 @@ async function renderAdminManagement(view=adminView, target){
       if(target.isConnected) renderAdminManagement(view, embedded);
     });
 
+    target.querySelectorAll("[data-retire-service]").forEach(function(button){
+      button.addEventListener("click",async function(){
+        if(!confirm("Retirar este serviço do catálogo? O histórico de atendimentos será preservado.")) return;
+        button.disabled=true;
+        const result=await db.from("services").update({active:false}).eq("id",button.dataset.retireService);
+        if(result.error){button.disabled=false;return alert("Erro ao retirar serviço: "+result.error.message);}
+        alert("Serviço retirado do catálogo.");
+        if(target.isConnected) renderAdminManagement(view,embedded);
+      });
+    });
     target.querySelectorAll("[data-service-form]").forEach(function(form){
       form.addEventListener("submit", async function(e){
         e.preventDefault();
@@ -756,7 +766,7 @@ async function renderAdminPlans(target){
         '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required value="' + Number(p.monthly_price) + '">' +
         '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4">' + safe(benefits) + '</textarea>' +
         '<label class="admin-check"><input name="active" type="checkbox" ' + (p.active ? "checked" : "") + '> Disponível para venda</label>' +
-        '<button class="btn btn-primary" type="submit">SALVAR PLANO</button></form>';
+        '<button class="btn btn-primary" type="submit">SALVAR PLANO</button>' + (p.active ? '<button class="btn btn-secondary" type="button" data-retire-plan="' + safe(p.id) + '">EXCLUIR PLANO</button>' : '') + '</form>';
     });
     html += '</div></section>';
     if(!isCurrent()) return;
@@ -830,6 +840,16 @@ async function renderAdminPlans(target){
       const saved = await db.from("lacorte_plans").insert({name,description:String(fd.get("description") || "").trim(),monthly_price:price,benefits,active:true});
       if(saved.error) return alert("Erro ao cadastrar: " + saved.error.message);
       alert("Plano cadastrado."); if(target.isConnected) renderAdminPlans(embedded);
+    });
+    target.querySelectorAll("[data-retire-plan]").forEach(function(button){
+      button.addEventListener("click",async function(){
+        if(!confirm("Retirar este plano das novas vendas? Assinaturas existentes serão preservadas.")) return;
+        button.disabled=true;
+        const result=await db.from("lacorte_plans").update({active:false,updated_at:new Date().toISOString()}).eq("id",button.dataset.retirePlan);
+        if(result.error){button.disabled=false;return alert("Erro ao retirar plano: "+result.error.message);}
+        alert("Plano retirado das novas vendas.");
+        if(target.isConnected) renderAdminPlans(embedded);
+      });
     });
     target.querySelectorAll("[data-plan-form]").forEach(function(form){
       form.addEventListener("submit", async function(e){
