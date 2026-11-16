@@ -759,7 +759,7 @@ async function renderAdminPlans(target){
       '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
       '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
       '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="4 cortes por mês&#10;Desconto em produtos"></textarea>' +
-      '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form></div><button type="button" class="btn btn-secondary" data-list-toggle="plan-list-items">VER PLANOS CADASTRADOS</button>';
+      '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form></div>';
     html += '<div id="plan-list-items" class="admin-reveal-content" hidden>';
     if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
     rows.forEach(function(p){
