@@ -727,7 +727,7 @@ async function renderAdminPlans(target){
         '<label>Observação (opcional)</label><input name="notes" maxlength="500" placeholder="Ex.: comprovante conferido">' +
         '<button class="btn btn-primary" type="submit">ATIVAR ASSINATURA</button></form>';
     }
-    html += '</div></section>';
+    html += '</section></div>';
     html += '<div id="subscription-history" class="admin-reveal-content" hidden><section class="summary"><h3>CLIENTES COM PLANO</h3><p class="muted">Assinaturas ativas e histórico de assinaturas.</p>';
     html += '<label for="subscription-history-search">Buscar no histórico</label><input id="subscription-history-search" type="search" placeholder="Nome do cliente, telefone ou plano">';
     if(!subscriptions.length) html += '<p class="muted">Nenhuma assinatura registrada.</p>';
@@ -753,7 +753,7 @@ async function renderAdminPlans(target){
       if(sub.status === "suspended") html += '<button class="btn btn-primary" type="button" data-reactivate-plan="'+safe(sub.id)+'">REATIVAR ASSINATURA</button>';
       html += '</article>';
     });
-    html += '</div></section>';
+    html += '</section></div>';
     html += '<section class="summary"><h3>PLANOS</h3><p class="muted">Gerencie os planos disponíveis.</p><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
       '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
       '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
