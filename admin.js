@@ -307,7 +307,7 @@ async function renderAdminManagement(view=adminView, target){
         ? Promise.resolve({data:[],error:null})
         : db.from("barbers").select("id,name,first_name,last_name,age,email,active,commission_percent").order("name"),
       servicesOnly
-        ? db.from("services").select("id,name,detail,price,active").order("name")
+        ? db.from("services").select("id,name,detail,price,active").eq("active",true).order("name")
         : Promise.resolve({data:[],error:null})
     ]);
     if(results[0].error) throw new Error("Erro ao carregar barbeiros: " + results[0].error.message);
