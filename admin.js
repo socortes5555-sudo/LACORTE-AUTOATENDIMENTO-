@@ -760,13 +760,12 @@ async function renderAdminPlans(target){
       html += '</article>';
     });
     html += '</section></div>';
-    html += '<section class="summary"><h3>PLANOS</h3><p class="muted">Gerencie os planos disponíveis.</p><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
+    html += '<div id="plan-list-items" class="admin-reveal-content" hidden><section class="summary"><h3>PLANOS CADASTRADOS</h3><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-plan-form">+ ADICIONAR PLANO</button><div id="new-plan-form-wrap" class="admin-reveal-content" hidden><form id="new-plan-form" class="admin-form">' +
       '<label>Nome</label><input name="name" maxlength="100" required placeholder="Ex.: LaCorte Premium">' +
       '<label>Descrição</label><textarea name="description" maxlength="500" rows="3"></textarea>' +
       '<label>Valor mensal (R$)</label><input name="monthly_price" type="number" min="0" step="0.01" required>' +
       '<label>Benefícios (um por linha)</label><textarea name="benefits" rows="4" placeholder="4 cortes por mês&#10;Desconto em produtos"></textarea>' +
       '<button class="btn btn-primary" type="submit">CADASTRAR PLANO</button></form></div>';
-    html += '<div id="plan-list-items" class="admin-reveal-content" hidden>';
     if(!rows.length) html += '<p class="muted">Nenhum plano cadastrado ainda.</p>';
     rows.forEach(function(p){
       const benefits = Array.isArray(p.benefits) ? p.benefits.join("\\n") : "";
@@ -778,7 +777,7 @@ async function renderAdminPlans(target){
         '<label class="admin-check"><input name="active" type="checkbox" checked> Disponível para venda</label>' +
         '<button class="btn btn-primary" type="submit">SALVAR PLANO</button></form></article>';
     });
-    html += '</div></section>';
+    html += '</section></div>';
     if(!isCurrent()) return;
     target.innerHTML = html;
     target.querySelectorAll('[data-reveal],[data-list-toggle]').forEach(function(button){
