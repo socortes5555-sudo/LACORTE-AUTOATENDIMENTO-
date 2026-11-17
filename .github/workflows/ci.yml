@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "automation/**"
+      - main
   pull_request:
     branches:
       - main
@@ -24,6 +25,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Verificar publicação dos aplicativos
+        run: node scripts/release.mjs --check
 
       - name: Verificar sintaxe JavaScript
         run: |

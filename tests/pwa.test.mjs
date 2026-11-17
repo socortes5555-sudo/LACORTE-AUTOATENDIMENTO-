@@ -15,7 +15,7 @@ for (const [name, html, manifestPath, startUrl] of [
     const markup = load(html).toString('utf8');
     const config = manifest(manifestPath);
     assert.ok(markup.includes('rel="manifest" href="' + manifestPath + '"'));
-    assert.ok(markup.includes('src="pwa.js?v=pwa-1"'));
+    assert.match(markup, /src="pwa\.js\?v=[^"]+"/);
     assert.equal(config.start_url, startUrl);
     assert.equal(config.display, 'standalone');
     assert.equal(config.scope, './');
@@ -32,7 +32,7 @@ for (const [name, html, manifestPath, startUrl] of [
 }
 test('PWA: nenhuma informação operacional é armazenada offline', () => {
   const sw = load('service-worker.js').toString('utf8');
-  assert.doesNotMatch(sw, /caches\.open|cache\.put|fetch\(/i);
+  assert.doesNotMatch(sw, /caches\.open|cache\.put/i);
   assert.match(load('pwa.js').toString('utf8'), /serviceWorker\.register/);
 });
 

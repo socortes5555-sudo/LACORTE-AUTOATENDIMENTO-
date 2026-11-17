@@ -1,9 +1,10 @@
-// Intencionalmente sem cache ou interceptação de requisições.
-// O sistema LaCorte exige conexão com o Supabase em tempo real.
-// Manter as páginas e scripts sempre atualizados evita telas antigas.
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+// Sempre buscar a publicação atual; não armazenar clientes nem dados operacionais.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', (event) => {
+  const request=event.request;
+  if(request.method!=='GET' || new URL(request.url).origin!==self.location.origin)return;
+  if(request.mode==='navigate' || ['script','style'].includes(request.destination)){
+    event.respondWith(fetch(new Request(request,{cache:'no-store'})));
+  }
 });

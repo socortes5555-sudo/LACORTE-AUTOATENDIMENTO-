@@ -52,10 +52,10 @@ test('o barbeiro inclui produtos na comanda antes de confirmar o pagamento', () 
 });
 
 test('as duas entradas profissionais carregam a versão nova dos painéis', () => {
-  assert.match(equipe, /barber\.js\?v=barber-comanda-20261116-1/);
-  assert.match(equipe, /barber-layout\.css\?v=barber-comanda-20261116-1/);
+  assert.match(equipe, /barber\.js\?v=[^"\s]+/);
+  assert.match(equipe, /barber-layout\.css\?v=[^"\s]+/);
   assert.match(equipe, /admin\.js\?v=[^"\s]+/);
-  assert.match(barbeiros, /barber\.js\?v=barber-comanda-20261116-1/);
-  assert.match(barbeiros, /barber-layout\.css\?v=barber-comanda-20261116-1/);
+  assert.match(barbeiros, /barber\.js\?v=[^"\s]+/);
+  assert.match(barbeiros, /barber-layout\.css\?v=[^"\s]+/);
   assert.match(barbeiros, /admin\.js\?v=[^"\s]+/);
 });
