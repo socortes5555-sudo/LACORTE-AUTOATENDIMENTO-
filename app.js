@@ -535,8 +535,8 @@ async function loadCatalogs(){
 }
 
 async function loadQueueRows(){
- const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,group_ticket_number,group_id,participant_index,participant_name,status,total_amount,commission_percent,commission_amount,payment_method,created_at,started_at,completed_at').in('status',['waiting','in_progress']).order('queue_date',{ascending:true}).order('queue_number',{ascending:true});
- if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);const rows=result.data||[];if(!rows.length)return [];
+ const result=await db.from('lacorte_queue').select('id,customer_id,barber_id,queue_date,queue_number,group_ticket_number,group_id,participant_index,participant_name,status,total_amount,commission_percent,commission_amount,payment_method,created_at,started_at,completed_at').in('status',['waiting','in_progress']).eq('queue_date',localQueueDate()).order('queue_date',{ascending:true}).order('queue_number',{ascending:true});
+ if(result.error)throw new Error('Erro ao consultar fila: '+result.error.message);const rows=(result.data||[]).filter(row=>row.queue_date===localQueueDate());if(!rows.length)return [];
  const customerIds=Array.from(new Set(rows.map(r=>r.customer_id))),queueIds=rows.map(r=>r.id);
  const lookups=await Promise.all([
   db.from('customers').select('id,first_name,last_name').in('id',customerIds),
@@ -568,7 +568,30 @@ async function loadQueueRows(){
 }
 
 let queueRealtimeChannel = null;
+let queueDayTimer = null;
+let displayedQueueDay = null;
+function refreshQueueOnDayChange(){
+  const today = localQueueDate();
+  if(today === displayedQueueDay || !["admin","barber"].includes(state.role)) return;
+  if(content.querySelector(".payment-dialog-backdrop")) return;
+  displayedQueueDay = today;
+  if(state.role === "admin"){
+    const embedded = content.querySelector("[data-admin-queue]");
+    if(embedded) void renderAdminQueue(embedded);
+    else if(["queue","fila"].includes(adminView)) void renderAdminQueue();
+    else if(["overview","dashboard"].includes(adminView)) void renderAdminOverview();
+  }else if(professionalView === "queue"){
+    void renderBarberQueue();
+  }
+}
+window.addEventListener("focus",refreshQueueOnDayChange);
+window.addEventListener("pageshow",refreshQueueOnDayChange);
+window.addEventListener("online",refreshQueueOnDayChange);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState === "visible") refreshQueueOnDayChange();
+});
 function stopQueueRealtime(){
+  if(queueDayTimer !== null){ clearInterval(queueDayTimer); queueDayTimer = null; }
   if(queueRealtimeChannel && db){
     db.removeChannel(queueRealtimeChannel);
     queueRealtimeChannel = null;
@@ -584,7 +607,7 @@ function subscribeToQueueRealtime(){
         const queue = content.querySelector("[data-admin-queue]");
         if(queue && !queue.querySelector(".payment-dialog-backdrop")) renderAdminQueue(queue);
       }else if(["queue","fila"].includes(adminView) && !content.querySelector("[data-admin-queue] .payment-dialog-backdrop")){
-        renderQueueDashboard();
+        renderAdminQueue();
       }
     }else if(state.role==="barber"){
       if(["profile","payment"].includes(professionalView) || content.querySelector(".payment-dialog-backdrop")) return;
@@ -598,6 +621,8 @@ function subscribeToQueueRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_items"},refreshActiveStaffView)
     .on("postgres_changes",{event:"*",schema:"public",table:"lacorte_queue_declines"},refreshActiveStaffView)
     .subscribe();
+  displayedQueueDay = localQueueDate();
+  queueDayTimer = setInterval(refreshQueueOnDayChange,1000);
 }
 
 
