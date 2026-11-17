@@ -292,6 +292,18 @@ async function renderAdminCustomers(target){
   }
 }
 
+async function runAdminTeamAction(body){
+  const result = await db.functions.invoke("lacorte-admin-team", {body});
+  if(result.error){
+    let detail;
+    try { detail = await result.error.context?.json(); } catch {}
+    throw new Error(detail?.error || result.data?.error || result.error.message || "Não foi possível concluir a operação.");
+  }
+  if(result.data?.ok !== true || result.data?.error) throw new Error(result.data?.error || "O servidor não confirmou a operação. Atualize a lista.");
+  if(body.action === "delete" && result.data.deleted_id !== body.id) throw new Error("O servidor não confirmou a exclusão deste barbeiro.");
+  return result.data;
+}
+
 async function renderAdminManagement(view=adminView, target){
   if(state.role !== "admin") return;
   const servicesOnly = view === "services";
@@ -331,7 +343,11 @@ async function renderAdminManagement(view=adminView, target){
 
       html += '<div class="manage-panel active" role="tabpanel" data-manage-panel="barbers"><section class="summary manage-overview-card"><div class="manage-panel-heading"><div><h3>EQUIPE</h3><p class="muted">Profissionais cadastrados.</p></div><span class="manage-count">' + barberRows.length + '</span></div><button type="button" class="btn btn-primary admin-reveal-button" data-reveal="new-barber-form">+ ADICIONAR BARBEIRO</button><div id="new-barber-form-wrap" class="admin-reveal-content" hidden><form id="new-barber-form" class="admin-form lacorte-team-compact"><label>Nome<input name="first_name" required maxlength="80"></label><label>Sobrenome<input name="last_name" required maxlength="80"></label><label>Idade<input name="age" type="number" min="16" max="110" required></label><label>E-mail<input name="email" type="email" required></label><button class="btn btn-primary" type="submit">CADASTRAR E ENVIAR CONVITE</button></form></div><button type="button" class="btn btn-secondary admin-list-toggle" data-list-toggle="barber-list">VER BARBEIROS CADASTRADOS</button><div id="barber-list" class="admin-reveal-content" hidden><div class="manage-overview-list lacorte-team-list">';
       barberRows.forEach(function(b){
-        html += '<article class="lacorte-team-card"><div class="lacorte-team-card-head"><strong>' + safe(b.name) + '</strong><span>' + (b.active ? 'Ativo' : 'Inativo') + '</span></div><div class="lacorte-team-actions"><button class="btn btn-secondary" type="button" data-edit-barber="' + safe(b.id) + '" aria-expanded="false">EDITAR</button><button class="btn btn-secondary" type="button" data-delete-barber="' + safe(b.id) + '">EXCLUIR BARBEIRO</button></div><form class="admin-form lacorte-team-compact" data-barber-form="' + safe(b.id) + '" hidden><label>Nome<input name="first_name" required value="' + safe(b.first_name || b.name.split(" ")[0]) + '"></label><label>Sobrenome<input name="last_name" required value="' + safe(b.last_name || b.name.split(" ").slice(1).join(" ")) + '"></label><label>Idade<input name="age" type="number" min="16" max="110" required value="' + safe(b.age || "") + '"></label><label>E-mail<input type="email" readonly value="' + safe(b.email || "") + '"></label><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-primary" type="submit">SALVAR ALTERAÇÕES</button></form></article>';
+        if(b.id === "barbeiro-1"){
+          html += '<article class="lacorte-team-card"><div class="lacorte-team-card-head"><strong>' + safe(b.name) + '</strong><span>Administrador</span></div><p class="muted">Conta do proprietário protegida.</p></article>';
+          return;
+        }
+        html += '<article class="lacorte-team-card"><div class="lacorte-team-card-head"><strong>' + safe(b.name) + '</strong><span>' + (b.active ? 'Ativo' : 'Inativo') + '</span></div><div class="lacorte-team-actions"><button class="btn btn-secondary" type="button" data-edit-barber="' + safe(b.id) + '" aria-expanded="false">EDITAR</button><button class="btn btn-secondary" type="button" data-delete-barber="' + safe(b.id) + '">EXCLUIR BARBEIRO</button><button class="btn btn-secondary" type="button" data-resend-barber="' + safe(b.id) + '">REENVIAR CONVITE</button></div><form class="admin-form lacorte-team-compact" data-barber-form="' + safe(b.id) + '" hidden><label>Nome<input name="first_name" required value="' + safe(b.first_name || b.name.split(" ")[0]) + '"></label><label>Sobrenome<input name="last_name" required value="' + safe(b.last_name || b.name.split(" ").slice(1).join(" ")) + '"></label><label>Idade<input name="age" type="number" min="16" max="110" required value="' + safe(b.age || "") + '"></label><label>E-mail<input type="email" readonly value="' + safe(b.email || "") + '"></label><label class="admin-check"><input name="active" type="checkbox" ' + (b.active ? 'checked' : '') + '> Profissional ativo</label><button class="btn btn-primary" type="submit">SALVAR ALTERAÇÕES</button></form></article>';
       });
       if(!barberRows.length) html += '<p class="muted">Nenhum profissional cadastrado.</p>';
       html += '</div></div></section></div>';
@@ -392,32 +408,52 @@ async function renderAdminManagement(view=adminView, target){
     target.querySelectorAll("[data-delete-barber]").forEach(button=>{
       button.addEventListener("click",async()=>{
         const id=button.dataset.deleteBarber;
-        if(!confirm("Excluir definitivamente este barbeiro? Profissionais com histórico ou conta vinculada não podem ser excluídos."))return;
+        if(!confirm("Excluir o cadastro e a conta de acesso deste barbeiro? Se houver histórico de atendimentos, use a opção de desativar."))return;
         button.disabled=true;
-        const result=await db.functions.invoke("lacorte-admin-team",{body:{action:"delete",id}});
-        if(result.error||result.data?.error){alert(result.data?.error||result.error?.message||"Não foi possível excluir.");button.disabled=false;return;}
-        alert(result.data?.message||"Barbeiro excluído.");
-        if(target.isConnected)renderAdminManagement(view,embedded);
+        try {
+          const data=await runAdminTeamAction({action:"delete",id});
+          if(target.isConnected)await renderAdminManagement(view,embedded);
+          alert(data.message);
+        } catch(error) { alert(error.message); }
+        finally { button.disabled=false; }
+      });
+    });
+    target.querySelectorAll("[data-resend-barber]").forEach(button=>{
+      button.addEventListener("click",async()=>{
+        button.disabled=true;
+        try {
+          const data=await runAdminTeamAction({action:"resend_invite",id:button.dataset.resendBarber});
+          alert(data.message);
+        } catch(error) { alert(error.message); }
+        finally { button.disabled=false; }
       });
     });
     const newBarber = target.querySelector("#new-barber-form");
     if(newBarber) newBarber.addEventListener("submit", async function(e){
       e.preventDefault();
       const fd = new FormData(newBarber);
-      const result=await db.functions.invoke("lacorte-admin-team",{body:{action:"create",first_name:String(fd.get("first_name")||"").trim(),last_name:String(fd.get("last_name")||"").trim(),age:Number(fd.get("age")),email:String(fd.get("email")||"").trim(),commission:50}});
-      if(result.error||result.data?.error)return alert(result.data?.error||result.error?.message);
-      alert(result.data?.message||"Convite enviado.");
-      if(target.isConnected)renderAdminManagement(view,embedded);
+      const button=newBarber.querySelector('button[type="submit"]');
+      button.disabled=true;
+      try {
+        const data=await runAdminTeamAction({action:"create",first_name:String(fd.get("first_name")||"").trim(),last_name:String(fd.get("last_name")||"").trim(),age:Number(fd.get("age")),email:String(fd.get("email")||"").trim(),commission:50});
+        if(target.isConnected)await renderAdminManagement(view,embedded);
+        alert(data.message);
+      } catch(error) { alert(error.message); }
+      finally { button.disabled=false; }
     });
 
     target.querySelectorAll("[data-barber-form]").forEach(function(form){
       form.addEventListener("submit", async function(e){
         e.preventDefault();
         const fd = new FormData(form);
-        const result=await db.functions.invoke("lacorte-admin-team",{body:{action:"update",id:form.dataset.barberForm,first_name:String(fd.get("first_name")||"").trim(),last_name:String(fd.get("last_name")||"").trim(),age:Number(fd.get("age")),active:fd.get("active")==="on"}});
-        if(result.error||result.data?.error)return alert(result.data?.error||result.error?.message);
-        alert(result.data?.message||"Atualizado.");
-        if(target.isConnected)renderAdminManagement(view,embedded);
+        const button=form.querySelector('button[type="submit"]');
+        button.disabled=true;
+        try {
+          const data=await runAdminTeamAction({action:"update",id:form.dataset.barberForm,first_name:String(fd.get("first_name")||"").trim(),last_name:String(fd.get("last_name")||"").trim(),age:Number(fd.get("age")),active:fd.get("active")==="on"});
+          if(target.isConnected)await renderAdminManagement(view,embedded);
+          alert(data.message);
+        } catch(error) { alert(error.message); }
+        finally { button.disabled=false; }
       });
     });
 
