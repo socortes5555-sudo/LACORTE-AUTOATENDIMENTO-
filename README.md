@@ -59,7 +59,10 @@ O painel administrativo é destinado ao proprietário e reúne:
 - Sinalização de senhas puladas por todos os profissionais ativos.
 - Reabertura de uma preferência somente após confirmação do cliente, com registro administrativo e preservação do número e da posição da senha.
 - Gerenciamento e consulta de assinaturas.
-- Relatórios por período, serviços, barbeiros e situação dos atendimentos.
+- Relatórios por período, serviços, barbeiros, produtos vendidos e situação dos atendimentos.
+- Separação do faturamento bruto e líquido de serviços e produtos, com rateio proporcional dos descontos.
+- Quantidades vendidas e ranking de produtos baseado nos nomes e preços históricos gravados em cada comanda.
+- Histórico de atendimentos com os serviços e produtos efetivamente registrados.
 - Indicadores financeiros e gráficos.
 
 As permissões de acesso devem continuar sendo aplicadas no banco de dados por autenticação e políticas de segurança (RLS), além das validações da interface. Ocultar uma opção na tela, isoladamente, não é uma medida de segurança.

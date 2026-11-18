@@ -1,6 +1,38 @@
 /* LaCorte — administrador. Funções exclusivas e layout aprovado. */
 let adminHistoryLimit = 20;
 let adminReportFilters = { period: "month", start: "", end: "" };
+
+function summarizeAdminProductSales(completedRows, itemsByQueue){
+  const totals = {quantity:0,grossCents:0,netCents:0,byProduct:Object.create(null)};
+  const toCents = value => Math.round((Number(value) || 0) * 100);
+  (completedRows || []).forEach(function(row){
+    const rowGross = Math.max(0,toCents(row.gross_amount ?? row.total_amount ?? 0));
+    const discount = Math.max(0,toCents(row.discount_amount || 0));
+    const netFactor = rowGross > 0 ? Math.max(0,rowGross-discount) / rowGross : 0;
+    (itemsByQueue[row.id] || []).forEach(function(item){
+      const quantity = Number(item.quantity) || 0;
+      if(!Number.isInteger(quantity) || quantity < 1) return;
+      const gross = Math.max(0,toCents(item.line_total ?? Number(item.unit_price || 0) * quantity));
+      const net = Math.max(0,Math.round(gross * netFactor));
+      const name = String(item.product_name_snapshot || "Produto sem nome");
+      const product = totals.byProduct[name] || (totals.byProduct[name] = {
+        label:name,quantity:0,grossCents:0,netCents:0
+      });
+      product.quantity += quantity;
+      product.grossCents += gross;
+      product.netCents += net;
+      totals.quantity += quantity;
+      totals.grossCents += gross;
+      totals.netCents += net;
+    });
+  });
+  const items = Object.keys(totals.byProduct).map(function(name){
+    const item = totals.byProduct[name];
+    return {label:item.label,quantity:item.quantity,gross:item.grossCents/100,net:item.netCents/100};
+  }).sort(function(a,b){return b.quantity-a.quantity || b.gross-a.gross || a.label.localeCompare(b.label,"pt-BR");});
+  return {quantity:totals.quantity,gross:totals.grossCents/100,net:totals.netCents/100,items};
+}
+
 async function renderAdminReports(view="reports", target){
   if(state.role !== "admin") return;
   const embedded = target;
@@ -25,11 +57,13 @@ async function renderAdminReports(view="reports", target){
     const lookups = await Promise.all([
       customerIds.length ? db.from("customers").select("id,first_name,last_name,phone").in("id",customerIds) : Promise.resolve({data:[],error:null}),
       queueIds.length ? db.from("lacorte_queue_items").select("queue_id,service_name,unit_price").in("queue_id",queueIds) : Promise.resolve({data:[],error:null}),
-      queueIds.length ? db.from("lacorte_queue_payments").select("queue_id,payment_method,amount").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
+      queueIds.length ? db.from("lacorte_queue_payments").select("queue_id,payment_method,amount").in("queue_id",queueIds) : Promise.resolve({data:[],error:null}),
+      queueIds.length ? db.from("lacorte_queue_product_items").select("queue_id,product_name_snapshot,sku_snapshot,quantity,unit_price,line_total,commission_percent_snapshot").in("queue_id",queueIds) : Promise.resolve({data:[],error:null})
     ]);
     if(lookups[0].error) throw new Error("Não foi possível consultar os clientes: "+lookups[0].error.message);
     if(lookups[1].error) throw new Error("Não foi possível consultar os serviços: "+lookups[1].error.message);
     if(lookups[2].error) throw new Error("Não foi possível consultar os pagamentos: "+lookups[2].error.message);
+    if(lookups[3].error) throw new Error("Não foi possível consultar os produtos vendidos: "+lookups[3].error.message);
     const barberById = {};
     (barberResult.data || []).forEach(function(barber){barberById[barber.id]=barber.name;});
     const customerById = {};
@@ -39,6 +73,12 @@ async function renderAdminReports(view="reports", target){
       if(!itemsByQueue[item.queue_id]) itemsByQueue[item.queue_id]=[];
       itemsByQueue[item.queue_id].push(item);
     });
+    const productItemsByQueue = {};
+    (lookups[3].data || []).forEach(function(item){
+      if(!productItemsByQueue[item.queue_id]) productItemsByQueue[item.queue_id]=[];
+      productItemsByQueue[item.queue_id].push(item);
+    });
+    const productSales = summarizeAdminProductSales(completedRows,productItemsByQueue);
 
     const revenue = completedRows.reduce(function(sum,row){return sum+Number(row.total_amount || 0);},0);
     const grossRevenue = completedRows.reduce(function(sum,row){return sum+Number(row.gross_amount ?? row.total_amount ?? 0);},0);
@@ -104,11 +144,19 @@ async function renderAdminReports(view="reports", target){
       const services = items.map(function(item){
         return '<li>'+safe(item.service_name)+' · '+money(Number(item.unit_price || 0))+'</li>';
       }).join("");
-      const serviceCount = items.length === 1 ? "1 serviço" : items.length + " serviços";
+      const soldProducts = productItemsByQueue[row.id] || [];
+      const soldProductQuantity = soldProducts.reduce(function(total,item){return total+Math.max(0,Number(item.quantity)||0);},0);
+      const productLines = soldProducts.map(function(item){
+        return '<li>'+Number(item.quantity)+'× '+safe(item.product_name_snapshot)+' · '+money(Number(item.unit_price || 0))+' cada · '+money(Number(item.line_total || 0))+'</li>';
+      }).join("");
+      const itemSummary = [
+        items.length ? (items.length === 1 ? "1 serviço" : items.length + " serviços") : "",
+        soldProducts.length ? (soldProducts.length === 1 ? "1 produto" : soldProducts.length + " produtos") : ""
+      ].filter(Boolean).join(" • ") || "Sem itens";
       const barber = barberById[row.barber_id] || row.barber_id || "Aguardando atribuição";
       return '<article class="admin-history-record">'+
         '<div class="admin-history-row"><strong>#'+Number(queueTicketNumber(row))+'</strong>'+
-        '<div><strong>'+safe(customerName(row))+'</strong><small>'+serviceCount+'</small></div>'+
+        '<div><strong>'+safe(customerName(row))+'</strong><small>'+safe(itemSummary)+'</small></div>'+
         '<strong>'+money(Number(row.total_amount || 0))+'</strong>'+
         '<span>'+safe(paymentLabelForRow(row))+'</span>'+
         '<span class="admin-history-status">'+safe(statusLabel(row.status))+'</span></div>'+
@@ -120,6 +168,7 @@ async function renderAdminReports(view="reports", target){
         (row.cancelled_at ? '<span><b>Cancelado em</b> '+safe(formatDateTime(row.cancelled_at))+'</span>' : '')+
         (row.cancel_reason ? '<span><b>Motivo</b> '+safe(row.cancel_reason)+'</span>' : '')+
         (services ? '<ul aria-label="Serviços">'+services+'</ul>' : '')+
+        (productLines ? '<ul aria-label="Produtos vendidos">'+productLines+'</ul>' : '')+
         '</div></details>'+ (row.status!=="cancelled" ? '<button type="button" class="btn btn-secondary" data-cancel-appointment="'+safe(row.id)+'">Cancelar atendimento</button>' : '')+'</article>';
     }).join("") : "";
 
@@ -149,10 +198,25 @@ async function renderAdminReports(view="reports", target){
         '<article class="summary"><span class="muted">Comissões de terceiros</span><strong>'+money(commissions)+'</strong></article>'+
         '<article class="summary"><span class="muted">Após comissões de terceiros</span><strong>'+money(net)+'</strong></article>'+
         '<article class="summary"><span class="muted">Atendimentos concluídos</span><strong>'+counts.completed+'</strong></article></div>';
+      const serviceGrossRevenue = Math.max(0,grossRevenue-productSales.gross);
+      const serviceNetRevenue = Math.max(0,revenue-productSales.net);
+      html += '<section class="summary admin-revenue-composition"><h3>COMPOSIÇÃO DO FATURAMENTO</h3>'+
+        '<div class="summary-row"><span>Serviços • bruto</span><strong>'+money(serviceGrossRevenue)+'</strong></div>'+
+        '<div class="summary-row"><span>Produtos • bruto</span><strong>'+money(productSales.gross)+'</strong></div>'+
+        '<div class="summary-row"><span>Serviços • líquido</span><strong>'+money(serviceNetRevenue)+'</strong></div>'+
+        '<div class="summary-row"><span>Produtos • líquido</span><strong>'+money(productSales.net)+'</strong></div>'+
+        '<div class="summary-row"><span>Unidades de produtos vendidas</span><strong>'+productSales.quantity+'</strong></div>'+
+        '<p class="muted">O desconto de cada atendimento é rateado proporcionalmente entre serviços e produtos, usando os preços históricos gravados na comanda.</p></section>';
+      html += '<section class="summary admin-product-sales"><h3>PRODUTOS VENDIDOS NO PERÍODO</h3>'+
+        (productSales.items.length ? productSales.items.map(function(item){
+          return '<div class="summary-row"><span><strong>'+safe(item.label)+'</strong><small>'+item.quantity+' un. • bruto '+money(item.gross)+'</small></span><strong>'+money(item.net)+' líquido</strong></div>';
+        }).join("") : '<p class="muted">Nenhum produto vendido neste período.</p>')+
+        '</section>';
       html += '<section class="summary"><h3>FORMAS DE PAGAMENTO</h3>'+Object.keys(paymentTotals).map(function(method){return '<div class="summary-row"><span>'+({pix:"PIX",dinheiro:"Dinheiro",credito:"Crédito",debito:"Débito"}[method])+'</span><strong>'+money(paymentTotals[method])+'</strong></div>';}).join("")+'</section>';
       html += '<section class="summary report-chart"><h3>FATURAMENTO POR DIA</h3><p class="muted">'+safe(range.label)+' • '+safe(range.start)+' até '+safe(range.end)+'</p>'+lcAdminRevenueChart(dailyItems.map(item=>item.value),range.end,range.start)+'</section>';
       html += '<div class="report-chart-grid"><section class="summary report-chart"><h3>COMISSÕES POR BARBEIRO</h3>'+reportPieChart(commissionItems,money)+'</section>'+
         '<section class="summary report-chart"><h3>SERVIÇOS MAIS REALIZADOS</h3>'+reportPieChart(serviceItems,function(value){return value+" atend.";})+'</section></div>';
+      html += '<section class="summary report-chart"><h3>PRODUTOS MAIS VENDIDOS</h3>'+reportPieChart(productSales.items.slice(0,8).map(function(item){return {label:item.label,value:item.quantity};}),function(value){return value+" un.";})+'</section>';
       const statusItems=[
         {label:"Aguardando",value:counts.waiting},
         {label:"Em atendimento",value:counts.in_progress},
