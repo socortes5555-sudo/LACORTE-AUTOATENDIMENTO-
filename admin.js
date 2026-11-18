@@ -145,6 +145,7 @@ async function renderAdminReports(view="reports", target){
         return '<li>'+safe(item.service_name)+' · '+money(Number(item.unit_price || 0))+'</li>';
       }).join("");
       const soldProducts = productItemsByQueue[row.id] || [];
+      const soldProductQuantity = soldProducts.reduce(function(total,item){return total+Math.max(0,Number(item.quantity)||0);},0);
       const productLines = soldProducts.map(function(item){
         return '<li>'+Number(item.quantity)+'× '+safe(item.product_name_snapshot)+' · '+money(Number(item.unit_price || 0))+' cada · '+money(Number(item.line_total || 0))+'</li>';
       }).join("");
