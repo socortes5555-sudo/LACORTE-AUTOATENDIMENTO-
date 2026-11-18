@@ -32,6 +32,8 @@ test('os relatórios usam nome, preço e quantidade históricos, sem consultar o
 });
 
 test('o histórico administrativo mostra quantidade e detalhes dos produtos da comanda', () => {
+  assert.match(admin, /const soldProductQuantity = soldProducts\.reduce/);
+  assert.match(admin, /soldProductQuantity/);
   assert.match(admin, /const productLines = soldProducts\.map/);
   assert.match(admin, /aria-label="Produtos vendidos"/);
   assert.match(admin, /Number\(item\.quantity\)/);
