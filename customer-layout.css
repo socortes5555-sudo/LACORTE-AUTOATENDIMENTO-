@@ -217,12 +217,16 @@ body:has(#entry-choice) #entry-choice .panel:has(#entry-choice-options){
   position:absolute;
   top:50%;
   left:50%;
-  width:min(24%, 280px, 30svh);
-  aspect-ratio:384 / 282;
+  width:min(58vw, 540px, 44svh);
+  height:clamp(100px,22svh,190px);
   transform:translate(-50%,-50%);
-  background:url("assets/totem-cena.svg") center top / 400% auto no-repeat;
-  mix-blend-mode:screen;
-  mask-image:linear-gradient(90deg,transparent,#000 5% 95%,transparent);
+  background-image:url("assets/lacorte-logo.svg");
+  background-position:center;
+  background-size:contain;
+  background-repeat:no-repeat;
+  mix-blend-mode:normal;
+  -webkit-mask-image:none;
+  mask-image:none;
 }
 #entry-choice:has(#entry-choice-options) .hero-copy{
   padding:4px 0;
@@ -644,7 +648,6 @@ body:has(#entry-choice) #entry-choice:has(#entry-choice-options)>.progress{displ
     aspect-ratio:auto;
     transform:none;
     margin-inline:auto;
-    background-image:url("assets/lacorte-logo.svg?v=barbearia-1");
     background-position:center center;
     background-size:contain;
     background-repeat:no-repeat;
