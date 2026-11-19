@@ -26,5 +26,5 @@ for(const [path,text] of outputs){
  let current;try{current=readFileSync(resolve(root,path),'utf8');}catch{}
  if(current!==text){stale=true;if(!process.argv.includes('--check'))writeFileSync(resolve(root,path),text);}
 }
-if(process.argv.includes('--check')&&stale){console.error('Atualize as quatro entradas do aplicativo: node scripts/release.mjs');process.exitCode=1;}
+if(process.argv.includes('--check')&&stale){console.error('Atualize as quatro entradas do aplicativo: node scripts/release.mjs (versão esperada: '+version+')');process.exitCode=1;}
 else console.log('LaCorte '+version+(stale?' sincronizada.':' atualizada.'));
