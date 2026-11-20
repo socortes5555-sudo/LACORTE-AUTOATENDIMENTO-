@@ -18,7 +18,7 @@ const queueSuccess = section('function renderQueueSuccess(){', '// Calcula a pr�
 
 test('o cliente precisa revisar os serviços e valores antes de entrar na fila', () => {
   assert.match(serviceSelection, /REVISAR SOLICITAÇÃO/);
-  assert.match(serviceSelection, /state\.participants\.some\(person=>!person\.services\.length\)/);
+  assert.match(queueSubmission, /state\.participants\.some\(person=>!person\.services\.length\)/);
   assert.match(confirmation, /Confira sua solicitação/);
   assert.match(confirmation, /safe\(service\.name\)/);
   assert.match(confirmation, /money\(service\.price\)/);
