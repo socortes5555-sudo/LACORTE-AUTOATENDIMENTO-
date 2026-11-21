@@ -656,6 +656,86 @@ body:has(#entry-choice) #entry-choice:has(#entry-choice-options)>.progress{displ
     mask-image:none;
   }
 }
+/* Tablet horizontal: mantém a tela inicial compacta e legível em uma única área visível. */
+@media (orientation: landscape) and (min-width: 761px) and (max-height: 900px) {
+  body:has(#entry-choice) #entry-choice.shell:has(#entry-choice-options) {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+    overflow-y: auto;
+    padding: clamp(6px, 1svh, 10px) clamp(14px, 2vw, 26px);
+    gap: clamp(4px, .8svh, 8px);
+  }
+  #entry-choice:has(#entry-choice-options) .hero-home {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #entry-choice:has(#entry-choice-options) .reference-art {
+    flex: 1 1 auto;
+    min-height: clamp(78px, 14svh, 124px);
+  }
+  #entry-choice:has(#entry-choice-options) .reference-logo {
+    width: min(42vw, 430px, 28svh);
+    height: clamp(76px, 13.5svh, 120px);
+  }
+  #entry-choice:has(#entry-choice-options) .hero-copy {
+    padding: 0;
+  }
+  body:has(#entry-choice) #entry-choice .hero-pretitle {
+    margin-bottom: 3px;
+    font-size: clamp(10px, 1.4svh, 13px);
+  }
+  body:has(#entry-choice) #entry-choice .hero h1 {
+    font-size: clamp(22px, 3.8svh, 34px);
+    line-height: 1.05;
+  }
+  body:has(#entry-choice) #entry-choice #step-content .entry-choice {
+    gap: clamp(8px, 1.2vw, 16px);
+  }
+  #entry-choice .entry-card {
+    gap: 4px;
+    padding: clamp(8px, 1.2svh, 14px);
+  }
+  #entry-choice .entry-card p {
+    font-size: clamp(11px, 1.5svh, 13px);
+  }
+  #entry-choice .entry-card .btn {
+    min-height: 42px;
+  }
+  #entry-choice .panel:has(#entry-choice-options) {
+    flex: 0 0 auto;
+  }
+  #entry-choice .panel:has(#entry-choice-options) .notice {
+    margin-top: 4px;
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+  body:has(#entry-choice) #entry-choice .experience-showcase {
+    flex: 0 0 auto;
+  }
+  body:has(#entry-choice) #entry-choice .showcase-side {
+    gap: 4px;
+  }
+  body:has(#entry-choice) #entry-choice .membership-highlight {
+    padding: 4px 8px;
+  }
+  body:has(#entry-choice) #entry-choice .contact-strip > * {
+    padding: 4px 7px;
+    gap: 3px;
+  }
+  body:has(#entry-choice) #entry-choice .contact-strip .contact-qr {
+    width: clamp(42px, 6svh, 54px);
+    padding: 3px;
+  }
+  body:has(#entry-choice) #entry-choice .contact-strip strong,
+  body:has(#entry-choice) #entry-choice .contact-strip b {
+    font-size: clamp(10px, 1.2vw, 13px);
+  }
+  body:has(#entry-choice) #entry-choice .site-footer {
+    padding-top: 3px;
+  }
+}
+
 @media(prefers-reduced-motion:reduce){
   body:has(#entry-choice) *,
   body:has(#entry-choice) *::before,
