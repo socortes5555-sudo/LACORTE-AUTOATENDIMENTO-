@@ -41,7 +41,8 @@ test('tablet horizontal keeps the welcome screen compact and scroll-safe inside 
   assert.match(landscape, /min-height:\s*100svh/);
   assert.match(landscape, /overflow-y:\s*auto/);
   assert.match(landscape, /\.reference-art[\s\S]*?min-height:\s*clamp\(78px, 14svh, 124px\)/);
-  assert.match(landscape, /\.reference-logo[\s\S]*?background-size:\s*contain/);
+  assert.match(landscape, /\.reference-logo[\s\S]*?width:\s*min\(42vw, 430px, 28svh\)/);
+  assert.match(landscape, /\.reference-logo[\s\S]*?height:\s*clamp\(76px, 13\.5svh, 120px\)/);
   assert.match(landscape, /\.contact-strip \.contact-qr[\s\S]*?width:\s*clamp\(42px, 6svh, 54px\)/);
   assert.match(landscape, /\.entry-card \.btn[\s\S]*?min-height:\s*42px/);
 });
