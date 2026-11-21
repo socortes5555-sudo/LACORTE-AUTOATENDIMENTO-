@@ -31,3 +31,18 @@ test('os contatos públicos permanecem corretos e o acesso Wi-Fi não é exposto
   assert.match(html, /Peça o acesso à equipe da La Corte\./);
   assert.doesNotMatch(html, /wifi-lacorte\.png|wifi-qr-frame/i);
 });
+
+test('tablet horizontal keeps the welcome screen compact and scroll-safe inside one viewport', () => {
+  const start = css.indexOf('@media (orientation: landscape) and (min-width: 761px) and (max-height: 900px)');
+  assert.notEqual(start, -1, 'Regras específicas para tablet horizontal não encontradas');
+  const end = css.indexOf('@media(prefers-reduced-motion:reduce)', start);
+  const landscape = css.slice(start, end === -1 ? undefined : end);
+  assert.match(landscape, /height:\s*100svh/);
+  assert.match(landscape, /min-height:\s*100svh/);
+  assert.match(landscape, /overflow-y:\s*auto/);
+  assert.match(landscape, /\.reference-art[\s\S]*?min-height:\s*clamp\(78px, 14svh, 124px\)/);
+  assert.match(landscape, /\.reference-logo[\s\S]*?width:\s*min\(42vw, 430px, 28svh\)/);
+  assert.match(landscape, /\.reference-logo[\s\S]*?height:\s*clamp\(76px, 13\.5svh, 120px\)/);
+  assert.match(landscape, /\.contact-strip \.contact-qr[\s\S]*?width:\s*clamp\(42px, 6svh, 54px\)/);
+  assert.match(landscape, /\.entry-card \.btn[\s\S]*?min-height:\s*42px/);
+});
