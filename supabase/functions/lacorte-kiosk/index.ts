@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { currentBrazilDate, isValidBirthDate } from "./validation.mjs";
 
 const allowedOrigins = new Set(["https://socortes5555-sudo.github.io", "https://lacorte-previa-totem-pr2.wildalbatross1.chatgpt.site"]);
 const corsHeaders = {
@@ -122,7 +123,7 @@ Deno.serve(async (req: Request) => {
       return reply(400, { error: "Informe nome e sobrenome válidos." });
     }
     if (!phone) return reply(400, { error: "Informe um telefone brasileiro válido com DDD." });
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) || birthDate > new Date().toISOString().slice(0, 10)) {
+    if (!isValidBirthDate(birthDate, currentBrazilDate())) {
       return reply(400, { error: "Informe uma data de nascimento válida." });
     }
 
