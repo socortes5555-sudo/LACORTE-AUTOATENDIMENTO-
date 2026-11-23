@@ -67,8 +67,8 @@ test('backend issues lookup tokens only after email OTP verification', () => {
   const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
   assert.match(kiosk, /authClient\.auth\.signInWithOtp/);
   assert.match(verify, /authClient\.auth\.verifyOtp/);
-  assert.match(verify, /purpose === "register"/);
-  assert.match(verify, /purpose === "identify"/);
+  assert.match(verify, /\["register", "identify"\]\.includes\(purpose\)/);
+  assert.match(verify, /if \(purpose === "register"\)/);
   assert.match(verify, /signCustomerClaim/);
   assert.match(verify, /lacorte_user_roles/);
   assert.match(verify, /Este e-mail pertence à equipe/);
