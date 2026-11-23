@@ -20,7 +20,7 @@ O sistema é orientado a **fila de atendimento por ordem de entrada**. Não é u
 
 - Front-end: HTML, CSS e JavaScript.
 - Backend e banco de dados: Supabase.
-- Autenticação: acesso por link/código enviado por e-mail.
+- Autenticação: profissionais por e-mail; clientes por código de seis números enviado por e-mail. A verificação automática por WhatsApp ainda depende de um provedor oficial compatível.
 - Publicação: GitHub Pages.
 - Operações de fila: funções RPC no banco de dados, incluindo:
   - `lacorte_create_queue_entry`
@@ -32,11 +32,11 @@ A aplicação utiliza a chave pública/publicável do Supabase no navegador. Cha
 
 ## Jornada do cliente
 
-1. O cliente informa o e-mail e realiza o acesso.
-2. Na primeira visita, completa o perfil com nome, sobrenome, telefone e aniversário.
-3. Nas próximas visitas, os dados já cadastrados podem ser reutilizados.
-4. Escolhe os serviços desejados.
-5. Confere os dados e confirma a entrada.
+1. O cliente informa o e-mail e recebe um código de seis números.
+2. Na primeira visita, confirma o código e completa nome, sobrenome, telefone e aniversário.
+3. Clientes antigos sem e-mail vinculado confirmam o código e informam os dados originais para localizar e vincular o cadastro.
+4. Nas próximas visitas, o cliente recebe outro código no e-mail vinculado.
+5. Escolhe os serviços desejados, revisa os valores e confirma a entrada.
 6. Recebe sua senha e acompanha o status do atendimento.
 
 O cliente não escolhe barbeiro. A entrada é registrada na fila compartilhada, e o profissional assume o próximo atendimento disponível. Não há seleção de data ou horário de agendamento.
