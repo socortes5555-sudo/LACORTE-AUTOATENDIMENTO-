@@ -20,7 +20,9 @@ for(const path of files){
  entries.push(path+'\0'+fingerprint(content)+'\0');
 }
 for(const path of assetFiles('assets').sort()){
- entries.push(path+'\0'+fingerprint(readFileSync(resolve(root,path)))+'\0');
+ const assetPath=resolve(root,path);
+ const content=path.endsWith('.svg')?readFileSync(assetPath,'utf8'):readFileSync(assetPath);
+ entries.push(path+'\0'+fingerprint(content)+'\0');
 }
 const version=fingerprint(entries.join(''));
 const outputs=new Map();
