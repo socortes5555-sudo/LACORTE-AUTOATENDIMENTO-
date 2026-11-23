@@ -64,7 +64,7 @@ test('returning customers confirm email and legacy records require a signed clai
 });
 
 test('backend issues lookup tokens only after email OTP verification', () => {
-  const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.indexOf('if (action === "claim_legacy_customer")'));
+  const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
   assert.match(kiosk, /authClient\.auth\.signInWithOtp/);
   assert.match(verify, /authClient\.auth\.verifyOtp/);
   assert.match(verify, /purpose === "register"/);
@@ -77,7 +77,7 @@ test('backend issues lookup tokens only after email OTP verification', () => {
 });
 
 test('legacy claim requires exact phone, birth date and normalized full name', () => {
-  const claim = kiosk.slice(kiosk.indexOf('if (action === "claim_legacy_customer")'), kiosk.indexOf('if (payload.action === "plan")'));
+  const claim = kiosk.slice(kiosk.lastIndexOf('if (action === "claim_legacy_customer")'), kiosk.indexOf('if (payload.action === "plan")'));
   assert.match(claim, /verifyCustomerClaim/);
   assert.match(claim, /\.eq\("phone", phone\)/);
   assert.match(claim, /\.eq\("birth_date", birthDate\)/);
