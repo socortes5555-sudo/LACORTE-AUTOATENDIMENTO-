@@ -161,6 +161,10 @@ Deno.serve(async (req: Request) => {
     if (verified.error || !authUser?.id || normalizeEmail(authUser.email) !== email) {
       return reply(401, { error: "Código inválido ou expirado. Solicite outro código e tente novamente." });
     }
+    const { data: staffRole, error: staffRoleError } = await admin.from("lacorte_user_roles")
+      .select("user_id").eq("user_id", authUser.id).maybeSingle();
+    if (staffRoleError) return reply(500, { error: "Não foi possível validar o tipo de acesso." });
+    if (staffRole) return reply(403, { error: "Este e-mail pertence à equipe. Use a área dos profissionais." });
 
     if (purpose === "register") {
       const registration = payload.registration && typeof payload.registration === "object"
@@ -224,10 +228,13 @@ Deno.serve(async (req: Request) => {
       return reply(200, { needs_legacy_link: true, claim_token: claimToken });
     }
     if (customer.user_id && customer.user_id !== authUser.id) return reply(409, { error: "Este cadastro já está vinculado a outro acesso. Procure a equipe La Corte." });
-    const { data: linkedCustomer, error: linkError } = await admin.from("customers")
+    let linkQuery = admin.from("customers")
       .update({ email, user_id: authUser.id, updated_at: new Date().toISOString() })
-      .eq("id", customer.id).is("deleted_at", null)
-      .select("id,first_name,last_name,phone").single();
+      .eq("id", customer.id).is("deleted_at", null);
+    linkQuery = customer.user_id ? linkQuery.eq("user_id", authUser.id) : linkQuery.is("user_id", null);
+    linkQuery = customer.email ? linkQuery.eq("email", customer.email) : linkQuery.is("email", null);
+    const { data: linkedCustomer, error: linkError } = await linkQuery
+      .select("id,first_name,last_name,phone").maybeSingle();
     if (linkError || !linkedCustomer) return reply(409, { error: "Não foi possível vincular este e-mail. Procure a equipe La Corte." });
     const expires = Date.now() + 10 * 60 * 1000;
     const signature = await signLookup(String(linkedCustomer.id), expires, serviceKey);
@@ -263,10 +270,13 @@ Deno.serve(async (req: Request) => {
     if (customer.user_id && customer.user_id !== claim.userId) {
       return reply(409, { error: "Este cadastro já está vinculado a outro acesso. Procure a equipe La Corte." });
     }
-    const { data: linkedCustomer, error: linkError } = await admin.from("customers")
+    let linkQuery = admin.from("customers")
       .update({ email: claim.email, user_id: claim.userId, updated_at: new Date().toISOString() })
-      .eq("id", customer.id).is("deleted_at", null)
-      .select("id,first_name,last_name,phone").single();
+      .eq("id", customer.id).is("deleted_at", null);
+    linkQuery = customer.user_id ? linkQuery.eq("user_id", claim.userId) : linkQuery.is("user_id", null);
+    linkQuery = customer.email ? linkQuery.eq("email", customer.email) : linkQuery.is("email", null);
+    const { data: linkedCustomer, error: linkError } = await linkQuery
+      .select("id,first_name,last_name,phone").maybeSingle();
     if (linkError || !linkedCustomer) return reply(409, { error: "Não foi possível vincular seu cadastro. Procure a equipe La Corte." });
     const expires = Date.now() + 10 * 60 * 1000;
     const signature = await signLookup(String(linkedCustomer.id), expires, serviceKey);
