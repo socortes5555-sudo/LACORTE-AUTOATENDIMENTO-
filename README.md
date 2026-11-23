@@ -30,6 +30,15 @@ O sistema é orientado a **fila de atendimento por ordem de entrada**. Não é u
 
 A aplicação utiliza a chave pública/publicável do Supabase no navegador. Chaves secretas e credenciais administrativas não devem ser inseridas no código do front-end.
 
+## Configuração necessária para confirmação por e-mail
+
+O fluxo de código usa o OTP de seis dígitos do Supabase Auth. Antes de liberar o cadastro para clientes reais:
+
+- Em **Authentication → Email Templates → Magic Link**, o modelo precisa incluir `{{ .Token }}` para mostrar o código numérico (o modelo padrão pode enviar um link em vez do código).
+- Configure um servidor SMTP com plano gratuito e limite adequado. O SMTP padrão do Supabase é apenas para desenvolvimento e só envia mensagens para endereços previamente autorizados da equipe do projeto; ele não atende clientes externos.
+- Mantenha host, usuário e senha SMTP somente nas configurações seguras do Supabase, nunca no GitHub ou no JavaScript público.
+- A confirmação automática por WhatsApp permanece desativada até existir um provedor oficial configurado sem cobrança.
+
 ## Jornada do cliente
 
 1. O cliente informa o e-mail e recebe um código de seis números.
