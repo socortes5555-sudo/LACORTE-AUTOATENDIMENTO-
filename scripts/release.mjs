@@ -9,9 +9,9 @@ const assetFiles=(dir)=>readdirSync(resolve(root,dir),{withFileTypes:true}).flat
 const normalize=text=>text.replace(/connect-src (?!'self')/,"connect-src 'self' " ).replace(/^.*<meta name="lacorte-release"[^>]+>\n/gm,'').replace(/([?&]v=)[^"'\s<>]+/g,'$1RELEASE');
 // FNV-1a 64-bit is used only as a cache-busting fingerprint, never as a security token.
 const fingerprint=value=>{
- const bytes=typeof value==='string'?Buffer.from(value,'utf8'):value;
+ const text=typeof value==='string'?value:value.toString('base64');
  let hash=0xcbf29ce484222325n;
- for(const byte of bytes)hash=BigInt.asUintN(64,(hash^BigInt(byte))*0x100000001b3n);
+ for(let i=0;i<text.length;i++)hash=BigInt.asUintN(64,(hash^BigInt(text.charCodeAt(i)))*0x100000001b3n);
  return hash.toString(16).padStart(16,'0');
 };
 const entries=[];
