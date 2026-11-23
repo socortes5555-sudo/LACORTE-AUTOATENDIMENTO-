@@ -70,6 +70,8 @@ test('backend issues lookup tokens only after email OTP verification', () => {
   assert.match(verify, /purpose === "register"/);
   assert.match(verify, /purpose === "identify"/);
   assert.match(verify, /signCustomerClaim/);
+  assert.match(verify, /lacorte_user_roles/);
+  assert.match(verify, /Este e-mail pertence à equipe/);
   assert.doesNotMatch(kiosk, /payload\.action === "register"/);
   assert.doesNotMatch(kiosk, /payload\.action === "identify"/);
 });
@@ -82,4 +84,6 @@ test('legacy claim requires exact phone, birth date and normalized full name', (
   assert.match(claim, /normalizePersonName\(customer\.first_name\)/);
   assert.match(claim, /normalizePersonName\(customer\.last_name\)/);
   assert.match(claim, /customer\.user_id && customer\.user_id !== claim\.userId/);
+  assert.match(claim, /linkQuery\.is\("user_id", null\)/);
+  assert.match(claim, /linkQuery\.is\("email", null\)/);
 });
