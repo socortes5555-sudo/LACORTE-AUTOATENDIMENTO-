@@ -87,3 +87,17 @@ test('legacy claim requires exact phone, birth date and normalized full name', (
   assert.match(claim, /linkQuery\.is\("user_id", null\)/);
   assert.match(claim, /linkQuery\.is\("email", null\)/);
 });
+
+test('OTP verification never exposes Supabase session credentials to the kiosk', () => {
+  assert.doesNotMatch(kiosk, /access_token|refresh_token/);
+  const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
+  assert.match(verify, /lookup_token:/);
+  assert.doesNotMatch(verify, /session:\s*verified\.data|verified\.data\.session\s*[,}]/);
+});
+
+test('OTP and legacy-link throttling use action names accepted by the database RPC', () => {
+  assert.match(kiosk, /const rateAction = action === "send_email_code" \? "register"/);
+  assert.match(kiosk, /\["verify_email_code", "claim_legacy_customer"\]\.includes\(action\) \? "identify"/);
+  assert.match(kiosk, /p_action: action === "send_email_code" \? "register" : "identify_identifier"/);
+  assert.match(kiosk, /p_action: "identify_identifier"/);
+});
