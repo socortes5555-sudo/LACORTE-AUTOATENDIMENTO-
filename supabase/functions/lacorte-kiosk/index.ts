@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { currentBrazilDate, isValidBirthDate } from "./validation.mjs";
+import { currentBrazilDate, isValidBirthDate, isValidEmail, normalizeEmail, normalizeBrazilPhone, normalizePersonName, signCustomerClaim, verifyCustomerClaim } from "./validation.mjs";
 
 const allowedOrigins = new Set(["https://socortes5555-sudo.github.io", "https://lacorte-previa-totem-pr2.wildalbatross1.chatgpt.site"]);
 const corsHeaders = {
@@ -73,6 +73,10 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  const authClient = anonKey ? createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  }) : null;
 
   // Limite por IP (Cloudflare) para reduzir enumeração, cadastros automatizados e abuso da fila.
   async function hashRateKey(value: string) {
@@ -82,16 +86,22 @@ Deno.serve(async (req: Request) => {
   const clientIp = req.headers.get("cf-connecting-ip") || "unknown";
   const ipHash = await hashRateKey("ip:" + clientIp);
   const rateLimits: Record<string, { limit: number; window: number }> = {
-    register: { limit: 15, window: 3600 },
-    identify: { limit: 90, window: 600 },
+    send_email_code: { limit: 6, window: 3600 },
+    verify_email_code: { limit: 10, window: 600 },
+    claim_legacy_customer: { limit: 8, window: 600 },
     plan: { limit: 120, window: 600 },
     queue: { limit: 40, window: 600 },
   };
-  const currentLimit = rateLimits[String(payload.action)];
+  const action = String(payload.action);
+  // The database rate-limit RPC accepts only its established action names.
+  const rateAction = action === "send_email_code" ? "register"
+    : ["verify_email_code", "claim_legacy_customer"].includes(action) ? "identify"
+    : action;
+  const currentLimit = rateLimits[action];
   if (currentLimit) {
     const rate = await admin.rpc("lacorte_kiosk_rate_limit", {
       p_key_hash: ipHash,
-      p_action: String(payload.action),
+      p_action: rateAction,
       p_limit: currentLimit.limit,
       p_window_seconds: currentLimit.window,
     });
@@ -99,111 +109,170 @@ Deno.serve(async (req: Request) => {
     if (rate.data !== true) return reply(429, { error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." });
   }
 
-  if (payload.action === "identify") {
-    const identifierHash = await hashRateKey("identifier:" + String(payload.identifier || "").trim().toLocaleLowerCase("pt-BR"));
-    const identifierRate = await admin.rpc("lacorte_kiosk_rate_limit", {
-      p_key_hash: identifierHash,
-      p_action: "identify_identifier",
-      p_limit: 6,
-      p_window_seconds: 600,
+  if (action === "send_email_code" || action === "verify_email_code") {
+    const email = normalizeEmail(payload.email);
+    if (!isValidEmail(email)) return reply(400, { error: "Informe um e-mail válido." });
+    const emailRate = await admin.rpc("lacorte_kiosk_rate_limit", {
+      p_key_hash: await hashRateKey("email:" + email),
+      p_action: action === "send_email_code" ? "register" : "identify_identifier",
+      p_limit: action === "send_email_code" ? 3 : 6,
+      p_window_seconds: action === "send_email_code" ? 900 : 600,
     });
-    if (identifierRate.error) return reply(503, { error: "Autoatendimento temporariamente indisponível. Tente novamente." });
-    if (identifierRate.data !== true) return reply(429, { error: "Muitas tentativas para esse cadastro. Aguarde alguns minutos." });
+    if (emailRate.error) return reply(503, { error: "Confirmação temporariamente indisponível. Tente novamente." });
+    if (emailRate.data !== true) return reply(429, { error: "Muitas tentativas para este e-mail. Aguarde alguns minutos." });
   }
 
-  if (payload.action === "register") {
+  if (action === "claim_legacy_customer") {
+    const phone = normalizeBrazilPhone(payload.phone);
+    if (phone) {
+      const claimRate = await admin.rpc("lacorte_kiosk_rate_limit", {
+        p_key_hash: await hashRateKey("claim-phone:" + phone),
+        p_action: "identify_identifier",
+        p_limit: 4,
+        p_window_seconds: 600,
+      });
+      if (claimRate.error) return reply(503, { error: "Vinculação temporariamente indisponível. Tente novamente." });
+      if (claimRate.data !== true) return reply(429, { error: "Muitas tentativas para este telefone. Aguarde alguns minutos." });
+    }
+  }
+
+  if (action === "send_email_code") {
+    if (!authClient) return reply(500, { error: "Confirmação por e-mail indisponível. Procure a equipe." });
+    const purpose = String(payload.purpose || "");
+    if (!["register", "identify"].includes(purpose)) return reply(400, { error: "Etapa de confirmação inválida." });
+    const { error } = await authClient.auth.signInWithOtp({
+      email: normalizeEmail(payload.email),
+      options: { shouldCreateUser: true },
+    });
+    if (error) return reply(503, { error: "Não foi possível enviar o código. Aguarde um minuto e tente novamente." });
+    return reply(200, { ok: true });
+  }
+
+  if (action === "verify_email_code") {
+    if (!authClient) return reply(500, { error: "Confirmação por e-mail indisponível. Procure a equipe." });
+    const email = normalizeEmail(payload.email);
+    const token = String(payload.token || "").trim();
+    const purpose = String(payload.purpose || "");
+    if (!isValidEmail(email) || !/^[0-9]{6}$/.test(token) || !["register", "identify"].includes(purpose)) {
+      return reply(400, { error: "Informe o e-mail e o código de seis números." });
+    }
+    const verified = await authClient.auth.verifyOtp({ email, token, type: "email" });
+    const authUser = verified.data?.user || verified.data?.session?.user;
+    if (verified.error || !authUser?.id || normalizeEmail(authUser.email) !== email) {
+      return reply(401, { error: "Código inválido ou expirado. Solicite outro código e tente novamente." });
+    }
+
+    if (purpose === "register") {
+      const registration = payload.registration && typeof payload.registration === "object"
+        ? payload.registration as Record<string, unknown> : {};
+      const firstName = String(registration.first_name || "").trim().replace(/\s+/g, " ");
+      const lastName = String(registration.last_name || "").trim().replace(/\s+/g, " ");
+      const phone = normalizeBrazilPhone(registration.phone);
+      const birthDate = String(registration.birth_date || "");
+      if (firstName.length < 2 || firstName.length > 80 || lastName.length < 2 || lastName.length > 100) {
+        return reply(400, { error: "Informe nome e sobrenome válidos." });
+      }
+      if (!phone) return reply(400, { error: "Informe um telefone brasileiro válido com DDD." });
+      if (!isValidBirthDate(birthDate, currentBrazilDate())) return reply(400, { error: "Informe uma data de nascimento válida." });
+
+      const [emailExisting, userExisting] = await Promise.all([
+        admin.from("customers").select("id").eq("email", email).is("deleted_at", null).maybeSingle(),
+        admin.from("customers").select("id").eq("user_id", authUser.id).is("deleted_at", null).maybeSingle(),
+      ]);
+      if (emailExisting.error || userExisting.error) return reply(500, { error: "Não foi possível verificar o cadastro. Tente novamente." });
+      if (emailExisting.data || userExisting.data) return reply(409, { error: "Este e-mail já possui cadastro. Use “Já tenho cadastro” para entrar." });
+
+      const { data: phoneExists, error: phoneError } = await admin.rpc("lacorte_customer_phone_exists", { p_phone: phone });
+      if (phoneError) return reply(500, { error: "Não foi possível verificar o telefone. Tente novamente." });
+      if (phoneExists === true) return reply(409, { error: "Esse telefone já possui cadastro. Use “Já tenho cadastro” para vincular seu e-mail." });
+
+      const { data: customer, error: insertError } = await admin.from("customers").insert({
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        birth_date: birthDate,
+        email,
+        user_id: authUser.id,
+        must_change_password: false,
+      }).select("id,first_name,last_name,phone,birth_date").single();
+      if (insertError) {
+        if (insertError.code === "23505") return reply(409, { error: "Este e-mail ou telefone já possui cadastro. Use “Já tenho cadastro”." });
+        return reply(400, { error: "Não foi possível salvar seu cadastro. Confira os dados e tente novamente." });
+      }
+      const expires = Date.now() + 10 * 60 * 1000;
+      const signature = await signLookup(String(customer.id), expires, serviceKey);
+      return reply(200, {
+        customer: { id: customer.id, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone },
+        lookup_token: String(customer.id) + "." + String(expires) + "." + signature,
+      });
+    }
+
+    const { data: byUser, error: userLookupError } = await admin.from("customers")
+      .select("id,first_name,last_name,phone,email,user_id")
+      .eq("user_id", authUser.id).is("deleted_at", null).maybeSingle();
+    if (userLookupError) return reply(500, { error: "Não foi possível localizar seu cadastro." });
+    let customer = byUser;
+    if (!customer) {
+      const { data: byEmail, error: emailLookupError } = await admin.from("customers")
+        .select("id,first_name,last_name,phone,email,user_id")
+        .eq("email", email).is("deleted_at", null).maybeSingle();
+      if (emailLookupError) return reply(500, { error: "Não foi possível localizar seu cadastro." });
+      customer = byEmail;
+    }
+    if (!customer) {
+      const claimToken = await signCustomerClaim(String(authUser.id), email, Date.now() + 5 * 60 * 1000, serviceKey);
+      return reply(200, { needs_legacy_link: true, claim_token: claimToken });
+    }
+    if (customer.user_id && customer.user_id !== authUser.id) return reply(409, { error: "Este cadastro já está vinculado a outro acesso. Procure a equipe La Corte." });
+    const { data: linkedCustomer, error: linkError } = await admin.from("customers")
+      .update({ email, user_id: authUser.id, updated_at: new Date().toISOString() })
+      .eq("id", customer.id).is("deleted_at", null)
+      .select("id,first_name,last_name,phone").single();
+    if (linkError || !linkedCustomer) return reply(409, { error: "Não foi possível vincular este e-mail. Procure a equipe La Corte." });
+    const expires = Date.now() + 10 * 60 * 1000;
+    const signature = await signLookup(String(linkedCustomer.id), expires, serviceKey);
+    return reply(200, {
+      customer: { id: linkedCustomer.id, first_name: linkedCustomer.first_name, last_name: linkedCustomer.last_name, phone: linkedCustomer.phone },
+      lookup_token: String(linkedCustomer.id) + "." + String(expires) + "." + signature,
+    });
+  }
+
+  if (action === "claim_legacy_customer") {
+    const claim = await verifyCustomerClaim(String(payload.claim_token || ""), serviceKey);
+    if (!claim) return reply(401, { error: "A confirmação expirou. Solicite um novo código por e-mail." });
     const firstName = String(payload.first_name || "").trim().replace(/\s+/g, " ");
     const lastName = String(payload.last_name || "").trim().replace(/\s+/g, " ");
-    const rawPhone = String(payload.phone || "");
-    let digits = rawPhone.replace(/\D/g, "");
-    if (digits.startsWith("55") && digits.length >= 12) digits = digits.slice(2);
-    const phone = [10, 11].includes(digits.length) ? "+55" + digits : "";
+    const phone = normalizeBrazilPhone(payload.phone);
     const birthDate = String(payload.birth_date || "");
     if (firstName.length < 2 || firstName.length > 80 || lastName.length < 2 || lastName.length > 100) {
       return reply(400, { error: "Informe nome e sobrenome válidos." });
     }
     if (!phone) return reply(400, { error: "Informe um telefone brasileiro válido com DDD." });
-    if (!isValidBirthDate(birthDate, currentBrazilDate())) {
-      return reply(400, { error: "Informe uma data de nascimento válida." });
+    if (!isValidBirthDate(birthDate, currentBrazilDate())) return reply(400, { error: "Informe uma data de nascimento válida." });
+    const { data: customer, error: customerError } = await admin.from("customers")
+      .select("id,first_name,last_name,phone,email,user_id")
+      .eq("phone", phone).eq("birth_date", birthDate).is("deleted_at", null).maybeSingle();
+    if (customerError) return reply(500, { error: "Não foi possível conferir o cadastro. Tente novamente." });
+    if (!customer || normalizePersonName(customer.first_name) !== normalizePersonName(firstName) ||
+        normalizePersonName(customer.last_name) !== normalizePersonName(lastName)) {
+      return reply(404, { error: "Não encontramos um cadastro com esses dados. Confira as informações ou procure a equipe." });
     }
-
-    const { data: phoneExists, error: existingError } = await admin.rpc("lacorte_customer_phone_exists", {
-      p_phone: phone,
-    });
-    if (existingError) return reply(500, { error: "Não foi possível verificar o telefone. Tente novamente." });
-    if (phoneExists === true) return reply(409, { error: "Esse telefone já possui cadastro. Toque em “Já tenho cadastro” para localizar seus dados." });
-
-    const { data: customer, error: insertError } = await admin
-      .from("customers")
-      .insert({
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        birth_date: birthDate,
-        email: null,
-        user_id: null,
-        must_change_password: false,
-      })
-      .select("id,first_name,last_name,phone,birth_date")
-      .single();
-    if (insertError) {
-      if (insertError.code === "23505") return reply(409, { error: "Esse telefone já possui cadastro. Toque em “Já tenho cadastro” para localizar seus dados." });
-      return reply(400, { error: "Não foi possível salvar seu cadastro. Confira os dados e tente novamente." });
+    if (customer.email && normalizeEmail(customer.email) !== claim.email) {
+      return reply(409, { error: "Este cadastro já possui outro e-mail vinculado. Procure a equipe La Corte." });
     }
-
+    if (customer.user_id && customer.user_id !== claim.userId) {
+      return reply(409, { error: "Este cadastro já está vinculado a outro acesso. Procure a equipe La Corte." });
+    }
+    const { data: linkedCustomer, error: linkError } = await admin.from("customers")
+      .update({ email: claim.email, user_id: claim.userId, updated_at: new Date().toISOString() })
+      .eq("id", customer.id).is("deleted_at", null)
+      .select("id,first_name,last_name,phone").single();
+    if (linkError || !linkedCustomer) return reply(409, { error: "Não foi possível vincular seu cadastro. Procure a equipe La Corte." });
     const expires = Date.now() + 10 * 60 * 1000;
-    const signature = await signLookup(String(customer.id), expires, serviceKey);
+    const signature = await signLookup(String(linkedCustomer.id), expires, serviceKey);
     return reply(200, {
-      customer: { id: customer.id, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone },
-      lookup_token: String(customer.id) + "." + String(expires) + "." + signature,
-    });
-  }
-
-  if (payload.action === "identify") {
-    const identifier = String(payload.identifier || "").trim();
-    const digits = identifier.replace(/\D/g, "");
-    const isPhone = digits.length >= 10;
-    if (identifier.length < 5 || identifier.length > 120) {
-      return reply(400, { error: "Digite nome e sobrenome completos ou telefone com DDD." });
-    }
-    if (isPhone && ![10, 11, 12, 13].includes(digits.length)) {
-      return reply(400, { error: "Telefone inválido. Informe o DDD." });
-    }
-    if (!isPhone && identifier.split(/\s+/).filter(Boolean).length < 2) {
-      return reply(400, { error: "Digite nome e sobrenome completos." });
-    }
-
-    const { data, error } = await admin.rpc("lacorte_find_customer_for_kiosk", {
-      p_identifier: identifier,
-    });
-    if (error) {
-      const isPhoneLookup = digits.length >= 10;
-      const message = error.message.includes("mais de um cadastro")
-        ? (isPhoneLookup
-          ? "Esse telefone está vinculado a mais de um cadastro. Procure a equipe LaCorte para corrigir a duplicidade."
-          : "Encontramos nomes parecidos. Use seu telefone com DDD para localizar seu cadastro.")
-        : "Não foi possível localizar esse cadastro. Confira os dados ou procure a equipe.";
-      return reply(400, { error: message });
-    }
-    const match = Array.isArray(data) ? data[0] : data;
-    if (!match) return reply(404, { error: "Cadastro não encontrado. Confira os dados ou procure a equipe." });
-    const { data: customer, error: customerError } = await admin
-      .from("customers")
-      .select("id,first_name,last_name,phone,birth_date")
-      .eq("id", match.id)
-      .single();
-    if (customerError || !customer) return reply(500, { error: "Não foi possível carregar os dados do cadastro." });
-
-    const expires = Date.now() + 10 * 60 * 1000;
-    const signature = await signLookup(String(customer.id), expires, serviceKey);
-    return reply(200, {
-      customer: {
-        id: customer.id,
-        first_name: customer.first_name,
-        last_name: customer.last_name,
-        phone: customer.phone,
-      },
-      lookup_token: String(customer.id) + "." + String(expires) + "." + signature,
+      customer: { id: linkedCustomer.id, first_name: linkedCustomer.first_name, last_name: linkedCustomer.last_name, phone: linkedCustomer.phone },
+      lookup_token: String(linkedCustomer.id) + "." + String(expires) + "." + signature,
     });
   }
 
