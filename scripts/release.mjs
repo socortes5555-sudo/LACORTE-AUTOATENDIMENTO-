@@ -8,10 +8,17 @@ const files=readdirSync(root).filter(path=>/\.(js|css|webmanifest)$/.test(path))
  'cliente/service-worker.js','equipe/service-worker.js','cliente/manifest.webmanifest','equipe/manifest.webmanifest').sort();
 const assetFiles=(dir)=>readdirSync(resolve(root,dir),{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?assetFiles(dir+'/'+entry.name):[dir+'/'+entry.name]);
 const normalize=text=>text.replace(/connect-src (?!'self')/,"connect-src 'self' " ).replace(/^.*<meta name="lacorte-release"[^>]+>\n/gm,'').replace(/([?&]v=)[^"'\s<>]+/g,'$1RELEASE');
-const hash=createHash('sha256');
-for(const path of files)hash.update(path+'\0'+normalize(readFileSync(resolve(root,path),'utf8'))+'\0');
-for(const path of assetFiles('assets').sort())hash.update(path+'\0').update(readFileSync(resolve(root,path)));
-const version=hash.digest('hex').slice(0,16);
+// Hash each file independently before combining the sorted manifest. This keeps
+// the release fingerprint deterministic while avoiding one large concatenated buffer.
+const entries=[];
+for(const path of files){
+ const content=normalize(readFileSync(resolve(root,path),'utf8'));
+ entries.push(path+'\0'+createHash('sha256').update(content).digest('hex')+'\0');
+}
+for(const path of assetFiles('assets').sort()){
+ entries.push(path+'\0'+createHash('sha256').update(readFileSync(resolve(root,path))).digest('hex')+'\0');
+}
+const version=createHash('sha256').update(entries.join('')).digest('hex').slice(0,16);
 const outputs=new Map();
 for(const path of pages){
  let text=normalize(readFileSync(resolve(root,path),'utf8'));
