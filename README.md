@@ -20,7 +20,8 @@ O sistema é orientado a **fila de atendimento por ordem de entrada**. Não é u
 
 - Front-end: HTML, CSS e JavaScript.
 - Backend e banco de dados: Supabase.
-- Autenticação: acesso por link/código enviado por e-mail.
+- Equipe: autenticação Supabase por e-mail e senha.
+- Clientes no ambiente publicado: cadastro com nome, sobrenome, telefone e nascimento; retorno por nome completo ou telefone. A confirmação por código ainda não está ativa em produção.
 - Publicação: GitHub Pages.
 - Operações de fila: funções RPC no banco de dados, incluindo:
   - `lacorte_create_queue_entry`
@@ -30,16 +31,26 @@ O sistema é orientado a **fila de atendimento por ordem de entrada**. Não é u
 
 A aplicação utiliza a chave pública/publicável do Supabase no navegador. Chaves secretas e credenciais administrativas não devem ser inseridas no código do front-end.
 
-## Jornada do cliente
+## Jornada do cliente em produção
 
-1. O cliente informa o e-mail e realiza o acesso.
-2. Na primeira visita, completa o perfil com nome, sobrenome, telefone e aniversário.
-3. Nas próximas visitas, os dados já cadastrados podem ser reutilizados.
-4. Escolhe os serviços desejados.
-5. Confere os dados e confirma a entrada.
-6. Recebe sua senha e acompanha o status do atendimento.
+1. Na primeira visita, informa nome, sobrenome, telefone e data de nascimento.
+2. O cadastro é salvo para reutilização nas próximas visitas.
+3. O cliente recorrente localiza o cadastro pelo nome completo ou telefone com DDD.
+4. Escolhe os serviços e pode incluir acompanhantes na mesma senha.
+5. Confere os serviços e valores antes de confirmar a entrada na fila.
+6. Recebe sua senha; o totem retorna à tela inicial após cinco segundos.
+
+**Verificação por código:** a implementação por OTP de e-mail está preparada no PR #17, mas ainda não foi incorporada nem publicada. A versão de produção continua usando as ações antigas de cadastro/identificação. Não anuncie OTP como ativo até concluir a configuração SMTP e a implantação coordenada descritas em [docs/customer-verification-rollout.md](docs/customer-verification-rollout.md).
 
 O cliente não escolhe barbeiro. A entrada é registrada na fila compartilhada, e o profissional assume o próximo atendimento disponível. Não há seleção de data ou horário de agendamento.
+
+## Estado atual da confirmação do cliente
+
+- A Edge Function `lacorte-kiosk` ativa em produção é a versão 12 e ainda aceita as ações antigas `register` e `identify`.
+- A implementação OTP está no PR #17, ainda aberto. Ela não deve ser considerada funcional para clientes reais até que a entrega de e-mail seja testada com um endereço externo à equipe.
+- A migração aditiva do índice único de e-mails ativos já consta no histórico do banco. Nenhum cadastro foi removido para preparar essa mudança.
+- OTP por WhatsApp continua desativado: não há provedor oficial gratuito configurado.
+- A ativação exige SMTP próprio e modelo Magic Link com `{{ .Token }}`. Consulte o [roteiro de implantação](docs/customer-verification-rollout.md).
 
 ## Painel do profissional
 
