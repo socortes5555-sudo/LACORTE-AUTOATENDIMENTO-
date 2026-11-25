@@ -101,3 +101,25 @@ test('OTP and legacy-link throttling use action names accepted by the database R
   assert.match(kiosk, /p_action: action === "send_email_code" \? "register" : "identify_identifier"/);
   assert.match(kiosk, /p_action: "identify_identifier"/);
 });
+
+test('falha no envio de OTP mantém cadastro e identificação bloqueados sem expor detalhes do SMTP', () => {
+  const send = kiosk.slice(
+    kiosk.indexOf('if (action === "send_email_code")'),
+    kiosk.indexOf('if (action === "verify_email_code")')
+  );
+  assert.match(send, /if \(!authClient\) return reply\(500/);
+  assert.match(send, /if \(error\) return reply\(503/);
+  assert.match(send, /return reply\(200, \{ ok: true \}\)/);
+  assert.doesNotMatch(send, /customers|insert\(|error\.message/);
+
+  const profile = app.slice(app.indexOf('function renderProfile(){'), app.indexOf('function renderCustomerEmailVerification('));
+  const returning = app.slice(app.indexOf('function renderReturningCustomerLookup(){'), app.indexOf('function renderProfile(){'));
+  for (const form of [profile, returning]) {
+    const catchStart = form.indexOf('}catch(error){');
+    assert.notEqual(catchStart, -1, 'o formulário precisa tratar falhas de envio');
+    const failurePath = form.slice(catchStart);
+    assert.match(failurePath, /showMessage\(error\.message/);
+    assert.match(failurePath, /button\.disabled=false/);
+    assert.doesNotMatch(failurePath, /renderCustomerEmailVerification|continueKioskCustomer/);
+  }
+});
