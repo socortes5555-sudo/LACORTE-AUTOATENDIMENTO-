@@ -40,17 +40,18 @@ A aplicação utiliza a chave pública/publicável do Supabase no navegador. Cha
 5. Confere os serviços e valores antes de confirmar a entrada na fila.
 6. Recebe sua senha; o totem retorna à tela inicial após cinco segundos.
 
-**Verificação por código:** a implementação por OTP de e-mail está preparada no PR #17, mas ainda não foi incorporada nem publicada. A versão de produção continua usando as ações antigas de cadastro/identificação. Não anuncie OTP como ativo até concluir a configuração SMTP e a implantação coordenada descritas em [docs/customer-verification-rollout.md](docs/customer-verification-rollout.md).
+**Verificação por código:** a implementação de OTP por e-mail está no PR #19 e ainda não foi incorporada nem publicada. A versão de produção continua usando as ações antigas de cadastro/identificação. Antes de ativar OTP, a experiência de clientes recorrentes deve continuar aceitando nome completo ou telefone; o servidor deve localizar o cadastro e enviar o código ao contato já vinculado, sem exigir que o cliente saiba ou informe novamente o e-mail. Cadastros antigos sem e-mail precisam de uma opção separada e segura para vincular um endereço após confirmação. Consulte [docs/customer-verification-rollout.md](docs/customer-verification-rollout.md).
 
 O cliente não escolhe barbeiro. A entrada é registrada na fila compartilhada, e o profissional assume o próximo atendimento disponível. Não há seleção de data ou horário de agendamento.
 
 ## Estado atual da confirmação do cliente
 
 - A Edge Function `lacorte-kiosk` ativa em produção é a versão 12 e ainda aceita as ações antigas `register` e `identify`.
-- A implementação OTP está no PR #17, ainda aberto. Ela não deve ser considerada funcional para clientes reais até que a entrega de e-mail seja testada com um endereço externo à equipe.
+- O PR #19 contém a implementação OTP por e-mail e teve CI concluída com sucesso, mas permanece aberto e não publicada. O código atual do PR exige que o cliente recorrente informe e-mail; isso não atende ao requisito de busca por nome/telefone e deve ser corrigido antes da incorporação.
+- O teste de compatibilidade em `tests/customer-return-identifier.test.mjs` protege a busca por nome completo ou telefone e deve continuar passando quando o OTP for integrado.
 - A migração aditiva do índice único de e-mails ativos já consta no histórico do banco. Nenhum cadastro foi removido para preparar essa mudança.
 - OTP por WhatsApp continua desativado: não há provedor oficial gratuito configurado.
-- A ativação exige SMTP próprio e modelo Magic Link com `{{ .Token }}`. Consulte o [roteiro de implantação](docs/customer-verification-rollout.md).
+- A ativação exige SMTP próprio e modelo Magic Link com `{{ .Token }}`, além de envio real de teste para endereço externo à equipe. Consulte o [roteiro de implantação](docs/customer-verification-rollout.md).
 
 ## Painel do profissional
 
