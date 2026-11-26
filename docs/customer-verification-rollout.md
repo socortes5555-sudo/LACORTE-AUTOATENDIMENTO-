@@ -1,12 +1,15 @@
 # Implantação segura da confirmação de clientes
 
-## Estado verificado em 24/11/2026
+## Estado verificado em 26/11/2026
 
 - A Edge Function `lacorte-kiosk` em produção está na versão 12 e ainda implementa cadastro e identificação sem OTP (ações `register` e `identify`).
-- O PR [#17](https://github.com/socortes5555-sudo/LACORTE-AUTOATENDIMENTO-/pull/17) contém a implementação de OTP por e-mail, mas permanece aberto e não publicada.
-- A migração aditiva `20261123181605_customer_email_otp_unique_index` consta no histórico do Supabase.
+- O PR [#19](https://github.com/socortes5555-sudo/LACORTE-AUTOATENDIMENTO-/pull/19) contém a implementação de OTP por e-mail. A CI do commit atual concluiu com sucesso (execução [45669893158](https://github.com/socortes5555-sudo/LACORTE-AUTOATENDIMENTO-/actions/runs/45669893158)), mas o PR permanece aberto e não foi publicado.
+- **Compatibilidade pendente no PR #19:** a tela de cliente recorrente atualmente pede o e-mail, substituindo a busca existente por nome completo ou telefone. Isso não atende ao requisito da LaCorte. Antes de incorporar OTP, a tela deve continuar aceitando nome ou telefone e o servidor deve resolver o cadastro e enviar o código ao e-mail já vinculado, sem revelar o endereço completo ao navegador.
+- Se houver nomes iguais, orientar o cliente a usar o telefone. Se o cadastro antigo não tiver e-mail vinculado, manter uma opção separada de vinculação: o cliente informa um e-mail que controla, confirma o OTP e depois comprova os dados exatos do cadastro antigo. Não permitir que o cliente escolha outro cadastro apenas por conhecer o nome.
+- O teste `tests/customer-return-identifier.test.mjs` protege a entrada por nome/telefone e deve passar na versão OTP final.
+- A migração aditiva `20261123181605_customer_email_otp_unique_index` consta no histórico do banco.
 - A configuração de SMTP e do modelo de e-mail não pode ser confirmada pelas integrações disponíveis nesta execução.
-- WhatsApp OTP não está configurado.
+- WhatsApp OTP não está configurado. Só deve ser habilitado se houver um provedor oficial cujo plano gratuito seja suficiente, sem contratar serviço nem expor credenciais.
 
 ## Pré-requisitos no Supabase
 
@@ -16,7 +19,7 @@
 4. Em **Authentication → Email Templates → Magic Link**, configure o corpo para apresentar o código OTP usando `{{ .Token }}`. Se o modelo usar somente `{{ .ConfirmationURL }}`, o Supabase enviará um link em vez do código de seis dígitos esperado pela tela.
 5. Mantenha o limite de expiração do OTP curto e confira os limites de envio no painel.
 
-O SMTP padrão do Supabase é destinado a testes: aceita somente endereços previamente autorizados na equipe do projeto e, segundo a documentação consultada em 24/11/2026, limita o envio a 2 mensagens por hora. Ele não atende o totem com clientes externos.
+O SMTP padrão do Supabase é destinado a testes: aceita somente endereços previamente autorizados na equipe do projeto e possui limite de envio insuficiente para o totem com clientes externos. Confirme os limites vigentes no painel e na documentação oficial antes de ativar o fluxo.
 
 Documentação oficial:
 - [SMTP personalizado](https://supabase.com/docs/guides/auth/auth-smtp)
@@ -25,32 +28,33 @@ Documentação oficial:
 
 ## Testes obrigatórios antes da ativação
 
-Use um endereço de teste que **não** pertença à equipe Supabase:
+Use endereços e cadastros de teste autorizados, nunca dados de clientes reais:
 
 - Solicitar código para cadastro novo e confirmar que o e-mail chega com seis dígitos.
-- Solicitar código para cliente recorrente e validar a identificação.
+- Localizar cliente recorrente por telefone e confirmar que o código chega ao contato já vinculado.
+- Localizar cliente recorrente por nome completo; se houver homônimos, exigir telefone sem revelar dados de terceiros.
+- Confirmar que a resposta não revela o e-mail completo nem permite enumerar cadastros.
 - Confirmar código correto, incorreto, expirado e reutilizado.
 - Confirmar bloqueio de e-mail de profissional no totem.
-- Vincular um cadastro antigo com nome, sobrenome, telefone e nascimento exatos.
+- Vincular um cadastro antigo sem e-mail com nome, sobrenome, telefone e nascimento exatos, após confirmar o novo e-mail.
 - Confirmar que e-mail ou telefone duplicado não cria um segundo cadastro.
 - Conferir limites por IP, e-mail e telefone.
 - Confirmar que nenhum access token ou refresh token do Supabase é devolvido ao navegador.
 - Repetir os fluxos de seleção, revisão, entrada na fila e retorno do totem em cinco segundos.
 
-Não use dados de clientes reais para testes de vinculação.
-
 ## Implantação sem interromper o totem
 
-O front-end GitHub Pages e a Edge Function Supabase são publicados separadamente. O PR #17 troca as ações antigas `register`/`identify` pelas ações OTP; portanto, publicar apenas o front-end ou apenas a função pode deixar o autoatendimento temporariamente incompatível.
+O front-end GitHub Pages e a Edge Function Supabase são publicados separadamente. O PR #19 troca as ações antigas `register`/`identify` pelas ações OTP; portanto, publicar apenas o front-end ou apenas a função pode deixar o autoatendimento temporariamente incompatível.
 
-Antes da liberação, prepare uma etapa intermediária compatível (ou uma janela controlada de manutenção) para garantir que o front-end e a função sejam atualizados em conjunto. Depois:
+Antes da liberação:
 
-1. Confirme SMTP e template com envio real para endereço externo.
-2. Execute a CI completa do PR #17 e revise o diff final.
-3. Prepare a transição coordenada da Edge Function e das quatro entradas PWA/Pages, respeitando o cache.
-4. Teste cadastro novo e cliente antigo em produção com um cadastro de teste autorizado.
-5. Só então encerre as ações legadas sem OTP e confirme que a versão publicada não permite retornar ao fluxo antigo.
-6. Verifique que clientes existentes e histórico continuam preservados.
+1. Corrija a compatibilidade da busca recorrente por nome/telefone e faça o teste de regressão passar.
+2. Confirme SMTP e template com envio real para endereço externo.
+3. Execute a CI completa e revise o diff final.
+4. Prepare uma etapa intermediária compatível (ou uma janela controlada de manutenção) para garantir que o front-end e a função sejam atualizados em conjunto.
+5. Teste cadastro novo e cliente antigo em produção com cadastros de teste autorizados.
+6. Só então encerre as ações legadas sem OTP e confirme que a versão publicada não permite retornar ao fluxo antigo.
+7. Verifique que clientes existentes e histórico continuam preservados.
 
 ## Regras de segurança
 
