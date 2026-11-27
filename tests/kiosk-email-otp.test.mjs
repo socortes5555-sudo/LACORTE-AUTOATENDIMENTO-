@@ -51,13 +51,17 @@ test('new registration asks for email code before saving customer data', () => {
   assert.doesNotMatch(profile, /action:"register"/);
 });
 
-test('returning customers confirm email and legacy records require a signed claim', () => {
-  const returning = app.slice(app.indexOf('function renderReturningCustomerLookup(){'), app.indexOf('function renderProfile(){'));
+test('returning customers keep name or phone lookup and verify the linked email without exposing it', () => {
+  const returning = app.slice(app.indexOf('function renderReturningCustomerLookup(){'), app.indexOf('function renderLegacyCustomerStart(){'));
   const verification = app.slice(app.indexOf('function renderCustomerEmailVerification('), app.indexOf('function renderLegacyCustomerLink('));
+  const legacyStart = app.slice(app.indexOf('function renderLegacyCustomerStart(){'), app.indexOf('function renderProfile(){'));
   const legacy = app.slice(app.indexOf('function renderLegacyCustomerLink('), app.indexOf('async function kioskRequest('));
-  assert.match(returning, /type="email"/);
-  assert.match(returning, /action:"send_email_code"/);
-  assert.match(verification, /action:"verify_email_code"/);
+  assert.match(returning, /id="customer-identifier" type="text"/);
+  assert.match(returning, /purpose:"identify",identifier:identifier/);
+  assert.doesNotMatch(returning, /type="email"/);
+  assert.match(verification, /id="customer-email"/);
+  assert.match(verification, /identifier:state\.pendingIdentifier/);
+  assert.match(legacyStart, /purpose:"claim",email:email/);
   assert.match(verification, /result\.needs_legacy_link/);
   assert.match(legacy, /action:"claim_legacy_customer"/);
   assert.match(legacy, /birth_date/);
@@ -67,13 +71,41 @@ test('backend issues lookup tokens only after email OTP verification', () => {
   const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
   assert.match(kiosk, /authClient\.auth\.signInWithOtp/);
   assert.match(verify, /authClient\.auth\.verifyOtp/);
-  assert.match(verify, /\["register", "identify"\]\.includes\(purpose\)/);
+  assert.match(verify, /\["register", "identify", "claim"\]\.includes\(purpose\)/);
   assert.match(verify, /if \(purpose === "register"\)/);
   assert.match(verify, /signCustomerClaim/);
   assert.match(verify, /lacorte_user_roles/);
   assert.match(verify, /Este e-mail pertence à equipe/);
   assert.doesNotMatch(kiosk, /payload\.action === "register"/);
   assert.doesNotMatch(kiosk, /payload\.action === "identify"/);
+});
+
+
+test('existing-customer OTP is sent only after server-side name or phone lookup', () => {
+  const send = kiosk.slice(kiosk.indexOf('if (action === "send_email_code")'), kiosk.indexOf('if (action === "verify_email_code")'));
+  assert.match(send, /findCustomerByIdentifier\(String\(payload\.identifier/);
+  assert.match(send, /found\.customer\.email/);
+  assert.match(send, /authClient\.auth\.signInWithOtp/);
+  assert.match(send, /return reply\(200, \{ ok: true \}\)/);
+  assert.doesNotMatch(send, /return reply\(200, \{[^}]*email:/);
+});
+
+test('existing-customer OTP verification rechecks identifier, linked email and user ownership', () => {
+  const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
+  assert.match(verify, /purpose === "identify"/);
+  assert.match(verify, /findCustomerByIdentifier\(String\(payload\.identifier/);
+  assert.match(verify, /normalizeEmail\(customer\.email\) !== email/);
+  assert.match(verify, /customer\.user_id && customer\.user_id !== authUser\.id/);
+  assert.match(verify, /linkedByUser && linkedByUser\.id !== customer\.id/);
+});
+
+test('legacy email claim is explicit and cannot reuse an email already linked to a customer', () => {
+  const send = kiosk.slice(kiosk.indexOf('if (action === "send_email_code")'), kiosk.indexOf('if (action === "verify_email_code")'));
+  const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
+  assert.match(send, /purpose === "claim"/);
+  assert.match(send, /existingEmail/);
+  assert.match(verify, /purpose === "claim"/);
+  assert.match(verify, /signCustomerClaim/);
 });
 
 test('legacy claim requires exact phone, birth date and normalized full name', () => {
@@ -95,11 +127,11 @@ test('OTP verification never exposes Supabase session credentials to the kiosk',
   assert.doesNotMatch(verify, /session:\s*verified\.data|verified\.data\.session\s*[,}]/);
 });
 
-test('OTP and legacy-link throttling use action names accepted by the database RPC', () => {
-  assert.match(kiosk, /const rateAction = action === "send_email_code" \? "register"/);
-  assert.match(kiosk, /\["verify_email_code", "claim_legacy_customer"\]\.includes\(action\) \? "identify"/);
-  assert.match(kiosk, /p_action: action === "send_email_code" \? "register" : "identify_identifier"/);
+test('OTP throttling separates lookup identifiers, registration emails and legacy claims', () => {
+  assert.match(kiosk, /payload\.purpose === "identify" \? "identify" : "register"/);
   assert.match(kiosk, /p_action: "identify_identifier"/);
+  assert.match(kiosk, /identifier:" \+ identifier\.toLocaleLowerCase\("pt-BR"\)/);
+  assert.match(kiosk, /purpose === "claim" \? "identify_identifier" : "register"/);
 });
 
 test('falha no envio de OTP mantém cadastro e identificação bloqueados sem expor detalhes do SMTP', () => {
