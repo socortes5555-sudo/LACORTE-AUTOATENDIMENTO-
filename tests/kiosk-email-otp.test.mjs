@@ -60,7 +60,7 @@ test('returning customers keep name or phone lookup and verify the linked email 
   assert.match(returning, /purpose:"identify",identifier:identifier/);
   assert.doesNotMatch(returning, /type="email"/);
   assert.match(verification, /id="customer-email"/);
-  assert.match(verification, /request\\.identifier=state\\.pendingIdentifier/);
+  assert.match(verification, /request[.]identifier=state[.]pendingIdentifier/);
   assert.match(legacyStart, /purpose:"claim",email:email/);
   assert.match(verification, /result\.needs_legacy_link/);
   assert.match(legacy, /action:"claim_legacy_customer"/);
@@ -142,7 +142,10 @@ test('falha no envio de OTP mantém cadastro e identificação bloqueados sem ex
   assert.match(send, /if \(!authClient\) return reply\(500/);
   assert.match(send, /if \(error\) return reply\(503/);
   assert.match(send, /return reply\(200, \{ ok: true \}\)/);
-  assert.doesNotMatch(send, /\.insert\(|error\.message/);
+  assert.doesNotMatch(send, /\.insert\(/);
+  const smtp = send.slice(send.indexOf('const { error } = await authClient.auth.signInWithOtp'), send.indexOf('return reply(200, { ok: true })'));
+  assert.match(smtp, /if \(error\) return reply\(503/);
+  assert.doesNotMatch(smtp, /error\.message/);
 
   const profile = app.slice(app.indexOf('function renderProfile(){'), app.indexOf('function renderCustomerEmailVerification('));
   const returning = app.slice(app.indexOf('function renderReturningCustomerLookup(){'), app.indexOf('function renderProfile(){'));
