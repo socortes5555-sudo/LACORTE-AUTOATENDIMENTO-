@@ -47,10 +47,11 @@ O cliente não escolhe barbeiro. A entrada é registrada na fila compartilhada, 
 ## Estado atual da confirmação do cliente
 
 - A Edge Function `lacorte-kiosk` ativa em produção é a versão 12 e ainda aceita as ações antigas `register` e `identify`.
-- A implementação OTP está no PR #19, ainda aberto e não publicada. A busca por nome/telefone foi preservada no código em preparação; a ativação depende de SMTP externo e teste real com endereço fora da equipe.
+- O PR #19 contém a implementação OTP por e-mail e teve CI concluída com sucesso, mas permanece aberto e não publicada. O código atual do PR exige que o cliente recorrente informe e-mail; isso não atende ao requisito de busca por nome/telefone e deve ser corrigido antes da incorporação.
+- Os testes em `tests/kiosk-email-otp.test.mjs` verificam a busca por nome/telefone, o envio ao e-mail vinculado, a revalidação do vínculo e a rota separada para cadastro legado.
 - A migração aditiva do índice único de e-mails ativos já consta no histórico do banco. Nenhum cadastro foi removido para preparar essa mudança.
 - OTP por WhatsApp continua desativado: não há provedor oficial gratuito configurado.
-- A ativação exige SMTP próprio e modelo Magic Link com `{{ .Token }}`. Consulte o [roteiro de implantação](docs/customer-verification-rollout.md).
+- A ativação exige SMTP próprio e modelo Magic Link com `{{ .Token }}`, além de envio real de teste para endereço externo à equipe. Consulte o [roteiro de implantação](docs/customer-verification-rollout.md).
 
 ## Painel do profissional
 
