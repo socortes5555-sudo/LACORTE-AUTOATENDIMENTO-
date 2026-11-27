@@ -40,14 +40,14 @@ A aplicação utiliza a chave pública/publicável do Supabase no navegador. Cha
 5. Confere os serviços e valores antes de confirmar a entrada na fila.
 6. Recebe sua senha; o totem retorna à tela inicial após cinco segundos.
 
-**Verificação por código:** a implementação por OTP de e-mail está preparada no PR #17, mas ainda não foi incorporada nem publicada. A versão de produção continua usando as ações antigas de cadastro/identificação. Não anuncie OTP como ativo até concluir a configuração SMTP e a implantação coordenada descritas em [docs/customer-verification-rollout.md](docs/customer-verification-rollout.md).
+**Verificação por código:** o PR #19 prepara OTP por e-mail, mas ainda não foi incorporado nem publicado. A versão de produção continua usando as ações antigas de cadastro/identificação. Na versão em preparação, clientes recorrentes continuam começando pela busca por nome completo ou telefone; o servidor localiza o cadastro ativo e envia o OTP ao e-mail já vinculado, sem devolver esse endereço ao navegador. Na etapa de confirmação, o cliente informa o e-mail que recebeu o código para que o Supabase Auth valide o OTP. Cadastros antigos sem e-mail têm uma opção separada: o cliente informa um novo endereço, confirma o OTP e depois comprova os dados exatos do cadastro existente. Consulte [docs/customer-verification-rollout.md](docs/customer-verification-rollout.md).
 
 O cliente não escolhe barbeiro. A entrada é registrada na fila compartilhada, e o profissional assume o próximo atendimento disponível. Não há seleção de data ou horário de agendamento.
 
 ## Estado atual da confirmação do cliente
 
 - A Edge Function `lacorte-kiosk` ativa em produção é a versão 12 e ainda aceita as ações antigas `register` e `identify`.
-- A implementação OTP está no PR #17, ainda aberto. Ela não deve ser considerada funcional para clientes reais até que a entrega de e-mail seja testada com um endereço externo à equipe.
+- A implementação OTP está no PR #19, ainda aberto e não publicada. A busca por nome/telefone foi preservada no código em preparação; a ativação depende de SMTP externo e teste real com endereço fora da equipe.
 - A migração aditiva do índice único de e-mails ativos já consta no histórico do banco. Nenhum cadastro foi removido para preparar essa mudança.
 - OTP por WhatsApp continua desativado: não há provedor oficial gratuito configurado.
 - A ativação exige SMTP próprio e modelo Magic Link com `{{ .Token }}`. Consulte o [roteiro de implantação](docs/customer-verification-rollout.md).
