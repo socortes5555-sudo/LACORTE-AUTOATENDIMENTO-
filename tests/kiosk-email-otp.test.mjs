@@ -90,6 +90,14 @@ test('existing-customer OTP is sent only after server-side name or phone lookup'
   assert.doesNotMatch(send, /return reply\(200, \{[^}]*email:/);
 });
 
+test('o envio para cadastro recorrente também limita tentativas pelo e-mail vinculado', () => {
+  const send = kiosk.slice(kiosk.indexOf('if (action === "send_email_code")'), kiosk.indexOf('if (action === "verify_email_code")'));
+  assert.match(send, /linkedEmailRate/);
+  assert.match(send, /hashRateKey\("email:" \+ email\)/);
+  assert.match(send, /p_action: "identify_identifier"/);
+  assert.match(send, /p_window_seconds: 600/);
+});
+
 test('existing-customer OTP verification rechecks identifier, linked email and user ownership', () => {
   const verify = kiosk.slice(kiosk.indexOf('if (action === "verify_email_code")'), kiosk.lastIndexOf('if (action === "claim_legacy_customer")'));
   assert.match(verify, /purpose === "identify"/);
