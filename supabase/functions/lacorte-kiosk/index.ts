@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
     if (emailRate.data !== true) return reply(429, { error: "Muitas tentativas para este e-mail. Aguarde alguns minutos." });
   }
 
-  async function findCustomerByIdentifier(identifier: string) {
+  async function findCustomerByIdentifier(identifier: string): Promise<{ customer?: any; error?: { status: number; message: string } }> {
     const clean = String(identifier || "").trim();
     const digits = clean.replace(/\D/g, "");
     const isPhone = digits.length >= 10;
@@ -192,6 +192,7 @@ Deno.serve(async (req: Request) => {
     if (purpose === "identify") {
       const found = await findCustomerByIdentifier(String(payload.identifier || ""));
       if (found.error) return reply(found.error.status, { error: found.error.message });
+      if (!found.customer) return reply(404, { error: "Cadastro não encontrado. Confira os dados ou procure a equipe." });
       if (!found.customer.email || !isValidEmail(found.customer.email)) {
         return reply(409, { error: "Este cadastro ainda não tem um e-mail vinculado. Use a opção de atualização ou procure a equipe La Corte." });
       }
@@ -290,6 +291,7 @@ Deno.serve(async (req: Request) => {
     if (purpose === "identify") {
       const found = await findCustomerByIdentifier(String(payload.identifier || ""));
       if (found.error) return reply(found.error.status, { error: "Não foi possível confirmar esse cadastro. Confira os dados ou procure a equipe." });
+      if (!found.customer) return reply(401, { error: "Não foi possível confirmar esse cadastro. Confira os dados ou procure a equipe." });
       const customer = found.customer;
       if (!customer.email || normalizeEmail(customer.email) !== email) {
         return reply(401, { error: "Código inválido para este cadastro. Confira o e-mail e tente novamente." });
