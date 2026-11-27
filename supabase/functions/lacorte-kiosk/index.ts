@@ -197,6 +197,14 @@ Deno.serve(async (req: Request) => {
         return reply(409, { error: "Este cadastro ainda não tem um e-mail vinculado. Use a opção de atualização ou procure a equipe La Corte." });
       }
       email = normalizeEmail(found.customer.email);
+      const linkedEmailRate = await admin.rpc("lacorte_kiosk_rate_limit", {
+        p_key_hash: await hashRateKey("email:" + email),
+        p_action: "identify_identifier",
+        p_limit: 6,
+        p_window_seconds: 600,
+      });
+      if (linkedEmailRate.error) return reply(503, { error: "Confirmação temporariamente indisponível. Tente novamente." });
+      if (linkedEmailRate.data !== true) return reply(429, { error: "Muitas tentativas para este cadastro. Aguarde alguns minutos." });
     } else {
       if (!isValidEmail(email)) return reply(400, { error: "Informe um e-mail válido." });
       if (purpose === "claim") {
