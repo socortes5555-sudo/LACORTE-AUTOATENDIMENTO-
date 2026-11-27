@@ -41,7 +41,9 @@ const state = {
   pendingEmail:null,
   pendingPurpose:null,
   pendingRegistration:null,
-  pendingClaimToken:null
+  pendingClaimToken:null,
+  pendingIdentifier:null,
+  pendingLegacyClaim:null
 };
 
 const content = document.querySelector("#step-content");
@@ -154,6 +156,8 @@ function renderLogin(){
   state.pendingPurpose=null;
   state.pendingRegistration=null;
   state.pendingClaimToken=null;
+  state.pendingIdentifier=null;
+  state.pendingLegacyClaim=null;
   state.step=1;
   setHeader("AUTOATENDIMENTO LACORTE","Bem-vindo à LaCorte","Cadastre-se uma única vez ou localize seu cadastro.");
   content.innerHTML = `<div class="entry-choice" id="entry-choice-options">
@@ -175,18 +179,50 @@ function renderLogin(){
 
 function renderReturningCustomerLookup(){
   state.step=1;
-  setHeader("CLIENTE CADASTRADO","Confirme seu e-mail","Enviaremos um código de seis números para acessar seu cadastro.");
-  content.innerHTML = '<form id="returning-form"><label for="customer-email">E-mail cadastrado</label><input id="customer-email" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com" required><p class="muted">Se seu cadastro antigo ainda não tiver e-mail vinculado, depois do código você poderá confirmar nome, telefone e aniversário para localizar o registro.</p><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">ENVIAR CÓDIGO</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
+  state.pendingIdentifier=null;
+  state.pendingEmail=null;
+  setHeader("CLIENTE CADASTRADO","Localize seu cadastro","Digite seu nome completo ou telefone com DDD. Enviaremos um código ao e-mail já vinculado.");
+  content.innerHTML = '<form id="returning-form"><label for="customer-identifier">Nome completo ou telefone com DDD</label><input id="customer-identifier" type="text" maxlength="120" autocomplete="off" placeholder="Seu nome completo ou (48) 99999-9999" required><p class="muted">O código será enviado ao e-mail já cadastrado. Não exibiremos o endereço completo nesta tela.</p><p id="app-message" class="muted" role="status">'+safe(state.message)+'</p><button class="btn btn-primary" type="submit">LOCALIZAR E ENVIAR CÓDIGO</button><button class="btn btn-secondary" id="start-legacy-link" type="button">MEU CADASTRO NÃO TEM E-MAIL</button><button class="btn btn-secondary" id="back-entry-choice" type="button">VOLTAR</button></form>';
   actions.replaceChildren();
   document.querySelector("#back-entry-choice").addEventListener("click",renderLogin);
+  document.querySelector("#start-legacy-link").addEventListener("click",renderLegacyCustomerStart);
   document.querySelector("#returning-form").addEventListener("submit",async function(event){
     event.preventDefault();
-    const email=document.querySelector("#customer-email").value.trim().toLowerCase();
+    const identifier=document.querySelector("#customer-identifier").value.trim();
+    const button=this.querySelector('button[type="submit"]');
+    button.disabled=true;showMessage("Localizando o cadastro e enviando o código...");
+    try{
+      await kioskRequest({action:"send_email_code",purpose:"identify",identifier:identifier});
+      state.pendingIdentifier=identifier;
+      renderCustomerEmailVerification("", "identify", null, "Se o cadastro possui e-mail vinculado, enviamos um código para ele.", identifier);
+    }catch(error){
+      showMessage(error.message||"Não foi possível localizar o cadastro ou enviar o código.");
+      button.disabled=false;
+    }
+  });
+}
+
+function renderLegacyCustomerStart(){
+  state.step=1;
+  setHeader("CADASTRO ANTIGO","Atualize seu e-mail","Se seu cadastro ainda não tem e-mail, informe seus dados e confirme um endereço que você controla.");
+  content.innerHTML = '<form id="legacy-start-form"><label for="legacy-start-first-name">Nome</label><input id="legacy-start-first-name" required maxlength="80" autocomplete="given-name" placeholder="Seu nome"><label for="legacy-start-last-name">Sobrenome</label><input id="legacy-start-last-name" required maxlength="100" autocomplete="family-name" placeholder="Seu sobrenome"><label for="legacy-start-phone">Telefone com DDD</label><input id="legacy-start-phone" type="tel" required maxlength="20" autocomplete="tel" placeholder="(48) 99999-9999"><label for="legacy-start-birth-date">Data de nascimento</label><input id="legacy-start-birth-date" type="date" required><label for="legacy-start-email">Seu e-mail</label><input id="legacy-start-email" type="email" required maxlength="254" autocomplete="email" placeholder="voce@exemplo.com"><p id="app-message" class="muted" role="status">'+safe(state.message||"Depois do código, conferiremos os dados exatos do cadastro antigo.")+'</p><button class="btn btn-primary" type="submit">ENVIAR CÓDIGO</button><button class="btn btn-secondary" id="back-legacy-start" type="button">VOLTAR</button></form>';
+  actions.replaceChildren();
+  document.querySelector("#back-legacy-start").addEventListener("click",renderReturningCustomerLookup);
+  document.querySelector("#legacy-start-form").addEventListener("submit",async function(event){
+    event.preventDefault();
+    const details={
+      first_name:document.querySelector("#legacy-start-first-name").value.trim(),
+      last_name:document.querySelector("#legacy-start-last-name").value.trim(),
+      phone:document.querySelector("#legacy-start-phone").value.trim(),
+      birth_date:document.querySelector("#legacy-start-birth-date").value
+    };
+    const email=document.querySelector("#legacy-start-email").value.trim().toLowerCase();
     const button=this.querySelector('button[type="submit"]');
     button.disabled=true;showMessage("Enviando código para seu e-mail...");
     try{
-      await kioskRequest({action:"send_email_code",purpose:"identify",email:email});
-      renderCustomerEmailVerification(email,"identify");
+      await kioskRequest({action:"send_email_code",purpose:"claim",email:email});
+      state.pendingLegacyClaim=details;
+      renderCustomerEmailVerification(email,"claim",null,"Confirme o código enviado para o endereço informado.");
     }catch(error){
       showMessage(error.message||"Não foi possível enviar o código.");
       button.disabled=false;
@@ -226,29 +262,36 @@ function renderProfile(){
   });
 }
 
-function renderCustomerEmailVerification(email,purpose,registration=null,message=""){
-  state.pendingEmail=email;
+function renderCustomerEmailVerification(email,purpose,registration=null,message="",identifier=""){
+  const identify=purpose==="identify";
+  state.pendingEmail=identify?null:email;
   state.pendingPurpose=purpose;
+  if(identifier) state.pendingIdentifier=identifier;
   if(registration) state.pendingRegistration=registration;
   state.step=purpose==="register"?2:1;
-  setHeader("CÓDIGO DE VERIFICAÇÃO","Confira seu e-mail","Digite o código de seis números enviado para "+email+".");
-  notice.textContent="O código confirma que você tem acesso a este e-mail. Confira também a caixa de spam.";
-  content.innerHTML = '<form id="customer-email-verify"><label for="customer-email-code">Código de seis números</label><input id="customer-email-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required><p id="app-message" class="muted" role="status">'+safe(message||"Enviamos um código para seu e-mail.")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR CÓDIGO</button><button class="btn btn-secondary" id="resend-customer-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="back-customer-code" type="button">VOLTAR</button></form>';
+  setHeader("CÓDIGO DE VERIFICAÇÃO","Confirme seu e-mail",identify?"Digite o e-mail vinculado ao cadastro e o código de seis números enviado para ele.": "Digite o código de seis números enviado para "+email+".");
+  notice.textContent="O código confirma que você controla o e-mail. Confira também a caixa de spam.";
+  const emailField=identify?'<label for="customer-email">E-mail cadastrado</label><input id="customer-email" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com" required>':'';
+  content.innerHTML = '<form id="customer-email-verify">'+emailField+'<label for="customer-email-code">Código de seis números</label><input id="customer-email-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required><p id="app-message" class="muted" role="status">'+safe(message||"Enviamos um código para seu e-mail.")+'</p><button class="btn btn-primary" type="submit">CONFIRMAR CÓDIGO</button><button class="btn btn-secondary" id="resend-customer-code" type="button">REENVIAR CÓDIGO</button><button class="btn btn-secondary" id="back-customer-code" type="button">VOLTAR</button></form>';
   actions.replaceChildren();
   const form=document.querySelector("#customer-email-verify");
   form.addEventListener("submit",async function(event){
     event.preventDefault();
+    const verifiedEmail=(identify?form.querySelector("#customer-email").value:email).trim().toLowerCase();
     const token=form.querySelector("#customer-email-code").value.trim();
     const button=form.querySelector('button[type="submit"]');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(verifiedEmail)){showMessage("Informe o e-mail que recebeu o código.");return;}
     if(!/^[0-9]{6}$/.test(token)){showMessage("Digite o código de seis números recebido.");return;}
     button.disabled=true;showMessage("Confirmando seu e-mail...");
     try{
-      const result=await kioskRequest({
-        action:"verify_email_code",email:email,token:token,purpose:purpose,
-        registration:purpose==="register"?state.pendingRegistration:undefined
-      });
+      const request={
+        action:"verify_email_code",email:verifiedEmail,token:token,purpose:purpose
+      };
+      if(purpose==="register") request.registration=state.pendingRegistration;
+      if(identify) request.identifier=state.pendingIdentifier;
+      const result=await kioskRequest(request);
       if(result.needs_legacy_link){
-        renderLegacyCustomerLink(email,result.claim_token);
+        renderLegacyCustomerLink(verifiedEmail,result.claim_token,"",state.pendingLegacyClaim||{});
         return;
       }
       await continueKioskCustomer(result);
@@ -260,22 +303,27 @@ function renderCustomerEmailVerification(email,purpose,registration=null,message
   form.querySelector("#resend-customer-code").addEventListener("click",async function(){
     this.disabled=true;showMessage("Enviando novo código...");
     try{
-      await kioskRequest({action:"send_email_code",email:email,purpose:purpose});
+      const resend=identify
+        ? {action:"send_email_code",purpose:"identify",identifier:state.pendingIdentifier}
+        : {action:"send_email_code",purpose:purpose,email:email};
+      await kioskRequest(resend);
       showMessage("Novo código enviado. Confira seu e-mail.");
     }catch(error){showMessage(error.message||"Não foi possível reenviar o código.");}
     this.disabled=false;
   });
   form.querySelector("#back-customer-code").addEventListener("click",function(){
-    if(purpose==="register") renderProfile(); else renderReturningCustomerLookup();
+    if(purpose==="register") renderProfile();
+    else if(purpose==="claim") renderLegacyCustomerStart();
+    else renderReturningCustomerLookup();
   });
 }
 
-function renderLegacyCustomerLink(email,claimToken,message=""){
+function renderLegacyCustomerLink(email,claimToken,message="",details={}){
   state.pendingEmail=email;
   state.pendingClaimToken=claimToken;
   state.step=1;
   setHeader("CADASTRO ANTIGO","Vincule seu cadastro","Seu e-mail foi confirmado. Informe os mesmos dados usados no cadastro antigo.");
-  content.innerHTML = '<form id="legacy-link-form"><label for="legacy-first-name">Nome</label><input id="legacy-first-name" required maxlength="80" autocomplete="given-name" placeholder="Seu nome"><label for="legacy-last-name">Sobrenome</label><input id="legacy-last-name" required maxlength="100" autocomplete="family-name" placeholder="Seu sobrenome"><label for="legacy-phone">Telefone com DDD</label><input id="legacy-phone" type="tel" required maxlength="20" autocomplete="tel" placeholder="(48) 99999-9999"><label for="legacy-birth-date">Data de aniversário</label><input id="legacy-birth-date" type="date" required><p id="app-message" class="muted" role="status">'+safe(message||"Usaremos esses dados somente para localizar seu cadastro existente.")+'</p><button class="btn btn-primary" type="submit">VINCULAR E CONTINUAR</button><button class="btn btn-secondary" id="back-legacy-link" type="button">VOLTAR</button></form>';
+  content.innerHTML = '<form id="legacy-link-form"><label for="legacy-first-name">Nome</label><input id="legacy-first-name" required maxlength="80" autocomplete="given-name" placeholder="Seu nome" value="'+safe(details.first_name||"")+'"><label for="legacy-last-name">Sobrenome</label><input id="legacy-last-name" required maxlength="100" autocomplete="family-name" placeholder="Seu sobrenome" value="'+safe(details.last_name||"")+'"><label for="legacy-phone">Telefone com DDD</label><input id="legacy-phone" type="tel" required maxlength="20" autocomplete="tel" placeholder="(48) 99999-9999" value="'+safe(details.phone||"")+'"><label for="legacy-birth-date">Data de aniversário</label><input id="legacy-birth-date" type="date" required value="'+safe(details.birth_date||"")+'"><p id="app-message" class="muted" role="status">'+safe(message||"Usaremos esses dados somente para localizar seu cadastro existente.")+'</p><button class="btn btn-primary" type="submit">VINCULAR E CONTINUAR</button><button class="btn btn-secondary" id="back-legacy-link" type="button">VOLTAR</button></form>';
   actions.replaceChildren();
   const form=document.querySelector("#legacy-link-form");
   form.addEventListener("submit",async function(event){
@@ -355,6 +403,8 @@ async function continueKioskCustomer(result, selectedIds = [], savedSelection = 
   state.pendingPurpose=null;
   state.pendingRegistration=null;
   state.pendingClaimToken=null;
+  state.pendingIdentifier=null;
+  state.pendingLegacyClaim=null;
   state.user=null;
   state.role="customer";
   state.message="";
