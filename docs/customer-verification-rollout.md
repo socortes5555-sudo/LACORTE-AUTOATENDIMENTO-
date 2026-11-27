@@ -1,12 +1,19 @@
 # Implantação segura da confirmação de clientes
 
-## Estado verificado em 24/11/2026
+## Estado verificado em 27/11/2026
 
 - A Edge Function `lacorte-kiosk` em produção está na versão 12 e ainda implementa cadastro e identificação sem OTP (ações `register` e `identify`).
-- O PR [#17](https://github.com/socortes5555-sudo/LACORTE-AUTOATENDIMENTO-/pull/17) contém a implementação de OTP por e-mail, mas permanece aberto e não publicada.
+- O PR [#19](https://github.com/socortes5555-sudo/LACORTE-AUTOATENDIMENTO-/pull/19) contém a implementação de OTP por e-mail, permanece aberto e ainda não foi publicada.
 - A migração aditiva `20261123181605_customer_email_otp_unique_index` consta no histórico do Supabase.
 - A configuração de SMTP e do modelo de e-mail não pode ser confirmada pelas integrações disponíveis nesta execução.
 - WhatsApp OTP não está configurado.
+
+## Compatibilidade da identificação recorrente no PR #19
+
+- O totem continua recebendo nome completo ou telefone. O servidor resolve o cadastro ativo e envia o OTP ao e-mail já vinculado, sem devolver o endereço ao navegador.
+- Na etapa de confirmação, o cliente informa o e-mail que recebeu o código; o servidor confere novamente que ele pertence ao cadastro localizado antes de criar o token temporário do autoatendimento.
+- Se houver nomes iguais, orientar o cliente a usar o telefone. Para cadastro sem e-mail, existe uma opção separada de vinculação: informar um endereço novo, confirmar o OTP e comprovar nome, sobrenome, telefone e nascimento exatos.
+- Os testes `tests/kiosk-email-otp.test.mjs` cobrem a busca por nome/telefone, o envio sem exposição do endereço, a revalidação do cadastro e a rota de vinculação legada.
 
 ## Pré-requisitos no Supabase
 
@@ -46,7 +53,7 @@ O front-end GitHub Pages e a Edge Function Supabase são publicados separadament
 Antes da liberação, prepare uma etapa intermediária compatível (ou uma janela controlada de manutenção) para garantir que o front-end e a função sejam atualizados em conjunto. Depois:
 
 1. Confirme SMTP e template com envio real para endereço externo.
-2. Execute a CI completa do PR #17 e revise o diff final.
+2. Execute a CI completa do PR #19 e revise o diff final.
 3. Prepare a transição coordenada da Edge Function e das quatro entradas PWA/Pages, respeitando o cache.
 4. Teste cadastro novo e cliente antigo em produção com um cadastro de teste autorizado.
 5. Só então encerre as ações legadas sem OTP e confirme que a versão publicada não permite retornar ao fluxo antigo.
