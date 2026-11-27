@@ -94,9 +94,11 @@ Deno.serve(async (req: Request) => {
   };
   const action = String(payload.action);
   // The database rate-limit RPC accepts only its established action names.
-  const rateAction = action === "send_email_code" ? "register"
-    : ["verify_email_code", "claim_legacy_customer"].includes(action) ? "identify"
-    : action;
+  const rateAction = action === "send_email_code"
+    ? (payload.purpose === "identify" ? "identify" : "register")
+    : action === "verify_email_code"
+      ? (payload.purpose === "register" ? "register" : "identify")
+      : action;
   const currentLimit = rateLimits[action];
   if (currentLimit) {
     const rate = await admin.rpc("lacorte_kiosk_rate_limit", {
@@ -109,7 +111,21 @@ Deno.serve(async (req: Request) => {
     if (rate.data !== true) return reply(429, { error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." });
   }
 
-  if (action === "send_email_code" || action === "verify_email_code") {
+  if (action === "send_email_code" && payload.purpose === "identify" ||
+      action === "verify_email_code" && payload.purpose === "identify") {
+    const identifier = String(payload.identifier || "").trim();
+    if (!identifier || identifier.length > 120) return reply(400, { error: "Digite nome completo ou telefone com DDD." });
+    const identifierRate = await admin.rpc("lacorte_kiosk_rate_limit", {
+      p_key_hash: await hashRateKey("identifier:" + identifier.toLocaleLowerCase("pt-BR")),
+      p_action: "identify_identifier",
+      p_limit: 6,
+      p_window_seconds: 600,
+    });
+    if (identifierRate.error) return reply(503, { error: "Autoatendimento temporariamente indisponível. Tente novamente." });
+    if (identifierRate.data !== true) return reply(429, { error: "Muitas tentativas para esse cadastro. Aguarde alguns minutos." });
+  }
+
+  if (action === "verify_email_code" || action === "send_email_code" && payload.purpose !== "identify") {
     const email = normalizeEmail(payload.email);
     if (!isValidEmail(email)) return reply(400, { error: "Informe um e-mail válido." });
     const emailRate = await admin.rpc("lacorte_kiosk_rate_limit", {
@@ -120,6 +136,38 @@ Deno.serve(async (req: Request) => {
     });
     if (emailRate.error) return reply(503, { error: "Confirmação temporariamente indisponível. Tente novamente." });
     if (emailRate.data !== true) return reply(429, { error: "Muitas tentativas para este e-mail. Aguarde alguns minutos." });
+  }
+
+  async function findCustomerByIdentifier(identifier: string) {
+    const clean = String(identifier || "").trim();
+    const digits = clean.replace(/\D/g, "");
+    const isPhone = digits.length >= 10;
+    if (clean.length < 5 || clean.length > 120) {
+      return { error: { status: 400, message: "Digite nome e sobrenome completos ou telefone com DDD." } };
+    }
+    if (isPhone && ![10, 11, 12, 13].includes(digits.length)) {
+      return { error: { status: 400, message: "Telefone inválido. Informe o DDD." } };
+    }
+    if (!isPhone && clean.split(/\s+/).filter(Boolean).length < 2) {
+      return { error: { status: 400, message: "Digite nome e sobrenome completos." } };
+    }
+    const { data, error } = await admin.rpc("lacorte_find_customer_for_kiosk", { p_identifier: clean });
+    if (error) {
+      const message = error.message.includes("mais de um cadastro")
+        ? (isPhone
+          ? "Esse telefone está vinculado a mais de um cadastro. Procure a equipe LaCorte para corrigir a duplicidade."
+          : "Encontramos nomes parecidos. Use seu telefone com DDD para localizar o cadastro correto.")
+        : "Não foi possível localizar esse cadastro. Confira os dados ou procure a equipe.";
+      return { error: { status: 400, message } };
+    }
+    const match = Array.isArray(data) ? data[0] : data;
+    if (!match) return { error: { status: 404, message: "Cadastro não encontrado. Confira os dados ou procure a equipe." } };
+    const { data: customer, error: customerError } = await admin.from("customers")
+      .select("id,first_name,last_name,phone,email,user_id")
+      .eq("id", match.id).is("deleted_at", null).maybeSingle();
+    if (customerError) return { error: { status: 500, message: "Não foi possível carregar o cadastro." } };
+    if (!customer) return { error: { status: 404, message: "Cadastro não encontrado. Confira os dados ou procure a equipe." } };
+    return { customer };
   }
 
   if (action === "claim_legacy_customer") {
@@ -139,9 +187,37 @@ Deno.serve(async (req: Request) => {
   if (action === "send_email_code") {
     if (!authClient) return reply(500, { error: "Confirmação por e-mail indisponível. Procure a equipe." });
     const purpose = String(payload.purpose || "");
-    if (!["register", "identify"].includes(purpose)) return reply(400, { error: "Etapa de confirmação inválida." });
+    if (!["register", "identify", "claim"].includes(purpose)) return reply(400, { error: "Etapa de confirmação inválida." });
+    let email = normalizeEmail(payload.email);
+    if (purpose === "identify") {
+      const found = await findCustomerByIdentifier(String(payload.identifier || ""));
+      if (found.error) return reply(found.error.status, { error: found.error.message });
+      if (!found.customer.email || !isValidEmail(found.customer.email)) {
+        return reply(409, { error: "Este cadastro ainda não tem um e-mail vinculado. Use a opção de atualização ou procure a equipe La Corte." });
+      }
+      email = normalizeEmail(found.customer.email);
+    } else {
+      if (!isValidEmail(email)) return reply(400, { error: "Informe um e-mail válido." });
+      if (purpose === "claim") {
+        const { data: existingEmail, error: existingError } = await admin.from("customers")
+          .select("id").eq("email", email).is("deleted_at", null).maybeSingle();
+        if (existingError) return reply(500, { error: "Não foi possível verificar este e-mail." });
+        if (existingEmail) return reply(409, { error: "Este e-mail já está vinculado a um cadastro. Use “Já tenho cadastro”." });
+      }
+    }
+    if (!isValidEmail(email)) return reply(409, { error: "Não foi possível enviar o código para este cadastro. Procure a equipe La Corte." });
+    if (purpose !== "identify") {
+      const emailRate = await admin.rpc("lacorte_kiosk_rate_limit", {
+        p_key_hash: await hashRateKey("email:" + email),
+        p_action: purpose === "claim" ? "identify_identifier" : "register",
+        p_limit: purpose === "claim" ? 4 : 3,
+        p_window_seconds: purpose === "claim" ? 600 : 900,
+      });
+      if (emailRate.error) return reply(503, { error: "Confirmação temporariamente indisponível. Tente novamente." });
+      if (emailRate.data !== true) return reply(429, { error: "Muitas tentativas para este e-mail. Aguarde alguns minutos." });
+    }
     const { error } = await authClient.auth.signInWithOtp({
-      email: normalizeEmail(payload.email),
+      email,
       options: { shouldCreateUser: true },
     });
     if (error) return reply(503, { error: "Não foi possível enviar o código. Aguarde um minuto e tente novamente." });
@@ -153,7 +229,7 @@ Deno.serve(async (req: Request) => {
     const email = normalizeEmail(payload.email);
     const token = String(payload.token || "").trim();
     const purpose = String(payload.purpose || "");
-    if (!isValidEmail(email) || !/^[0-9]{6}$/.test(token) || !["register", "identify"].includes(purpose)) {
+    if (!isValidEmail(email) || !/^[0-9]{6}$/.test(token) || !["register", "identify", "claim"].includes(purpose)) {
       return reply(400, { error: "Informe o e-mail e o código de seis números." });
     }
     const verified = await authClient.auth.verifyOtp({ email, token, type: "email" });
@@ -211,37 +287,48 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data: byUser, error: userLookupError } = await admin.from("customers")
-      .select("id,first_name,last_name,phone,email,user_id")
-      .eq("user_id", authUser.id).is("deleted_at", null).maybeSingle();
-    if (userLookupError) return reply(500, { error: "Não foi possível localizar seu cadastro." });
-    let customer = byUser;
-    if (!customer) {
-      const { data: byEmail, error: emailLookupError } = await admin.from("customers")
-        .select("id,first_name,last_name,phone,email,user_id")
-        .eq("email", email).is("deleted_at", null).maybeSingle();
-      if (emailLookupError) return reply(500, { error: "Não foi possível localizar seu cadastro." });
-      customer = byEmail;
+    if (purpose === "identify") {
+      const found = await findCustomerByIdentifier(String(payload.identifier || ""));
+      if (found.error) return reply(found.error.status, { error: "Não foi possível confirmar esse cadastro. Confira os dados ou procure a equipe." });
+      const customer = found.customer;
+      if (!customer.email || normalizeEmail(customer.email) !== email) {
+        return reply(401, { error: "Código inválido para este cadastro. Confira o e-mail e tente novamente." });
+      }
+      if (customer.user_id && customer.user_id !== authUser.id) {
+        return reply(409, { error: "Este cadastro já está vinculado a outro acesso. Procure a equipe La Corte." });
+      }
+      const { data: linkedByUser, error: linkedByUserError } = await admin.from("customers")
+        .select("id").eq("user_id", authUser.id).is("deleted_at", null).maybeSingle();
+      if (linkedByUserError) return reply(500, { error: "Não foi possível validar o vínculo do cadastro." });
+      if (linkedByUser && linkedByUser.id !== customer.id) {
+        return reply(409, { error: "Este e-mail já está vinculado a outro cadastro. Procure a equipe La Corte." });
+      }
+      let linkQuery = admin.from("customers")
+        .update({ email, user_id: authUser.id, updated_at: new Date().toISOString() })
+        .eq("id", customer.id).is("deleted_at", null);
+      linkQuery = customer.user_id ? linkQuery.eq("user_id", authUser.id) : linkQuery.is("user_id", null);
+      linkQuery = linkQuery.eq("email", customer.email);
+      const { data: linkedCustomer, error: linkError } = await linkQuery
+        .select("id,first_name,last_name,phone").maybeSingle();
+      if (linkError || !linkedCustomer) return reply(409, { error: "Não foi possível confirmar este cadastro. Procure a equipe La Corte." });
+      const expires = Date.now() + 10 * 60 * 1000;
+      const signature = await signLookup(String(linkedCustomer.id), expires, serviceKey);
+      return reply(200, {
+        customer: { id: linkedCustomer.id, first_name: linkedCustomer.first_name, last_name: linkedCustomer.last_name, phone: linkedCustomer.phone },
+        lookup_token: String(linkedCustomer.id) + "." + String(expires) + "." + signature,
+      });
     }
-    if (!customer) {
+
+    if (purpose === "claim") {
+      const [emailExisting, userExisting] = await Promise.all([
+        admin.from("customers").select("id").eq("email", email).is("deleted_at", null).maybeSingle(),
+        admin.from("customers").select("id").eq("user_id", authUser.id).is("deleted_at", null).maybeSingle(),
+      ]);
+      if (emailExisting.error || userExisting.error) return reply(500, { error: "Não foi possível conferir o cadastro antigo." });
+      if (emailExisting.data || userExisting.data) return reply(409, { error: "Este e-mail já está vinculado a um cadastro. Use “Já tenho cadastro”." });
       const claimToken = await signCustomerClaim(String(authUser.id), email, Date.now() + 5 * 60 * 1000, serviceKey);
       return reply(200, { needs_legacy_link: true, claim_token: claimToken });
     }
-    if (customer.user_id && customer.user_id !== authUser.id) return reply(409, { error: "Este cadastro já está vinculado a outro acesso. Procure a equipe La Corte." });
-    let linkQuery = admin.from("customers")
-      .update({ email, user_id: authUser.id, updated_at: new Date().toISOString() })
-      .eq("id", customer.id).is("deleted_at", null);
-    linkQuery = customer.user_id ? linkQuery.eq("user_id", authUser.id) : linkQuery.is("user_id", null);
-    linkQuery = customer.email ? linkQuery.eq("email", customer.email) : linkQuery.is("email", null);
-    const { data: linkedCustomer, error: linkError } = await linkQuery
-      .select("id,first_name,last_name,phone").maybeSingle();
-    if (linkError || !linkedCustomer) return reply(409, { error: "Não foi possível vincular este e-mail. Procure a equipe La Corte." });
-    const expires = Date.now() + 10 * 60 * 1000;
-    const signature = await signLookup(String(linkedCustomer.id), expires, serviceKey);
-    return reply(200, {
-      customer: { id: linkedCustomer.id, first_name: linkedCustomer.first_name, last_name: linkedCustomer.last_name, phone: linkedCustomer.phone },
-      lookup_token: String(linkedCustomer.id) + "." + String(expires) + "." + signature,
-    });
   }
 
   if (action === "claim_legacy_customer") {
