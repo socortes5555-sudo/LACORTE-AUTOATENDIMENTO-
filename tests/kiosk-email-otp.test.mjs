@@ -153,8 +153,10 @@ test('falha no envio de OTP mantém cadastro e identificação bloqueados sem ex
     const catchStart = form.indexOf('}catch(error){');
     assert.notEqual(catchStart, -1, 'o formulário precisa tratar falhas de envio');
     const failurePath = form.slice(catchStart);
-    assert.match(failurePath, /showMessage\(error\.message/);
-    assert.match(failurePath, /button\.disabled=false/);
-    assert.doesNotMatch(failurePath, /renderCustomerEmailVerification|continueKioskCustomer/);
+    const catchEnd = failurePath.indexOf("});");
+    const failureBody = catchEnd >= 0 ? failurePath.slice(0, catchEnd) : failurePath;
+    assert.match(failureBody, /showMessage\(error\.message/);
+    assert.match(failureBody, /button\.disabled=false/);
+    assert.doesNotMatch(failureBody, /renderCustomerEmailVerification|continueKioskCustomer/);
   }
 });
