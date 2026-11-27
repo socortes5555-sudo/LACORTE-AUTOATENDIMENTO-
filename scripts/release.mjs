@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,10 +7,24 @@ const files=readdirSync(root).filter(path=>/\.(js|css|webmanifest)$/.test(path))
  'cliente/service-worker.js','equipe/service-worker.js','cliente/manifest.webmanifest','equipe/manifest.webmanifest').sort();
 const assetFiles=(dir)=>readdirSync(resolve(root,dir),{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?assetFiles(dir+'/'+entry.name):[dir+'/'+entry.name]);
 const normalize=text=>text.replace(/connect-src (?!'self')/,"connect-src 'self' " ).replace(/^.*<meta name="lacorte-release"[^>]+>\n/gm,'').replace(/([?&]v=)[^"'\s<>]+/g,'$1RELEASE');
-const hash=createHash('sha256');
-for(const path of files)hash.update(path+'\0'+normalize(readFileSync(resolve(root,path),'utf8'))+'\0');
-for(const path of assetFiles('assets').sort())hash.update(path+'\0').update(readFileSync(resolve(root,path)));
-const version=hash.digest('hex').slice(0,16);
+// FNV-1a 64-bit is used only as a cache-busting fingerprint, never as a security token.
+const fingerprint=value=>{
+ const text=typeof value==='string'?value:value.toString('base64');
+ let hash=0xcbf29ce484222325n;
+ for(let i=0;i<text.length;i++)hash=BigInt.asUintN(64,(hash^BigInt(text.charCodeAt(i)))*0x100000001b3n);
+ return hash.toString(16).padStart(16,'0');
+};
+const entries=[];
+for(const path of files){
+ const content=normalize(readFileSync(resolve(root,path),'utf8'));
+ entries.push(path+'\0'+fingerprint(content)+'\0');
+}
+for(const path of assetFiles('assets').sort()){
+ const assetPath=resolve(root,path);
+ const content=path.endsWith('.svg')?readFileSync(assetPath,'utf8'):readFileSync(assetPath);
+ entries.push(path+'\0'+fingerprint(content)+'\0');
+}
+const version=fingerprint(entries.join(''));
 const outputs=new Map();
 for(const path of pages){
  let text=normalize(readFileSync(resolve(root,path),'utf8'));
