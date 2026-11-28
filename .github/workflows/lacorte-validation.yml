@@ -1,0 +1,29 @@
+name: LaCorte validation
+on:
+  push:
+    branches: [feature/clube-fila-online-design]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JS syntax
+        run: |
+          find . -name '*.mjs' -not -path './node_modules/*' -print0 | xargs -0 -r -n1 node --check
+          find . -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -r -n1 node --check
+      - name: Run automated tests
+        run: node --test tests/*.test.mjs
+      - name: Synchronize release assets
+        run: node scripts/release.mjs
+      - name: Verify release consistency
+        run: node scripts/release.mjs --check
+      - name: Check release file changes
+        run: |
+          git diff --exit-code -- index.html cliente/index.html barbeiros.html equipe/index.html version.json
