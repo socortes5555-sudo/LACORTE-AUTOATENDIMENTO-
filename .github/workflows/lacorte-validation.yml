@@ -1,4 +1,4 @@
-name: LaCorte validation
+name: LaCorte validation and release
 on:
   push:
     branches: [feature/clube-fila-online-design]
