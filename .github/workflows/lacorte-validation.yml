@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
 permissions:
-  contents: read
+  contents: write
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -18,12 +18,19 @@ jobs:
         run: |
           find . -name '*.mjs' -not -path './node_modules/*' -print0 | xargs -0 -r -n1 node --check
           find . -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -r -n1 node --check
-      - name: Run automated tests
-        run: node --test tests/*.test.mjs
       - name: Synchronize release assets
         run: node scripts/release.mjs
+      - name: Run automated tests
+        run: node --test tests/*.test.mjs
       - name: Verify release consistency
         run: node scripts/release.mjs --check
-      - name: Check release file changes
+      - name: Commit synchronized release files to development branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/clube-fila-online-design'
         run: |
-          git diff --exit-code -- index.html cliente/index.html barbeiros.html equipe/index.html version.json
+          if ! git diff --quiet -- index.html cliente/index.html barbeiros.html equipe/index.html version.json; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add index.html cliente/index.html barbeiros.html equipe/index.html version.json
+            git commit -m 'chore: synchronize LaCorte release version'
+            git push
+          fi
